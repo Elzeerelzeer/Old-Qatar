@@ -20,8 +20,8 @@ import { soundManager } from './services/soundEffects';
 const STORAGE_KEY = 'qatar_lowwal_heritage_save_v1';
 
 export default function App() {
-  // Current game scene
-  const [currentScene, setCurrentScene] = useState<GameScene>('intro');
+  // Current game scene - default to 'village' for direct preview of the Master Map
+  const [currentScene, setCurrentScene] = useState<GameScene>('village');
   const [activeStationId, setActiveStationId] = useState<StationId | null>(null);
 
   // Character state

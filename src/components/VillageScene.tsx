@@ -15,7 +15,6 @@ import {
   ArrowDown, 
   ArrowLeft, 
   ArrowRight,
-  Sparkles,
   CheckCircle2
 } from 'lucide-react';
 
@@ -34,13 +33,10 @@ interface CollisionBox {
   y2: number;
 }
 
-// Master visual image paths (supports jpg, png, or webp)
-const MASTER_IMAGE_PATH = '/assets/village/qatar_lowwal_village_master.jpg';
-const MASTER_IMAGE_FALLBACK = '/assets/village/qatar_lowwal_village_master.png';
+// Master visual map path requested by user (official clean map)
+const MASTER_IMAGE_PATH = '/assets/a_wide_cinematic_high_detail_clean_game_map_st.png';
 
-// Precise invisible collision boxes matching the master artwork layout:
-// Blocks buildings, walls, trees, sea, and decor.
-// Leaves roads, central plaza, and entrance zones fully walkable.
+// Invisible collision boxes matching the village master map layout
 const OBSTACLE_BOXES: CollisionBox[] = [
   // 1. Souq building & stall canopies (top-left)
   { x1: 7, y1: 18, x2: 34, y2: 38 },
@@ -70,28 +66,41 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
   stampedStations,
   onResetPositionRef,
 }) => {
-  // Player coordinates (0 to 100 percent of the village world)
+  // Player coordinates: Starts in front of «بوابة قطر لوّل» (empty gateway path)
   const [posX, setPosX] = useState(50);
-  const [posY, setPosY] = useState(86);
+  const [posY, setPosY] = useState(87);
   const [direction, setDirection] = useState<Direction>('up');
   const [isMoving, setIsMoving] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
 
+  // Responsive character size: Mobile +15% (~48px), Desktop & Interactive Smart Board +10% (~46px)
+  const [isMobileScreen, setIsMobileScreen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const characterSize = isMobileScreen ? 48 : 46;
+
   // Proximity highlight
   const [nearbyStation, setNearbyStation] = useState<StationData | null>(null);
 
-  // Camera coordinates (for smooth following)
+  // Camera coordinates (pixel offset for smooth following)
   const [camera, setCamera] = useState({ x: 0, y: 0 });
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const worldContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Abu Rashid Welcome Bubble (4 seconds duration, then fades out)
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
 
   // Keyboard navigation detection
   const [hasUsedKeyboard, setHasUsedKeyboard] = useState(false);
-
-  // Image source state with fallback support
-  const [imageSrc, setImageSrc] = useState(MASTER_IMAGE_PATH);
 
   // Refs for animation loop
   const activeKeysRef = useRef<Record<string, boolean>>({});
@@ -108,19 +117,19 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
-  // Reset character to central plaza
-  const resetToCenter = useCallback(() => {
+  // Reset character to Qatar Lowwal Gate entrance
+  const resetToGate = useCallback(() => {
     setPosX(50);
-    setPosY(60);
-    setDirection('down');
+    setPosY(87);
+    setDirection('up');
     setIsMoving(false);
   }, []);
 
   useEffect(() => {
     if (onResetPositionRef) {
-      onResetPositionRef(resetToCenter);
+      onResetPositionRef(resetToGate);
     }
-  }, [onResetPositionRef, resetToCenter]);
+  }, [onResetPositionRef, resetToGate]);
 
   // Ambient sea sounds
   useEffect(() => {
@@ -134,12 +143,9 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
 
   // Collision checking against boundaries & obstacles
   const checkCollision = (nextX: number, nextY: number): boolean => {
-    // Village outer boundaries:
-    // Left/Right limits
+    // Village outer boundaries
     if (nextX < 6 || nextX > 94) return true;
-    // Bottom gate boundary
     if (nextY > 88) return true;
-    // Top sea boundary (can only go to y: 22 near pier at x: 46-54, otherwise sea stops at y: 24)
     if (nextY < 24) {
       const atPier = nextX >= 45 && nextX <= 55 && nextY >= 21;
       if (!atPier) return true;
@@ -178,7 +184,6 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
       activeKeysRef.current[e.code] = true;
       setHasUsedKeyboard(true);
 
-      // Enter or Space key enters station if nearby
       if ((e.key === 'Enter' || e.key === ' ') && nearbyStation) {
         handleEnterStation(nearbyStation.id);
       }
@@ -264,15 +269,42 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
         setIsMoving(false);
       }
 
-      // Smooth Camera Follow:
-      // Target camera offset keeps player centered with responsive range.
-      const targetCamX = (50 - posX) * 0.42;
-      const targetCamY = (50 - posY) * 0.42;
+      // Smooth Camera Follow calculation
+      const containerEl = worldContainerRef.current;
+      const viewportEl = viewportRef.current;
 
-      setCamera((prev) => ({
-        x: prev.x + (targetCamX - prev.x) * 0.08,
-        y: prev.y + (targetCamY - prev.y) * 0.08,
-      }));
+      if (containerEl && viewportEl) {
+        const vW = viewportEl.clientWidth;
+        const vH = viewportEl.clientHeight;
+        const cW = containerEl.clientWidth;
+        const cH = containerEl.clientHeight;
+
+        // Character world pixel coordinates
+        const charPixelX = (posX / 100) * cW;
+        const charPixelY = (posY / 100) * cH;
+
+        // Centering target
+        let targetCamX = (vW / 2) - charPixelX;
+        let targetCamY = (vH / 2) - charPixelY;
+
+        // Clamp camera so the village map always fills the viewport smoothly
+        if (cW > vW) {
+          targetCamX = Math.min(0, Math.max(vW - cW, targetCamX));
+        } else {
+          targetCamX = (vW - cW) / 2;
+        }
+
+        if (cH > vH) {
+          targetCamY = Math.min(0, Math.max(vH - cH, targetCamY));
+        } else {
+          targetCamY = (vH - cH) / 2;
+        }
+
+        setCamera((prev) => ({
+          x: prev.x + (targetCamX - prev.x) * 0.1,
+          y: prev.y + (targetCamY - prev.y) * 0.1,
+        }));
+      }
 
       // Proximity detection for stations
       const stations = Object.values(STATIONS_DATA);
@@ -322,43 +354,41 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
     <div
       ref={viewportRef}
       id="village-interactive-viewport"
-      className="relative w-full h-screen overflow-hidden bg-[#180d07] select-none text-[#FAF5EA]"
+      className="relative w-full h-screen overflow-hidden bg-black select-none text-[#FAF5EA]"
     >
       {/* ======================================================== */}
-      {/* 2.5D ISOMETRIC VILLAGE WORLD CONTAINER WITH CAMERA FOLLOW */}
+      {/* 2.5D VILLAGE WORLD CONTAINER WITH CAMERA FOLLOW          */}
+      {/* Preserves aspect ratio 1672/941 without cropping/skewing */}
       {/* ======================================================== */}
       <div
+        ref={worldContainerRef}
         id="village-world-container"
-        className="absolute inset-[-25%] w-[150%] h-[150%] sm:inset-[-20%] sm:w-[140%] sm:h-[140%] transition-transform duration-75 ease-out will-change-transform"
+        className="absolute top-0 left-0 transition-transform duration-75 ease-out will-change-transform"
         style={{
-          transform: `translate3d(${camera.x}%, ${camera.y}%, 0)`,
+          width: 'max(130vw, calc(125vh * 1.7768))',
+          height: 'max(125vh, calc(130vw / 1.7768))',
+          aspectRatio: '1672 / 941',
+          transform: `translate3d(${camera.x}px, ${camera.y}px, 0)`,
         }}
       >
         {/* ---------------------------------------------------- */}
-        {/* MASTER VISUAL ENVIRONMENT LAYER (REFERENCE ARTWORK)  */}
+        {/* MASTER VISUAL MAP LAYER                              */}
+        {/* Directly loaded from master png file with object-fit */}
         {/* ---------------------------------------------------- */}
         <div 
           id="village-master-artwork-layer"
-          className="relative w-full h-full pointer-events-none"
+          className="absolute inset-0 w-full h-full pointer-events-none"
         >
           <img
-            src={imageSrc}
-            alt="قرية قطر لوّل التراثية"
-            className="w-full h-full object-cover select-none pointer-events-none"
+            src={MASTER_IMAGE_PATH}
+            alt="خريطة قرية قطر لوّل التراثية"
+            className="w-full h-full object-contain pointer-events-none select-none block"
             referrerPolicy="no-referrer"
-            onError={() => {
-              if (imageSrc !== MASTER_IMAGE_FALLBACK) {
-                setImageSrc(MASTER_IMAGE_FALLBACK);
-              }
-            }}
           />
-
-          {/* Subtle Warm Atmospheric Ambient Lighting Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1a0e08]/30 via-transparent to-[#FFE082]/10 mix-blend-soft-light pointer-events-none" />
         </div>
 
         {/* ---------------------------------------------------- */}
-        {/* INVISIBLE INTERACTION LAYER (HOTSPOTS & GOLDEN GLOW) */}
+        {/* INVISIBLE INTERACTION LAYER (6 TRANSPARENT HOTSPOTS) */}
         {/* ---------------------------------------------------- */}
         <div id="village-hotspots-layer" className="absolute inset-0 pointer-events-none">
           {Object.values(STATIONS_DATA).map((station) => {
@@ -375,18 +405,15 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
                   top: `${station.doorY}%`,
                 }}
               >
-                {/* 1. Golden Glow Pulse over the real entrance when approached */}
+                {/* Subtle golden glow when approaching the entrance */}
                 {isNear && (
-                  <div className="relative -translate-x-1/2 -translate-y-1/2">
-                    {/* Deep soft radial gold bloom */}
-                    <div className="absolute -inset-10 rounded-full bg-[#FBBF24]/35 blur-xl animate-pulse pointer-events-none" />
-                    {/* Golden entrance beacon ring */}
-                    <div className="absolute -inset-6 rounded-full border-2 border-[#FFE082]/80 shadow-[0_0_20px_#FBBF24] animate-ping opacity-75 pointer-events-none" />
-                    <div className="absolute -inset-2 rounded-full bg-[#FFE082]/30 blur-sm pointer-events-none" />
+                  <div className="relative -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                    <div className="absolute -inset-8 rounded-full bg-[#FFE082]/25 blur-xl pointer-events-none animate-pulse" />
+                    <div className="absolute -inset-4 rounded-full bg-[#FBBF24]/30 blur-md pointer-events-none" />
                   </div>
                 )}
 
-                {/* Stamped Badge Marker (Subtle indicator if already visited) */}
+                {/* Stamped Badge Marker (Subtle indicator if already completed) */}
                 {isDone && !isNear && (
                   <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#8A1538]/70 border border-[#FFE082]/40 text-[10px] text-[#FFE082] font-bold shadow-sm backdrop-blur-xs">
                     <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
@@ -399,7 +426,7 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
         </div>
 
         {/* ---------------------------------------------------- */}
-        {/* CHARACTER LAYER (INDEPENDENT LAYER ABOVE ARTWORK)    */}
+        {/* CHARACTER LAYER (INDEPENDENT LAYER OVER MASTER MAP)  */}
         {/* ---------------------------------------------------- */}
         <div
           id="player-character-token"
@@ -415,16 +442,24 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-7 h-2 bg-[#d4a769]/50 rounded-full blur-[1.5px] animate-ping" />
           )}
 
-          {/* Soft Ground Ambient Occlusion Shadow */}
-          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-3 bg-black/45 rounded-full blur-[2px] pointer-events-none" />
+          {/* Clear & Light Soft Ground Shadow to improve visibility on map */}
+          <div
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full pointer-events-none transition-all duration-150"
+            style={{
+              width: `${Math.round(characterSize * 0.82)}px`,
+              height: `${Math.max(6, Math.round(characterSize * 0.24))}px`,
+              background: 'radial-gradient(ellipse at center, rgba(15, 8, 3, 0.44) 0%, rgba(20, 10, 4, 0.22) 55%, transparent 75%)',
+              filter: 'blur(1.5px)',
+            }}
+          />
 
-          {/* 3D Stylized Character Avatar */}
+          {/* 3D Stylized Character Avatar - Proportional to village perspective */}
           <CharacterAvatar
             gender={gender}
             direction={direction}
             isMoving={isMoving}
             isCelebrating={isCelebrating}
-            size={52}
+            size={characterSize}
           />
         </div>
 
@@ -438,22 +473,21 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
             className="absolute z-40 cursor-pointer animate-bounce"
             style={{
               left: `${nearbyStation.doorX}%`,
-              top: `${nearbyStation.doorY - 6}%`,
+              top: `${nearbyStation.doorY - 5}%`,
               transform: 'translate(-50%, -100%)',
             }}
           >
             <button
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#8A1538]/95 border-2 border-[#FFE082] shadow-[0_8px_24px_rgba(0,0,0,0.85)] text-white hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-xs"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#8A1538] border border-[#FFE082] shadow-[0_4px_18px_rgba(0,0,0,0.85)] text-white hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-xs"
               aria-label={`ادخل إلى ${nearbyStation.title}`}
             >
-              <DoorOpen className="w-4 h-4 text-[#FFE082]" />
-              <span className="text-xs sm:text-sm font-black text-[#FFE082]">
+              <DoorOpen className="w-3.5 h-3.5 text-[#FFE082]" />
+              <span className="text-xs font-black text-[#FFE082]">
                 ادخل
               </span>
               <span className="text-xs font-bold text-white">
                 {nearbyStation.title}
               </span>
-              <Sparkles className="w-3.5 h-3.5 text-[#FFE082]" />
             </button>
           </div>
         )}
@@ -461,15 +495,13 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
 
       {/* ======================================================== */}
       {/* ABU RASHID WELCOME BUBBLE (FADES OUT AFTER 4 SECONDS)    */}
-      {/* Small top speech bubble as requested                     */}
       {/* ======================================================== */}
       {showWelcomeMessage && (
         <aside
           aria-label="رسالة أبو راشد"
           className="fixed top-14 left-1/2 -translate-x-1/2 z-45 max-w-sm sm:max-w-md w-[90%] transition-all duration-700 pointer-events-none animate-in fade-in slide-in-from-top-3"
         >
-          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-[#1c0e07]/85 border border-[#E6C280]/40 shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md">
-            {/* Abu Rashid Icon */}
+          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-black/75 border border-[#E6C280]/40 shadow-[0_8px_24px_rgba(0,0,0,0.7)] backdrop-blur-md">
             <div className="w-8 h-8 rounded-full bg-[#8A1538] border border-[#FFE082] flex items-center justify-center text-sm shadow shrink-0">
               👴🏻
             </div>
@@ -487,23 +519,22 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
 
       {/* ======================================================== */}
       {/* COMPACT TRANSLUCENT TOUCH D-PAD (BOTTOM-LEFT CORNER)     */}
-      {/* Compact & High Translucency to not obstruct the scenery  */}
       {/* ======================================================== */}
       <div
         id="compact-touch-dpad"
-        className="fixed bottom-3 left-3 z-40 flex items-end gap-2 pointer-events-auto select-none"
+        className="fixed bottom-2.5 left-2.5 z-40 flex items-end gap-1.5 pointer-events-auto select-none"
       >
-        <div className="relative w-20 h-20 rounded-full bg-[#120804]/20 border border-[#E6C280]/15 p-1 shadow-md backdrop-blur-xs">
+        <div className="relative w-16 h-16 rounded-full bg-black/25 border border-[#E6C280]/20 p-0.5 shadow-md backdrop-blur-xs">
           {/* Up */}
           <button
             id="dpad-btn-up"
             onPointerDown={() => handleTouchStart('up')}
             onPointerUp={handleTouchEnd}
             onPointerLeave={handleTouchEnd}
-            className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-md bg-[#381c0d]/40 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082]/90 shadow cursor-pointer active:scale-90"
+            className="absolute top-0.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded bg-white/10 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082] shadow cursor-pointer active:scale-90"
             aria-label="تحرك للأعلى"
           >
-            <ArrowUp className="w-3 h-3 stroke-[2.5]" />
+            <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" />
           </button>
 
           {/* Down */}
@@ -512,10 +543,10 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
             onPointerDown={() => handleTouchStart('down')}
             onPointerUp={handleTouchEnd}
             onPointerLeave={handleTouchEnd}
-            className="absolute bottom-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-md bg-[#381c0d]/40 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082]/90 shadow cursor-pointer active:scale-90"
+            className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded bg-white/10 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082] shadow cursor-pointer active:scale-90"
             aria-label="تحرك للأسفل"
           >
-            <ArrowDown className="w-3 h-3 stroke-[2.5]" />
+            <ArrowDown className="w-2.5 h-2.5 stroke-[2.5]" />
           </button>
 
           {/* Left */}
@@ -524,10 +555,10 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
             onPointerDown={() => handleTouchStart('left')}
             onPointerUp={handleTouchEnd}
             onPointerLeave={handleTouchEnd}
-            className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md bg-[#381c0d]/40 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082]/90 shadow cursor-pointer active:scale-90"
+            className="absolute left-0.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded bg-white/10 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082] shadow cursor-pointer active:scale-90"
             aria-label="تحرك لليسار"
           >
-            <ArrowLeft className="w-3 h-3 stroke-[2.5]" />
+            <ArrowLeft className="w-2.5 h-2.5 stroke-[2.5]" />
           </button>
 
           {/* Right */}
@@ -536,10 +567,10 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
             onPointerDown={() => handleTouchStart('right')}
             onPointerUp={handleTouchEnd}
             onPointerLeave={handleTouchEnd}
-            className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md bg-[#381c0d]/40 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082]/90 shadow cursor-pointer active:scale-90"
+            className="absolute right-0.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded bg-white/10 active:bg-[#8A1538]/80 border border-[#E6C280]/20 flex items-center justify-center text-[#FFE082] shadow cursor-pointer active:scale-90"
             aria-label="تحرك لليمين"
           >
-            <ArrowRight className="w-3 h-3 stroke-[2.5]" />
+            <ArrowRight className="w-2.5 h-2.5 stroke-[2.5]" />
           </button>
         </div>
 
@@ -548,9 +579,9 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
           <button
             id="compact-enter-btn"
             onClick={() => handleEnterStation(nearbyStation.id)}
-            className="px-3 py-2 rounded-full bg-[#8A1538]/90 border border-[#FFE082] text-white font-black text-xs shadow-lg active:scale-95 flex items-center gap-1.5 cursor-pointer animate-pulse"
+            className="px-2.5 py-1.5 rounded-full bg-[#8A1538] border border-[#FFE082] text-white font-black text-xs shadow-lg active:scale-95 flex items-center gap-1 cursor-pointer animate-pulse"
           >
-            <DoorOpen className="w-3.5 h-3.5 text-[#FFE082]" />
+            <DoorOpen className="w-3 h-3 text-[#FFE082]" />
             <span>ادخل</span>
           </button>
         )}
@@ -558,7 +589,7 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
 
       {/* Subtle Desktop Keyboard Helper Tooltip */}
       {hasUsedKeyboard && (
-        <div className="fixed bottom-3 right-4 z-30 hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-[#180d07]/40 border border-[#E6C280]/20 text-[11px] text-[#e0cfbd] backdrop-blur-xs pointer-events-none">
+        <div className="fixed bottom-3 right-4 z-30 hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 border border-[#E6C280]/20 text-[11px] text-[#e0cfbd] backdrop-blur-xs pointer-events-none">
           <span className="text-[#FFE082] font-bold">التحكم:</span>
           <span>الأسهم أو WASD • مسافة أو Enter للدخول</span>
         </div>

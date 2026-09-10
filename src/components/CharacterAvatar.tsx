@@ -33,14 +33,14 @@ export const CharacterAvatar: React.FC<CharacterAvatarProps> = ({
         transition: 'transform 0.12s ease-out',
       }}
     >
-      {/* Soft Ground Ambient Occlusion Shadow */}
+      {/* Soft Ground Contact Shadow */}
       <div
         className={`absolute bottom-0 rounded-full transition-all duration-200 pointer-events-none ${
           isCelebrating
-            ? 'w-[42%] h-[6px] bg-[#1a0e08]/30 blur-[3px] translate-y-3'
+            ? 'w-[42%] h-[5px] bg-[#1a0e08]/20 blur-[2px] translate-y-3'
             : isMoving
-            ? 'w-[70%] h-[10px] bg-[#1a0e08]/65 blur-[2px] scale-x-95 animate-pulse'
-            : 'w-[75%] h-[12px] bg-[#1a0e08]/75 blur-[2.5px]'
+            ? 'w-[68%] h-[8px] bg-[#1a0e08]/35 blur-[1.5px] scale-x-95 animate-pulse'
+            : 'w-[72%] h-[9px] bg-[#1a0e08]/40 blur-[1.5px]'
         }`}
       />
 
