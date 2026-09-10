@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.font-amiri {
+  font-family: 'Amiri', serif;
+}
+
+/* Custom scrollbars for modals */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(40, 26, 17, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: #8a1538;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b01b48;
+}
+
+/* Smooth golden glowing keyframes */
+@keyframes goldPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.4), 0 0 30px rgba(138, 21, 56, 0.2);
+    border-color: rgba(234, 179, 8, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(234, 179, 8, 0.8), 0 0 45px rgba(138, 21, 56, 0.5);
+    border-color: #fef08a;
+  }
+}
+
+.glow-heritage {
+  animation: goldPulse 2.4s infinite ease-in-out;
+}
+
+/* Quiet mode disables intense animations */
+body.quiet-mode * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "قطر لوّل – رحلة تفاعلية في تراث قطر",
+  "description": "تجربة تعليمية واستكشافية تفاعلية 2.5D تأخذك في رحلة إلى قرية قطرية تراثية أصيلة لاستكشاف أسواقها، ومحاملها، وحرفها، ومجالسها.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
