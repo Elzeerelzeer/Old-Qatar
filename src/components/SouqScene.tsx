@@ -22,6 +22,9 @@ import {
   Sparkles,
   Volume2,
   X,
+  Rotate3D,
+  ChevronRight,
+  ChevronLeft,
 } from 'lucide-react';
 
 /* ============================================================
@@ -35,13 +38,20 @@ interface SouqSceneProps {
 }
 
 /* ============================================================
-   EDUCATIONAL CONTENT
+   TYPES
 ============================================================ */
 
 interface SouqItem {
+  id: string;
   name: string;
   icon: string;
   description: string;
+
+  /*
+    مستقبلاً تستطيع إضافة صورة PNG شفافة أو موديل 3D حقيقي.
+    حالياً نستخدم visual ثلاثي الأبعاد CSS + icon كبير.
+  */
+  accent: string;
 }
 
 interface SouqHotspot {
@@ -54,6 +64,18 @@ interface SouqHotspot {
   items: SouqItem[];
 }
 
+interface BoundingBox {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/* ============================================================
+   SOUQ CONTENT
+============================================================ */
+
 const SOUQ_HOTSPOTS: SouqHotspot[] = [
   {
     id: 'pottery',
@@ -61,25 +83,28 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     x: 25,
     y: 38,
     radius: 14,
-    intro: 'تعرّف على بعض الأواني المستخدمة في قطر لوّل.',
+    intro: 'أوانٍ استخدمها أهل قطر لوّل.',
     items: [
       {
-        name: 'الجرة',
+        id: 'jar',
+        name: 'الجَرّة',
         icon: '🏺',
-        description:
-          'إناء فخاري استُخدم لحفظ الماء وبعض المواد الغذائية.',
+        description: 'إناء فخاري لحفظ الماء.',
+        accent: '#B96E42',
       },
       {
+        id: 'pot',
         name: 'القدر الفخاري',
         icon: '🥘',
-        description:
-          'استخدمت الأواني الفخارية في إعداد وحفظ بعض الأطعمة.',
+        description: 'استخدم لإعداد وحفظ الطعام.',
+        accent: '#A85A32',
       },
       {
-        name: 'الدلة',
+        id: 'dallah',
+        name: 'الدلّة',
         icon: '🫖',
-        description:
-          'تُستخدم الدلة لإعداد وتقديم القهوة العربية للضيوف.',
+        description: 'لتقديم القهوة العربية.',
+        accent: '#C9A45F',
       },
     ],
   },
@@ -90,31 +115,35 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     x: 75,
     y: 38,
     radius: 14,
-    intro: 'اكتشف روائح وتوابل السوق القطري القديم.',
+    intro: 'روائح وتوابل السوق القديم.',
     items: [
       {
+        id: 'cardamom',
         name: 'الهيل',
         icon: '🌿',
-        description:
-          'من أشهر المكونات التي تُضاف إلى القهوة العربية.',
+        description: 'يُضاف إلى القهوة العربية.',
+        accent: '#728C4A',
       },
       {
+        id: 'saffron',
         name: 'الزعفران',
         icon: '🌼',
-        description:
-          'من التوابل الثمينة ويستخدم في الأطعمة والمشروبات.',
+        description: 'من التوابل الثمينة والعطرية.',
+        accent: '#D69A27',
       },
       {
+        id: 'cinnamon',
         name: 'القرفة',
         icon: '🪵',
-        description:
-          'نوع من التوابل العطرية استُخدم في الطعام والمشروبات.',
+        description: 'بهار عطري للطعام والمشروبات.',
+        accent: '#9B5A35',
       },
       {
+        id: 'clove',
         name: 'القرنفل',
         icon: '🌱',
-        description:
-          'توابل عطرية ذات رائحة قوية ومميزة.',
+        description: 'توابل عطرية قوية الرائحة.',
+        accent: '#6D713C',
       },
     ],
   },
@@ -125,25 +154,28 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     x: 26,
     y: 68,
     radius: 14,
-    intro: 'تعرّف على منتجات النسيج والخوص في السوق.',
+    intro: 'منتجات النسيج والخوص.',
     items: [
       {
+        id: 'basket',
         name: 'السلة',
         icon: '🧺',
-        description:
-          'كانت السلال تُصنع من الخوص وتستخدم لحمل وحفظ الأغراض.',
+        description: 'صُنعت لحمل وحفظ الأغراض.',
+        accent: '#C29858',
       },
       {
+        id: 'palm',
         name: 'الخوص',
         icon: '🌴',
-        description:
-          'مادة تؤخذ من سعف النخيل وتستخدم في صناعة منتجات متنوعة.',
+        description: 'يُؤخذ من سعف النخيل.',
+        accent: '#758B4C',
       },
       {
+        id: 'fabric',
         name: 'الأقمشة',
         icon: '🧵',
-        description:
-          'كانت الأقمشة تباع في الأسواق لصناعة الملابس والمفروشات.',
+        description: 'لصناعة الملابس والمفروشات.',
+        accent: '#8A1538',
       },
     ],
   },
@@ -154,25 +186,28 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     x: 74,
     y: 68,
     radius: 14,
-    intro: 'شاهد أدوات استخدمها التجار في الأسواق قديمًا.',
+    intro: 'أدوات استخدمها التجار قديمًا.',
     items: [
       {
+        id: 'scale',
         name: 'الميزان',
         icon: '⚖️',
-        description:
-          'كان التاجر يستخدم الميزان لوزن السلع قبل بيعها.',
+        description: 'لوزن السلع قبل البيع.',
+        accent: '#B99658',
       },
       {
+        id: 'box',
         name: 'الصندوق الخشبي',
         icon: '📦',
-        description:
-          'استُخدم لحفظ البضائع والأغراض ونقلها.',
+        description: 'لحفظ ونقل البضائع.',
+        accent: '#805333',
       },
       {
+        id: 'lantern',
         name: 'الفانوس',
         icon: '🏮',
-        description:
-          'استخدم الفانوس للإضاءة قبل انتشار الكهرباء.',
+        description: 'للإضاءة قبل انتشار الكهرباء.',
+        accent: '#C97C31',
       },
     ],
   },
@@ -183,25 +218,28 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     x: 50,
     y: 28,
     radius: 13,
-    intro: 'اكتشف بعض أدوات الصقّار والتراث المرتبط بالصقور.',
+    intro: 'تعرّف على الصقر وأدوات الصقّار.',
     items: [
       {
+        id: 'falcon',
         name: 'الصقر',
         icon: '🦅',
-        description:
-          'للصقور مكانة معروفة في التراث القطري والخليجي.',
+        description: 'من رموز التراث القطري.',
+        accent: '#8A6949',
       },
       {
+        id: 'glove',
         name: 'قفاز الصقّار',
         icon: '🧤',
-        description:
-          'يرتديه الصقّار لحماية يده عند حمل الصقر.',
+        description: 'يحمي يد الصقّار عند حمل الصقر.',
+        accent: '#8A1538',
       },
       {
+        id: 'perch',
         name: 'المجثم',
         icon: '🪵',
-        description:
-          'مكان مخصص ليستقر عليه الصقر.',
+        description: 'مكان يستقر عليه الصقر.',
+        accent: '#795138',
       },
     ],
   },
@@ -210,14 +248,6 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
 /* ============================================================
    COLLISION
 ============================================================ */
-
-interface BoundingBox {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 const SOUQ_COLLIDERS: BoundingBox[] = [
   { id: 'wall_north', x: 0, y: 0, width: 100, height: 16 },
@@ -241,7 +271,7 @@ const SOUQ_COLLIDERS: BoundingBox[] = [
   },
 
   {
-    id: 'block_pottery_deep',
+    id: 'block_pottery',
     x: 14,
     y: 16,
     width: 15,
@@ -249,7 +279,7 @@ const SOUQ_COLLIDERS: BoundingBox[] = [
   },
 
   {
-    id: 'block_spices_deep',
+    id: 'block_spices',
     x: 71,
     y: 16,
     width: 15,
@@ -257,7 +287,7 @@ const SOUQ_COLLIDERS: BoundingBox[] = [
   },
 
   {
-    id: 'block_fabrics_deep',
+    id: 'block_fabrics',
     x: 14,
     y: 52,
     width: 15,
@@ -265,7 +295,7 @@ const SOUQ_COLLIDERS: BoundingBox[] = [
   },
 
   {
-    id: 'block_antiques_deep',
+    id: 'block_antiques',
     x: 71,
     y: 52,
     width: 15,
@@ -273,7 +303,7 @@ const SOUQ_COLLIDERS: BoundingBox[] = [
   },
 
   {
-    id: 'block_falconer_stand',
+    id: 'block_falconer',
     x: 46,
     y: 16,
     width: 8,
@@ -282,7 +312,7 @@ const SOUQ_COLLIDERS: BoundingBox[] = [
 ];
 
 /* ============================================================
-   COMPONENT
+   MAIN COMPONENT
 ============================================================ */
 
 export function SouqScene({
@@ -290,6 +320,10 @@ export function SouqScene({
   settings,
   onReturnToVillage,
 }: SouqSceneProps) {
+  /* ----------------------------------------------------------
+     PLAYER
+  ---------------------------------------------------------- */
+
   const [playerPos, setPlayerPos] = useState({
     x: 50,
     y: 86,
@@ -304,13 +338,32 @@ export function SouqScene({
   const [activeTouchDir, setActiveTouchDir] =
     useState<Direction | null>(null);
 
-  /* Educational modal */
+  /* ----------------------------------------------------------
+     EXPLORATION
+  ---------------------------------------------------------- */
 
   const [selectedHotspot, setSelectedHotspot] =
     useState<SouqHotspot | null>(null);
 
-  const [selectedItem, setSelectedItem] =
-    useState<SouqItem | null>(null);
+  const [currentItemIndex, setCurrentItemIndex] =
+    useState(0);
+
+  /*
+    دوران العنصر ثلاثي الأبعاد
+  */
+  const [rotationX, setRotationX] = useState(-8);
+  const [rotationY, setRotationY] = useState(18);
+
+  const draggingRef = useRef(false);
+
+  const lastPointerRef = useRef({
+    x: 0,
+    y: 0,
+  });
+
+  /* ----------------------------------------------------------
+     INPUT
+  ---------------------------------------------------------- */
 
   const keysPressed =
     useRef<Record<string, boolean>>({});
@@ -363,11 +416,13 @@ export function SouqScene({
   ============================================================ */
 
   useEffect(() => {
-    const handleKeyDown = (
-      e: KeyboardEvent
-    ) => {
-      const key =
-        e.key.toLowerCase();
+    const keyDown = (e: KeyboardEvent) => {
+      /*
+        أثناء فتح عارض العنصر، نوقف حركة اللاعب.
+      */
+      if (selectedHotspot) return;
+
+      const key = e.key.toLowerCase();
 
       if (
         [
@@ -382,44 +437,27 @@ export function SouqScene({
         ].includes(key)
       ) {
         e.preventDefault();
-        keysPressed.current[key] =
-          true;
+        keysPressed.current[key] = true;
       }
     };
 
-    const handleKeyUp = (
-      e: KeyboardEvent
-    ) => {
+    const keyUp = (e: KeyboardEvent) => {
       keysPressed.current[
         e.key.toLowerCase()
       ] = false;
     };
 
-    window.addEventListener(
-      'keydown',
-      handleKeyDown
-    );
-
-    window.addEventListener(
-      'keyup',
-      handleKeyUp
-    );
+    window.addEventListener('keydown', keyDown);
+    window.addEventListener('keyup', keyUp);
 
     return () => {
-      window.removeEventListener(
-        'keydown',
-        handleKeyDown
-      );
-
-      window.removeEventListener(
-        'keyup',
-        handleKeyUp
-      );
+      window.removeEventListener('keydown', keyDown);
+      window.removeEventListener('keyup', keyUp);
     };
-  }, []);
+  }, [selectedHotspot]);
 
   /* ============================================================
-     MOVEMENT LOOP
+     GAME LOOP
   ============================================================ */
 
   useEffect(() => {
@@ -434,46 +472,46 @@ export function SouqScene({
         | Direction
         | null = null;
 
-      const keys =
-        keysPressed.current;
+      if (!selectedHotspot) {
+        const keys = keysPressed.current;
+        const touch =
+          touchDirectionRef.current;
 
-      const touch =
-        touchDirectionRef.current;
+        if (
+          keys.arrowup ||
+          keys.w ||
+          touch === 'up'
+        ) {
+          dy -= MOVE_SPEED;
+          nextDirection = 'up';
+        }
 
-      if (
-        keys.arrowup ||
-        keys.w ||
-        touch === 'up'
-      ) {
-        dy -= MOVE_SPEED;
-        nextDirection = 'up';
-      }
+        if (
+          keys.arrowdown ||
+          keys.s ||
+          touch === 'down'
+        ) {
+          dy += MOVE_SPEED;
+          nextDirection = 'down';
+        }
 
-      if (
-        keys.arrowdown ||
-        keys.s ||
-        touch === 'down'
-      ) {
-        dy += MOVE_SPEED;
-        nextDirection = 'down';
-      }
+        if (
+          keys.arrowleft ||
+          keys.a ||
+          touch === 'left'
+        ) {
+          dx -= MOVE_SPEED;
+          nextDirection = 'left';
+        }
 
-      if (
-        keys.arrowleft ||
-        keys.a ||
-        touch === 'left'
-      ) {
-        dx -= MOVE_SPEED;
-        nextDirection = 'left';
-      }
-
-      if (
-        keys.arrowright ||
-        keys.d ||
-        touch === 'right'
-      ) {
-        dx += MOVE_SPEED;
-        nextDirection = 'right';
+        if (
+          keys.arrowright ||
+          keys.d ||
+          touch === 'right'
+        ) {
+          dx += MOVE_SPEED;
+          nextDirection = 'right';
+        }
       }
 
       if (dx !== 0 && dy !== 0) {
@@ -498,8 +536,7 @@ export function SouqScene({
               prev.y
             )
           ) {
-            nextX =
-              prev.x + dx;
+            nextX = prev.x + dx;
           }
 
           if (
@@ -508,8 +545,7 @@ export function SouqScene({
               prev.y + dy
             )
           ) {
-            nextY =
-              prev.y + dy;
+            nextY = prev.y + dy;
           }
 
           return {
@@ -531,87 +567,209 @@ export function SouqScene({
         setIsMoving(false);
       }
 
-      frame =
-        requestAnimationFrame(loop);
+      frame = requestAnimationFrame(loop);
     };
 
-    frame =
-      requestAnimationFrame(loop);
+    frame = requestAnimationFrame(loop);
 
-    return () =>
-      cancelAnimationFrame(frame);
+    return () => cancelAnimationFrame(frame);
   }, [
     checkCollision,
     settings.isSoundEnabled,
     settings.isQuietMode,
     MOVE_SPEED,
+    selectedHotspot,
   ]);
 
   /* ============================================================
-     TOUCH
+     TOUCH MOVEMENT
   ============================================================ */
 
   const handleTouchStart = (
     dir: Direction
   ) => {
-    touchDirectionRef.current =
-      dir;
+    if (selectedHotspot) return;
 
+    touchDirectionRef.current = dir;
     setActiveTouchDir(dir);
     setDirection(dir);
   };
 
   const handleTouchEnd = () => {
-    touchDirectionRef.current =
-      null;
-
+    touchDirectionRef.current = null;
     setActiveTouchDir(null);
   };
 
   /* ============================================================
-     HOTSPOT
+     HOTSPOT DETECTION
   ============================================================ */
 
   const activeNearbyHotspot =
-    SOUQ_HOTSPOTS.find(
-      (spot) => {
-        const distance =
-          Math.hypot(
-            playerPos.x - spot.x,
-            playerPos.y - spot.y
-          );
+    SOUQ_HOTSPOTS.find((spot) => {
+      const distance = Math.hypot(
+        playerPos.x - spot.x,
+        playerPos.y - spot.y
+      );
 
-        return (
-          distance <= spot.radius
-        );
-      }
-    );
+      return distance <= spot.radius;
+    });
 
   /* ============================================================
-     ARABIC SPEECH
+     SPEECH
   ============================================================ */
 
   const speakArabic = (
-    text: string
+    name: string,
+    description: string
   ) => {
     try {
       window.speechSynthesis.cancel();
 
       const utterance =
         new SpeechSynthesisUtterance(
-          text
+          `${name}. ${description}`
         );
 
+      /*
+        بعض الأجهزة لا تحتوي ar-QA.
+        المتصفح سيستخدم أقرب صوت عربي متاح.
+      */
       utterance.lang = 'ar-QA';
-      utterance.rate = 0.82;
+      utterance.rate = 0.78;
       utterance.pitch = 1;
 
       window.speechSynthesis.speak(
         utterance
       );
     } catch {
-      // Ignore unsupported browsers
+      // Ignore if unsupported
     }
+  };
+
+  /* ============================================================
+     OPEN / CLOSE VIEWER
+  ============================================================ */
+
+  const openHotspot = (
+    hotspot: SouqHotspot
+  ) => {
+    soundManager.playClick();
+
+    keysPressed.current = {};
+    touchDirectionRef.current = null;
+
+    setActiveTouchDir(null);
+
+    setSelectedHotspot(hotspot);
+    setCurrentItemIndex(0);
+
+    setRotationX(-8);
+    setRotationY(18);
+  };
+
+  const closeHotspot = () => {
+    window.speechSynthesis.cancel();
+
+    setSelectedHotspot(null);
+    setCurrentItemIndex(0);
+
+    setRotationX(-8);
+    setRotationY(18);
+  };
+
+  /* ============================================================
+     ITEM NAVIGATION
+  ============================================================ */
+
+  const nextItem = () => {
+    if (!selectedHotspot) return;
+
+    setCurrentItemIndex((prev) => {
+      return (
+        (prev + 1) %
+        selectedHotspot.items.length
+      );
+    });
+
+    setRotationX(-8);
+    setRotationY(18);
+  };
+
+  const previousItem = () => {
+    if (!selectedHotspot) return;
+
+    setCurrentItemIndex((prev) => {
+      return (
+        (prev -
+          1 +
+          selectedHotspot.items.length) %
+        selectedHotspot.items.length
+      );
+    });
+
+    setRotationX(-8);
+    setRotationY(18);
+  };
+
+  /* ============================================================
+     3D DRAG / ROTATE
+  ============================================================ */
+
+  const handleObjectPointerDown = (
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    draggingRef.current = true;
+
+    lastPointerRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+    };
+
+    e.currentTarget.setPointerCapture(
+      e.pointerId
+    );
+  };
+
+  const handleObjectPointerMove = (
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (!draggingRef.current) return;
+
+    const dx =
+      e.clientX -
+      lastPointerRef.current.x;
+
+    const dy =
+      e.clientY -
+      lastPointerRef.current.y;
+
+    /*
+      السحب الأفقي = دوران Y
+      السحب الرأسي = دوران X
+    */
+
+    setRotationY(
+      (prev) => prev + dx * 0.55
+    );
+
+    setRotationX((prev) => {
+      const next =
+        prev - dy * 0.35;
+
+      return Math.max(
+        -28,
+        Math.min(28, next)
+      );
+    });
+
+    lastPointerRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+    };
+  };
+
+  const handleObjectPointerUp = () => {
+    draggingRef.current = false;
   };
 
   /* ============================================================
@@ -629,8 +787,13 @@ export function SouqScene({
     (playerPos.y / 100) *
     WORLD_HEIGHT;
 
+  const currentItem =
+    selectedHotspot?.items[
+      currentItemIndex
+    ];
+
   /* ============================================================
-     UI
+     RENDER
   ============================================================ */
 
   return (
@@ -645,7 +808,9 @@ export function SouqScene({
       "
       dir="rtl"
     >
-      {/* HEADER */}
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
 
       <div
         className="
@@ -672,6 +837,7 @@ export function SouqScene({
           <div
             className="
               pointer-events-auto
+
               bg-[#2b170d]/90
               backdrop-blur-md
 
@@ -695,6 +861,7 @@ export function SouqScene({
           <div
             className="
               pointer-events-auto
+
               bg-[#2b170d]/90
 
               border
@@ -710,7 +877,6 @@ export function SouqScene({
             "
           >
             رحلة السوق{' '}
-
             <span
               className="
                 text-[#E6C280]
@@ -754,10 +920,7 @@ export function SouqScene({
           "
         >
           <ArrowRight
-            className="
-              w-4
-              h-4
-            "
+            className="w-4 h-4"
           />
 
           العودة إلى القرية
@@ -813,99 +976,86 @@ export function SouqScene({
 
         {/* HOTSPOTS */}
 
-        {SOUQ_HOTSPOTS.map(
-          (spot) => {
-            const isNear =
-              activeNearbyHotspot
-                ?.id === spot.id;
+        {SOUQ_HOTSPOTS.map((spot) => {
+          const isNear =
+            activeNearbyHotspot?.id ===
+            spot.id;
 
-            return (
-              <div
-                key={spot.id}
-                className="
-                  absolute
-                  z-20
+          return (
+            <div
+              key={spot.id}
+              className="
+                absolute
+                z-20
 
-                  -translate-x-1/2
-                  -translate-y-1/2
-                "
-                style={{
-                  left: `${spot.x}%`,
-                  top: `${spot.y}%`,
-                }}
-              >
-                {isNear && (
-                  <>
-                    <div
-                      className="
-                        absolute
-                        -inset-14
+                -translate-x-1/2
+                -translate-y-1/2
+              "
+              style={{
+                left: `${spot.x}%`,
+                top: `${spot.y}%`,
+              }}
+            >
+              {isNear && (
+                <>
+                  <div
+                    className="
+                      absolute
+                      -inset-16
 
-                        rounded-full
+                      rounded-full
 
-                        bg-[#FFD76B]/25
+                      bg-[#FFD76B]/25
 
-                        blur-2xl
+                      blur-2xl
 
-                        animate-pulse
+                      animate-pulse
 
-                        pointer-events-none
-                      "
+                      pointer-events-none
+                    "
+                  />
+
+                  <button
+                    onClick={() =>
+                      openHotspot(spot)
+                    }
+                    className="
+                      relative
+
+                      bg-[#8A1538]/95
+
+                      border-2
+                      border-[#FFE082]
+
+                      text-[#FFE082]
+
+                      px-5
+                      py-2.5
+
+                      rounded-full
+
+                      shadow-xl
+
+                      flex
+                      items-center
+                      gap-2
+
+                      font-black
+
+                      active:scale-95
+                    "
+                  >
+                    <Sparkles
+                      className="w-4 h-4"
                     />
 
-                    <button
-                      onClick={() => {
-                        soundManager.playClick();
-
-                        setSelectedHotspot(
-                          spot
-                        );
-
-                        setSelectedItem(
-                          null
-                        );
-                      }}
-                      className="
-                        relative
-
-                        bg-[#8A1538]/95
-
-                        border
-                        border-[#FFE082]
-
-                        text-[#FFE082]
-
-                        px-4
-                        py-2
-
-                        rounded-full
-
-                        shadow-xl
-
-                        flex
-                        items-center
-                        gap-2
-
-                        font-black
-
-                        active:scale-95
-                      "
-                    >
-                      <Sparkles
-                        className="
-                          w-4
-                          h-4
-                        "
-                      />
-
-                      تعرّف
-                    </button>
-                  </>
-                )}
-              </div>
-            );
-          }
-        )}
+                    تعرّف
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        })}
 
         {/* PLAYER */}
 
@@ -913,7 +1063,6 @@ export function SouqScene({
           className="
             absolute
             z-30
-
             pointer-events-none
           "
           style={{
@@ -956,615 +1105,976 @@ export function SouqScene({
           LARGE D-PAD
       ====================================================== */}
 
-      <div
-        className="
-          fixed
-          bottom-6
-          left-6
-
-          z-[100]
-
-          w-[138px]
-          h-[138px]
-
-          rounded-full
-
-          bg-[#2d180f]/90
-
-          border-2
-          border-[#E6C280]
-
-          shadow-[0_8px_30px_rgba(0,0,0,0.55)]
-
-          backdrop-blur-md
-
-          touch-none
-        "
-      >
-        {/* UP */}
-
-        <button
-          onPointerDown={() =>
-            handleTouchStart(
-              'up'
-            )
-          }
-          onPointerUp={
-            handleTouchEnd
-          }
-          onPointerLeave={
-            handleTouchEnd
-          }
-          onPointerCancel={
-            handleTouchEnd
-          }
-          className={`
-            absolute
-            top-2
-            left-1/2
-
-            -translate-x-1/2
-
-            w-11
-            h-11
-
-            rounded-xl
-
-            border-2
-            border-[#E6C280]
-
-            flex
-            items-center
-            justify-center
-
-            text-white
-
-            ${
-              activeTouchDir ===
-              'up'
-                ? 'bg-[#A91D47]'
-                : 'bg-[#8A1538]'
-            }
-          `}
-        >
-          <ArrowUp
-            className="
-              w-7
-              h-7
-              stroke-[3]
-            "
-          />
-        </button>
-
-        {/* DOWN */}
-
-        <button
-          onPointerDown={() =>
-            handleTouchStart(
-              'down'
-            )
-          }
-          onPointerUp={
-            handleTouchEnd
-          }
-          onPointerLeave={
-            handleTouchEnd
-          }
-          onPointerCancel={
-            handleTouchEnd
-          }
-          className={`
-            absolute
-            bottom-2
-            left-1/2
-
-            -translate-x-1/2
-
-            w-11
-            h-11
-
-            rounded-xl
-
-            border-2
-            border-[#E6C280]
-
-            flex
-            items-center
-            justify-center
-
-            text-white
-
-            ${
-              activeTouchDir ===
-              'down'
-                ? 'bg-[#A91D47]'
-                : 'bg-[#8A1538]'
-            }
-          `}
-        >
-          <ArrowDown
-            className="
-              w-7
-              h-7
-              stroke-[3]
-            "
-          />
-        </button>
-
-        {/* LEFT */}
-
-        <button
-          onPointerDown={() =>
-            handleTouchStart(
-              'left'
-            )
-          }
-          onPointerUp={
-            handleTouchEnd
-          }
-          onPointerLeave={
-            handleTouchEnd
-          }
-          onPointerCancel={
-            handleTouchEnd
-          }
-          className={`
-            absolute
-            left-2
-            top-1/2
-
-            -translate-y-1/2
-
-            w-11
-            h-11
-
-            rounded-xl
-
-            border-2
-            border-[#E6C280]
-
-            flex
-            items-center
-            justify-center
-
-            text-white
-
-            ${
-              activeTouchDir ===
-              'left'
-                ? 'bg-[#A91D47]'
-                : 'bg-[#8A1538]'
-            }
-          `}
-        >
-          <ArrowLeft
-            className="
-              w-7
-              h-7
-              stroke-[3]
-            "
-          />
-        </button>
-
-        {/* RIGHT */}
-
-        <button
-          onPointerDown={() =>
-            handleTouchStart(
-              'right'
-            )
-          }
-          onPointerUp={
-            handleTouchEnd
-          }
-          onPointerLeave={
-            handleTouchEnd
-          }
-          onPointerCancel={
-            handleTouchEnd
-          }
-          className={`
-            absolute
-            right-2
-            top-1/2
-
-            -translate-y-1/2
-
-            w-11
-            h-11
-
-            rounded-xl
-
-            border-2
-            border-[#E6C280]
-
-            flex
-            items-center
-            justify-center
-
-            text-white
-
-            ${
-              activeTouchDir ===
-              'right'
-                ? 'bg-[#A91D47]'
-                : 'bg-[#8A1538]'
-            }
-          `}
-        >
-          <ArrowRight
-            className="
-              w-7
-              h-7
-              stroke-[3]
-            "
-          />
-        </button>
-
-        {/* CENTER */}
-
-        <div
-          className="
-            absolute
-            left-1/2
-            top-1/2
-
-            -translate-x-1/2
-            -translate-y-1/2
-
-            w-10
-            h-10
-
-            rounded-full
-
-            bg-[#B99658]
-
-            border-2
-            border-[#F6E3B4]
-
-            flex
-            items-center
-            justify-center
-
-            text-white
-
-            pointer-events-none
-          "
-        >
-          ✦
-        </div>
-      </div>
-
-      {/* ======================================================
-          EDUCATIONAL MODAL
-      ====================================================== */}
-
-      {selectedHotspot && (
+      {!selectedHotspot && (
         <div
           className="
             fixed
-            inset-0
+            bottom-6
+            left-6
 
-            z-[200]
+            z-[100]
 
-            flex
-            items-center
-            justify-center
+            w-[138px]
+            h-[138px]
 
-            p-4
+            rounded-full
 
-            bg-black/55
+            bg-[#2d180f]/90
 
-            backdrop-blur-sm
+            border-2
+            border-[#E6C280]
+
+            shadow-[0_8px_30px_rgba(0,0,0,0.55)]
+
+            backdrop-blur-md
+
+            touch-none
           "
         >
-          <div
-            className="
-              relative
+          {/* UP */}
 
-              w-full
-              max-w-lg
+          <button
+            onPointerDown={() =>
+              handleTouchStart('up')
+            }
+            onPointerUp={
+              handleTouchEnd
+            }
+            onPointerLeave={
+              handleTouchEnd
+            }
+            onPointerCancel={
+              handleTouchEnd
+            }
+            className={`
+              absolute
+              top-2
+              left-1/2
 
-              bg-[#2c170d]/95
+              -translate-x-1/2
+
+              w-11
+              h-11
+
+              rounded-xl
 
               border-2
               border-[#E6C280]
 
-              rounded-[28px]
+              flex
+              items-center
+              justify-center
 
-              shadow-[0_20px_70px_rgba(0,0,0,0.65)]
+              text-white
 
-              p-5
+              ${
+                activeTouchDir ===
+                'up'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }
+            `}
+          >
+            <ArrowUp
+              className="
+                w-7
+                h-7
+                stroke-[3]
+              "
+            />
+          </button>
 
-              text-[#FAF5EA]
+          {/* DOWN */}
+
+          <button
+            onPointerDown={() =>
+              handleTouchStart('down')
+            }
+            onPointerUp={
+              handleTouchEnd
+            }
+            onPointerLeave={
+              handleTouchEnd
+            }
+            onPointerCancel={
+              handleTouchEnd
+            }
+            className={`
+              absolute
+              bottom-2
+              left-1/2
+
+              -translate-x-1/2
+
+              w-11
+              h-11
+
+              rounded-xl
+
+              border-2
+              border-[#E6C280]
+
+              flex
+              items-center
+              justify-center
+
+              text-white
+
+              ${
+                activeTouchDir ===
+                'down'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }
+            `}
+          >
+            <ArrowDown
+              className="
+                w-7
+                h-7
+                stroke-[3]
+              "
+            />
+          </button>
+
+          {/* LEFT */}
+
+          <button
+            onPointerDown={() =>
+              handleTouchStart('left')
+            }
+            onPointerUp={
+              handleTouchEnd
+            }
+            onPointerLeave={
+              handleTouchEnd
+            }
+            onPointerCancel={
+              handleTouchEnd
+            }
+            className={`
+              absolute
+              left-2
+              top-1/2
+
+              -translate-y-1/2
+
+              w-11
+              h-11
+
+              rounded-xl
+
+              border-2
+              border-[#E6C280]
+
+              flex
+              items-center
+              justify-center
+
+              text-white
+
+              ${
+                activeTouchDir ===
+                'left'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }
+            `}
+          >
+            <ArrowLeft
+              className="
+                w-7
+                h-7
+                stroke-[3]
+              "
+            />
+          </button>
+
+          {/* RIGHT */}
+
+          <button
+            onPointerDown={() =>
+              handleTouchStart('right')
+            }
+            onPointerUp={
+              handleTouchEnd
+            }
+            onPointerLeave={
+              handleTouchEnd
+            }
+            onPointerCancel={
+              handleTouchEnd
+            }
+            className={`
+              absolute
+              right-2
+              top-1/2
+
+              -translate-y-1/2
+
+              w-11
+              h-11
+
+              rounded-xl
+
+              border-2
+              border-[#E6C280]
+
+              flex
+              items-center
+              justify-center
+
+              text-white
+
+              ${
+                activeTouchDir ===
+                'right'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }
+            `}
+          >
+            <ArrowRight
+              className="
+                w-7
+                h-7
+                stroke-[3]
+              "
+            />
+          </button>
+
+          {/* CENTER */}
+
+          <div
+            className="
+              absolute
+              left-1/2
+              top-1/2
+
+              -translate-x-1/2
+              -translate-y-1/2
+
+              w-10
+              h-10
+
+              rounded-full
+
+              bg-[#B99658]
+
+              border-2
+              border-[#F6E3B4]
+
+              flex
+              items-center
+              justify-center
+
+              text-white
+
+              pointer-events-none
             "
           >
-            {/* CLOSE */}
+            ✦
+          </div>
+        </div>
+      )}
 
-            <button
-              onClick={() => {
-                window.speechSynthesis.cancel();
+      {/* ======================================================
+          3D OBJECT VIEWER
+      ====================================================== */}
 
-                setSelectedHotspot(
-                  null
-                );
+      {selectedHotspot &&
+        currentItem && (
+          <div
+            className="
+              fixed
+              inset-0
 
-                setSelectedItem(
-                  null
-                );
-              }}
-              className="
-                absolute
-                top-3
-                left-3
+              z-[300]
 
-                w-9
-                h-9
+              bg-black/65
 
-                rounded-full
+              backdrop-blur-md
 
-                bg-black/30
+              flex
+              items-center
+              justify-center
 
-                border
-                border-[#E6C280]/40
-
-                flex
-                items-center
-                justify-center
-              "
-            >
-              <X
-                className="
-                  w-5
-                  h-5
-                "
-              />
-            </button>
-
+              p-3
+              sm:p-5
+            "
+          >
             <div
               className="
-                text-center
-                mb-5
+                relative
+
+                w-full
+                max-w-4xl
+
+                min-h-[620px]
+                max-h-[94vh]
+
+                overflow-y-auto
+
+                bg-gradient-to-b
+                from-[#392013]
+                to-[#1f100a]
+
+                border-2
+                border-[#E6C280]
+
+                rounded-[32px]
+
+                shadow-[0_28px_100px_rgba(0,0,0,0.8)]
+
+                p-4
+                sm:p-6
               "
             >
-              <div
-                className="
-                  text-[#FFE082]
+              {/* CLOSE */}
 
-                  text-2xl
-
-                  font-black
-                "
-              >
-                {
-                  selectedHotspot.name
+              <button
+                onClick={
+                  closeHotspot
                 }
-              </div>
-
-              <div
                 className="
-                  mt-2
+                  absolute
+                  top-4
+                  left-4
 
-                  text-sm
+                  z-50
 
-                  text-[#eadbc5]
+                  w-11
+                  h-11
+
+                  rounded-full
+
+                  bg-black/45
+
+                  border
+                  border-[#E6C280]/50
+
+                  flex
+                  items-center
+                  justify-center
+
+                  text-white
+
+                  active:scale-90
                 "
               >
-                {
-                  selectedHotspot.intro
-                }
-              </div>
-            </div>
+                <X className="w-6 h-6" />
+              </button>
 
-            {/* ITEMS */}
+              {/* HEADER */}
 
-            {!selectedItem && (
-              <div
-                className="
-                  grid
-                  grid-cols-2
-                  gap-3
-                "
-              >
-                {selectedHotspot.items.map(
-                  (item) => (
-                    <button
-                      key={
-                        item.name
-                      }
-                      onClick={() => {
-                        soundManager.playClick();
-
-                        setSelectedItem(
-                          item
-                        );
-                      }}
-                      className="
-                        min-h-[100px]
-
-                        rounded-2xl
-
-                        bg-[#4b2918]
-
-                        border
-                        border-[#E6C280]/35
-
-                        hover:border-[#FFE082]
-
-                        active:scale-95
-
-                        transition
-
-                        p-3
-                      "
-                    >
-                      <div
-                        className="
-                          text-4xl
-                        "
-                      >
-                        {
-                          item.icon
-                        }
-                      </div>
-
-                      <div
-                        className="
-                          mt-2
-
-                          text-[#FFE082]
-
-                          font-black
-
-                          text-sm
-                        "
-                      >
-                        {
-                          item.name
-                        }
-                      </div>
-                    </button>
-                  )
-                )}
-              </div>
-            )}
-
-            {/* ITEM DETAILS */}
-
-            {selectedItem && (
               <div
                 className="
                   text-center
-
-                  bg-black/20
-
-                  border
-                  border-[#E6C280]/25
-
-                  rounded-2xl
-
-                  p-5
+                  mb-4
                 "
               >
                 <div
                   className="
-                    text-6xl
-                  "
-                >
-                  {
-                    selectedItem.icon
-                  }
-                </div>
-
-                <h3
-                  className="
-                    mt-3
-
-                    text-xl
-
                     text-[#FFE082]
-
+                    text-xl
+                    sm:text-2xl
                     font-black
                   "
                 >
                   {
-                    selectedItem.name
+                    selectedHotspot.name
                   }
-                </h3>
-
-                <p
-                  className="
-                    mt-3
-
-                    leading-8
-
-                    text-[#FAF5EA]
-
-                    text-base
-                  "
-                >
-                  {
-                    selectedItem.description
-                  }
-                </p>
+                </div>
 
                 <div
                   className="
-                    mt-5
-
-                    flex
-                    justify-center
-                    gap-3
+                    text-[#eadac2]
+                    text-sm
+                    mt-1
                   "
                 >
-                  <button
-                    onClick={() =>
-                      speakArabic(
-                        `${selectedItem.name}. ${selectedItem.description}`
-                      )
+                  {
+                    selectedHotspot.intro
+                  }
+                </div>
+              </div>
+
+              {/* MAIN VIEWER */}
+
+              <div
+                className="
+                  grid
+                  grid-cols-1
+                  lg:grid-cols-[1fr_280px]
+                  gap-5
+                  items-center
+                "
+              >
+                {/* 3D AREA */}
+
+                <div
+                  className="
+                    relative
+
+                    min-h-[410px]
+                    sm:min-h-[450px]
+
+                    rounded-[28px]
+
+                    overflow-hidden
+
+                    border
+                    border-[#E6C280]/30
+
+                    bg-gradient-to-b
+                    from-[#c7a46e]/20
+                    to-black/20
+
+                    flex
+                    items-center
+                    justify-center
+                  "
+                  style={{
+                    perspective:
+                      '1100px',
+                  }}
+                >
+                  {/* LIGHT */}
+
+                  <div
+                    className="
+                      absolute
+                      top-5
+                      left-1/2
+
+                      -translate-x-1/2
+
+                      w-[60%]
+                      h-[35%]
+
+                      rounded-full
+
+                      bg-[#FFE4A5]/15
+
+                      blur-3xl
+                    "
+                  />
+
+                  {/* FLOOR SHADOW */}
+
+                  <div
+                    className="
+                      absolute
+                      bottom-[60px]
+                      left-1/2
+
+                      -translate-x-1/2
+
+                      w-[230px]
+                      h-[42px]
+
+                      rounded-full
+
+                      bg-black/50
+
+                      blur-xl
+                    "
+                  />
+
+                  {/* OBJECT */}
+
+                  <div
+                    onPointerDown={
+                      handleObjectPointerDown
+                    }
+                    onPointerMove={
+                      handleObjectPointerMove
+                    }
+                    onPointerUp={
+                      handleObjectPointerUp
+                    }
+                    onPointerCancel={
+                      handleObjectPointerUp
+                    }
+                    onPointerLeave={
+                      handleObjectPointerUp
                     }
                     className="
+                      relative
+
+                      w-[260px]
+                      h-[300px]
+
+                      sm:w-[330px]
+                      sm:h-[350px]
+
+                      flex
+                      items-center
+                      justify-center
+
+                      cursor-grab
+                      active:cursor-grabbing
+
+                      touch-none
+
+                      select-none
+
+                      transition-transform
+                      duration-75
+                    "
+                    style={{
+                      transformStyle:
+                        'preserve-3d',
+
+                      transform: `
+                        rotateX(${rotationX}deg)
+                        rotateY(${rotationY}deg)
+                      `,
+                    }}
+                  >
+                    {/* BACK DEPTH */}
+
+                    <div
+                      className="
+                        absolute
+                        inset-[12%]
+
+                        rounded-[42%]
+
+                        blur-2xl
+
+                        opacity-50
+                      "
+                      style={{
+                        background:
+                          currentItem.accent,
+
+                        transform:
+                          'translateZ(-45px)',
+                      }}
+                    />
+
+                    {/* 3D HALO */}
+
+                    <div
+                      className="
+                        absolute
+
+                        w-[210px]
+                        h-[210px]
+
+                        sm:w-[270px]
+                        sm:h-[270px]
+
+                        rounded-full
+
+                        opacity-25
+
+                        blur-3xl
+                      "
+                      style={{
+                        background:
+                          currentItem.accent,
+
+                        transform:
+                          'translateZ(-25px)',
+                      }}
+                    />
+
+                    {/* MAIN OBJECT */}
+
+                    <div
+                      className="
+                        relative
+
+                        text-[150px]
+                        sm:text-[190px]
+
+                        leading-none
+
+                        drop-shadow-[0_28px_22px_rgba(0,0,0,0.45)]
+
+                        pointer-events-none
+                      "
+                      style={{
+                        transform:
+                          'translateZ(75px)',
+
+                        filter:
+                          'saturate(1.12) contrast(1.05)',
+                      }}
+                    >
+                      {
+                        currentItem.icon
+                      }
+                    </div>
+
+                    {/* FRONT LIGHT */}
+
+                    <div
+                      className="
+                        absolute
+                        top-[20%]
+                        right-[24%]
+
+                        w-16
+                        h-16
+
+                        bg-white/20
+
+                        rounded-full
+
+                        blur-xl
+
+                        pointer-events-none
+                      "
+                      style={{
+                        transform:
+                          'translateZ(90px)',
+                      }}
+                    />
+                  </div>
+
+                  {/* ROTATE HELP */}
+
+                  <div
+                    className="
+                      absolute
+                      bottom-4
+                      left-1/2
+
+                      -translate-x-1/2
+
                       flex
                       items-center
                       gap-2
 
-                      bg-[#8A1538]
-
-                      border
-                      border-[#FFE082]
+                      px-4
+                      py-2
 
                       rounded-full
 
-                      px-5
-                      py-2.5
+                      bg-black/45
+
+                      border
+                      border-[#E6C280]/25
+
+                      text-[#F8E6C0]
+
+                      text-xs
+                      sm:text-sm
+
+                      pointer-events-none
+                    "
+                  >
+                    <Rotate3D
+                      className="
+                        w-4
+                        h-4
+                        text-[#FFE082]
+                      "
+                    />
+
+                    اسحب بإصبعك لتدوير العنصر
+                  </div>
+                </div>
+
+                {/* INFORMATION */}
+
+                <div
+                  className="
+                    rounded-[24px]
+
+                    border
+                    border-[#E6C280]/30
+
+                    bg-black/20
+
+                    p-5
+
+                    text-center
+                  "
+                >
+                  <div
+                    className="
+                      text-[#FFE082]
+
+                      text-2xl
+
+                      font-black
+                    "
+                  >
+                    {
+                      currentItem.name
+                    }
+                  </div>
+
+                  <p
+                    className="
+                      mt-3
+
+                      text-white
+
+                      text-lg
+
+                      leading-8
+
+                      font-semibold
+                    "
+                  >
+                    {
+                      currentItem.description
+                    }
+                  </p>
+
+                  {/* SPEAK */}
+
+                  <button
+                    onClick={() =>
+                      speakArabic(
+                        currentItem.name,
+                        currentItem.description
+                      )
+                    }
+                    className="
+                      mt-5
+
+                      w-full
+
+                      flex
+                      items-center
+                      justify-center
+                      gap-2
+
+                      bg-[#8A1538]
+
+                      border-2
+                      border-[#FFE082]
 
                       text-[#FFE082]
+
+                      rounded-2xl
+
+                      py-3
 
                       font-black
 
                       active:scale-95
+
+                      shadow-lg
                     "
                   >
                     <Volume2
                       className="
-                        w-5
-                        h-5
+                        w-6
+                        h-6
                       "
                     />
 
                     استمع
                   </button>
 
+                  {/* RESET OBJECT */}
+
                   <button
                     onClick={() => {
-                      window.speechSynthesis.cancel();
-
-                      setSelectedItem(
-                        null
-                      );
+                      setRotationX(-8);
+                      setRotationY(18);
                     }}
                     className="
-                      rounded-full
+                      mt-3
 
-                      bg-[#62402c]
+                      w-full
+
+                      flex
+                      items-center
+                      justify-center
+                      gap-2
+
+                      bg-[#5c3a28]
 
                       border
-                      border-[#E6C280]/40
+                      border-[#E6C280]/50
 
-                      px-5
+                      text-white
+
+                      rounded-xl
+
                       py-2.5
 
                       font-bold
+
+                      active:scale-95
                     "
                   >
-                    رجوع
+                    <Rotate3D
+                      className="
+                        w-5
+                        h-5
+                      "
+                    />
+
+                    إعادة الوضع
                   </button>
                 </div>
               </div>
-            )}
+
+              {/* =================================================
+                  ITEM NAVIGATION
+              ================================================= */}
+
+              <div
+                className="
+                  mt-5
+
+                  flex
+                  items-center
+                  justify-between
+                  gap-3
+                "
+              >
+                <button
+                  onClick={
+                    previousItem
+                  }
+                  className="
+                    flex
+                    items-center
+                    gap-2
+
+                    bg-[#5b3522]
+
+                    border
+                    border-[#E6C280]/40
+
+                    text-white
+
+                    px-4
+                    py-3
+
+                    rounded-xl
+
+                    font-bold
+
+                    active:scale-95
+                  "
+                >
+                  <ChevronRight
+                    className="w-5 h-5"
+                  />
+
+                  السابق
+                </button>
+
+                {/* DOTS */}
+
+                <div
+                  className="
+                    flex
+                    items-center
+                    justify-center
+                    gap-2
+                  "
+                >
+                  {selectedHotspot.items.map(
+                    (
+                      item,
+                      index
+                    ) => (
+                      <button
+                        key={
+                          item.id
+                        }
+                        onClick={() => {
+                          setCurrentItemIndex(
+                            index
+                          );
+
+                          setRotationX(
+                            -8
+                          );
+
+                          setRotationY(
+                            18
+                          );
+                        }}
+                        className={`
+                          transition-all
+
+                          ${
+                            index ===
+                            currentItemIndex
+                              ? 'w-9 h-3 bg-[#FFE082]'
+                              : 'w-3 h-3 bg-white/25'
+                          }
+
+                          rounded-full
+                        `}
+                        aria-label={
+                          item.name
+                        }
+                      />
+                    )
+                  )}
+                </div>
+
+                <button
+                  onClick={
+                    nextItem
+                  }
+                  className="
+                    flex
+                    items-center
+                    gap-2
+
+                    bg-[#8A1538]
+
+                    border
+                    border-[#FFE082]
+
+                    text-[#FFE082]
+
+                    px-4
+                    py-3
+
+                    rounded-xl
+
+                    font-black
+
+                    active:scale-95
+                  "
+                >
+                  التالي
+
+                  <ChevronLeft
+                    className="w-5 h-5"
+                  />
+                </button>
+              </div>
+
+              {/* ITEM COUNT */}
+
+              <div
+                className="
+                  mt-3
+
+                  text-center
+
+                  text-xs
+
+                  text-[#cfbfa8]
+                "
+              >
+                {currentItemIndex + 1}
+                {' / '}
+                {
+                  selectedHotspot.items
+                    .length
+                }
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
