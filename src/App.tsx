@@ -12,6 +12,7 @@ import { CharacterSelect } from './components/CharacterSelect';
 import { GateOpeningScene } from './components/GateOpeningScene';
 import { VillageScene } from './components/VillageScene';
 import { StationScene } from './components/StationScene';
+import { SouqScene } from './components/SouqScene';
 import { PassportModal } from './components/PassportModal';
 import { SettingsModal } from './components/SettingsModal';
 import { MinimalHud } from './components/MinimalHud';
@@ -271,13 +272,21 @@ export default function App() {
 
       {/* SCENE 5: Independent Station Scene */}
       {currentScene === 'station_interior' && activeStationId && (
-        <StationScene
-          station={STATIONS_DATA[activeStationId]}
-          gender={gender}
-          isStamped={passportRecord.collectedStamps[activeStationId]}
-          onStampPassport={(id) => handleStampStation(id as StationId)}
-          onReturnToVillage={handleReturnToVillage}
-        />
+        activeStationId === 'souq' ? (
+          <SouqScene
+            gender={gender}
+            settings={settings}
+            onReturnToVillage={handleReturnToVillage}
+          />
+        ) : (
+          <StationScene
+            station={STATIONS_DATA[activeStationId]}
+            gender={gender}
+            isStamped={passportRecord.collectedStamps[activeStationId]}
+            onStampPassport={(id) => handleStampStation(id as StationId)}
+            onReturnToVillage={handleReturnToVillage}
+          />
+        )
       )}
 
       {/* GLOBAL MODAL: Passport Booklet («جوازي») */}
