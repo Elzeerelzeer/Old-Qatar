@@ -11,6 +11,7 @@ import { IntroScene } from './components/IntroScene';
 import { CharacterSelect } from './components/CharacterSelect';
 import { GateOpeningScene } from './components/GateOpeningScene';
 import { VillageScene } from './components/VillageScene';
+import { SouqScene } from './components/SouqScene';
 import { StationInteriorModal } from './components/StationInteriorModal';
 import { PassportModal } from './components/PassportModal';
 import { SettingsModal } from './components/SettingsModal';
