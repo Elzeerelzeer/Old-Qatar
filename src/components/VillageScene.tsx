@@ -24,9 +24,10 @@ interface VillageSceneProps {
   onEnterStation: (stationId: StationId) => void;
   stampedStations: Record<StationId, boolean>;
   onResetPositionRef?: (fn: () => void) => void;
+  initialPos?: { x: number; y: number; direction?: Direction };
 }
 
-interface CollisionBox {
+interface MapRect {
   x1: number;
   y1: number;
   x2: number;
@@ -36,27 +37,50 @@ interface CollisionBox {
 // Master visual map path requested by user (official clean map)
 const MASTER_IMAGE_PATH = '/assets/a_wide_cinematic_high_detail_clean_game_map_st.png';
 
-// Invisible collision boxes matching the village master map layout
-const OBSTACLE_BOXES: CollisionBox[] = [
-  // 1. Souq building & stall canopies (top-left)
-  { x1: 7, y1: 18, x2: 34, y2: 38 },
-  // 2. Pearl Sea water & boat dock edges (top-center, leaving pier passage at x:46-54)
-  { x1: 34, y1: 10, x2: 46, y2: 24 },
-  { x1: 54, y1: 10, x2: 66, y2: 24 },
-  // 3. Fereej Games courtyard walls & palm frond shade (top-right)
-  { x1: 68, y1: 18, x2: 93, y2: 36 },
-  // 4. House of Crafts workshop building (mid-left)
-  { x1: 7, y1: 50, x2: 34, y2: 67 },
-  // 5. Majlis Lowwal building & colonnade (mid-right)
-  { x1: 68, y1: 50, x2: 93, y2: 67 },
-  // 6. Akkas Studio building (bottom-right)
-  { x1: 68, y1: 74, x2: 93, y2: 86 },
-  // 7. Fortress Gate flank walls and watchtowers (bottom-left and bottom-right)
-  // Leaves central gate opening at x: 44 to 56 wide open for entry!
-  { x1: 4, y1: 84, x2: 43, y2: 96 },
-  { x1: 57, y1: 84, x2: 96, y2: 96 },
-  // 8. Central Sidra Tree trunk & Stone Well rim (center obstacle)
-  { x1: 48, y1: 49, x2: 52, y2: 54 },
+// ---------------------------------------------------------------------------
+// INVISIBLE COLLISION MAP (خريطة التصادم غير المرئية)
+// Strictly defines designated walkable pathways, alleys, courtyards, and plazas.
+// Any location outside these zones (buildings, roofs, sea water, palm trees,
+// and fortress walls) is completely impassable.
+// ---------------------------------------------------------------------------
+const WALKABLE_ZONES: MapRect[] = [
+  // 1. Central South-North Grand Avenue (Continuous artery connecting Gate to Pearl Pier)
+  { x1: 43.5, y1: 25.0, x2: 56.5, y2: 88.0 },
+
+  // 2. Gateway Entrance Courtyard (in front of Qatar Lowwal Gate)
+  { x1: 43.0, y1: 82.0, x2: 57.0, y2: 88.5 },
+
+  // 3. Central Grand Plaza / Barahat Al-Sidra (Wide heritage gathering square)
+  { x1: 32.0, y1: 48.0, x2: 68.0, y2: 68.0 },
+
+  // 4. Northern Coastal Pier (Pearl Harbor / Wooden Boardwalk to Dhow)
+  { x1: 45.0, y1: 25.0, x2: 55.0, y2: 35.0 },
+
+  // 5. West-Branching Avenue to Souq Lowwal
+  { x1: 18.0, y1: 38.0, x2: 48.0, y2: 47.0 },
+  { x1: 18.0, y1: 38.0, x2: 32.0, y2: 48.0 }, // Souq entrance plaza
+
+  // 6. East-Branching Avenue to Fereej Games (Open play courtyard)
+  { x1: 52.0, y1: 37.0, x2: 80.0, y2: 46.0 },
+  { x1: 68.0, y1: 36.0, x2: 80.0, y2: 46.0 }, // Games plaza
+
+  // 7. West-Branching Avenue to House of Crafts (Beit Al-Heraf)
+  { x1: 18.0, y1: 64.0, x2: 48.0, y2: 74.0 },
+  { x1: 18.0, y1: 64.0, x2: 32.0, y2: 75.0 }, // Crafts workshop plaza
+
+  // 8. East-Branching Avenue to Majlis Lowwal
+  { x1: 52.0, y1: 64.0, x2: 76.0, y2: 74.0 },
+  { x1: 64.0, y1: 64.0, x2: 76.0, y2: 74.0 }, // Majlis porch courtyard
+
+  // 9. South-East Alley to Akkas Lowwal Studio
+  { x1: 52.0, y1: 74.0, x2: 72.0, y2: 84.0 },
+  { x1: 60.0, y1: 74.0, x2: 72.0, y2: 84.0 }, // Akkas front
+];
+
+// Obstacles located inside walkable zones (cutouts)
+const OBSTACLE_CUTOUTS: MapRect[] = [
+  // Ancient Sidra Tree trunk and Stone Well base in the center of the plaza
+  { x1: 46.5, y1: 48.5, x2: 53.5, y2: 55.5 },
 ];
 
 export const VillageScene: React.FC<VillageSceneProps> = ({
@@ -65,13 +89,18 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
   onEnterStation,
   stampedStations,
   onResetPositionRef,
+  initialPos,
 }) => {
-  // Player coordinates: Starts in front of «بوابة قطر لوّل» (empty gateway path)
-  const [posX, setPosX] = useState(50);
-  const [posY, setPosY] = useState(87);
-  const [direction, setDirection] = useState<Direction>('up');
+  // Player coordinates: Starts in front of «بوابة قطر لوّل» (or returned station door)
+  const [posX, setPosX] = useState(initialPos?.x ?? 50);
+  const [posY, setPosY] = useState(initialPos?.y ?? 87);
+  const [direction, setDirection] = useState<Direction>(initialPos?.direction ?? 'up');
   const [isMoving, setIsMoving] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
+
+  // Mutable refs for physics loop to eliminate render thrashing
+  const posRef = useRef({ x: initialPos?.x ?? 50, y: initialPos?.y ?? 87 });
+  const nearbyStationRef = useRef<StationData | null>(null);
 
   // Responsive character size: Mobile +15% (~48px), Desktop & Interactive Smart Board +10% (~46px)
   const [isMobileScreen, setIsMobileScreen] = useState(() =>
@@ -119,6 +148,7 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
 
   // Reset character to Qatar Lowwal Gate entrance
   const resetToGate = useCallback(() => {
+    posRef.current = { x: 50, y: 87 };
     setPosX(50);
     setPosY(87);
     setDirection('up');
@@ -141,27 +171,34 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
     };
   }, [settings.isSoundEnabled]);
 
-  // Collision checking against boundaries & obstacles
-  const checkCollision = (nextX: number, nextY: number): boolean => {
-    // Village outer boundaries
-    if (nextX < 6 || nextX > 94) return true;
-    if (nextY > 88) return true;
-    if (nextY < 24) {
-      const atPier = nextX >= 45 && nextX <= 55 && nextY >= 21;
-      if (!atPier) return true;
+  // Invisible collision checking: Point must lie within designated walkways/plazas
+  const isPointWalkable = (x: number, y: number): boolean => {
+    // 1. Cutout obstacles inside plazas (Sidra tree trunk & stone well rim)
+    for (const obs of OBSTACLE_CUTOUTS) {
+      if (x >= obs.x1 && x <= obs.x2 && y >= obs.y1 && y <= obs.y2) {
+        return false;
+      }
     }
 
-    const charRadius = 1.8;
-    for (const box of OBSTACLE_BOXES) {
-      if (
-        nextX + charRadius > box.x1 &&
-        nextX - charRadius < box.x2 &&
-        nextY + charRadius > box.y1 &&
-        nextY - charRadius < box.y2
-      ) {
+    // 2. Must reside within at least one valid walkable corridor, courtyard, or plaza
+    for (const zone of WALKABLE_ZONES) {
+      if (x >= zone.x1 && x <= zone.x2 && y >= zone.y1 && y <= zone.y2) {
         return true;
       }
     }
+
+    // Outside designated paths (sea, buildings, trees, walls) is strictly impassable
+    return false;
+  };
+
+  // Physical collision check with small margin (r = 0.6%) to prevent sprite penetrating walls
+  const checkCollision = (nextX: number, nextY: number): boolean => {
+    const r = 0.6;
+    if (!isPointWalkable(nextX, nextY)) return true;
+    if (!isPointWalkable(nextX - r, nextY)) return true;
+    if (!isPointWalkable(nextX + r, nextY)) return true;
+    if (!isPointWalkable(nextX, nextY - r)) return true;
+    if (!isPointWalkable(nextX, nextY + r)) return true;
     return false;
   };
 
@@ -184,8 +221,8 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
       activeKeysRef.current[e.code] = true;
       setHasUsedKeyboard(true);
 
-      if ((e.key === 'Enter' || e.key === ' ') && nearbyStation) {
-        handleEnterStation(nearbyStation.id);
+      if ((e.key === 'Enter' || e.key === ' ') && nearbyStationRef.current) {
+        handleEnterStation(nearbyStationRef.current.id);
       }
     };
 
@@ -201,7 +238,7 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [nearbyStation, handleEnterStation]);
+  }, [handleEnterStation]);
 
   // Main game loop with smooth camera follow
   useEffect(() => {
@@ -234,22 +271,28 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
         dx /= len;
         dy /= len;
 
-        const baseSpeed = settings.walkSpeed === 'calm' ? 14 : 22;
+        // Natural, balanced walking speed (calm: 14, standard: 20)
+        const baseSpeed = settings.walkSpeed === 'calm' ? 14 : 20;
         const moveDistX = dx * baseSpeed * dt;
         const moveDistY = dy * baseSpeed * dt;
 
-        let nextX = posX;
-        if (!checkCollision(posX + moveDistX, posY)) {
-          nextX = posX + moveDistX;
+        const curX = posRef.current.x;
+        const curY = posRef.current.y;
+
+        // Smooth wall sliding against obstacles
+        let nextX = curX;
+        if (!checkCollision(curX + moveDistX, curY)) {
+          nextX = curX + moveDistX;
         }
 
-        let nextY = posY;
-        if (!checkCollision(nextX, posY + moveDistY)) {
-          nextY = posY + moveDistY;
-        } else if (!checkCollision(posX, posY + moveDistY)) {
-          nextY = posY + moveDistY;
+        let nextY = curY;
+        if (!checkCollision(nextX, curY + moveDistY)) {
+          nextY = curY + moveDistY;
+        } else if (!checkCollision(curX, curY + moveDistY)) {
+          nextY = curY + moveDistY;
         }
 
+        posRef.current = { x: nextX, y: nextY };
         setPosX(nextX);
         setPosY(nextY);
         setIsMoving(true);
@@ -260,8 +303,9 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
           setDirection(dx > 0 ? 'right' : 'left');
         }
 
-        // Footsteps sound
-        if (settings.isSoundEnabled && time - lastFootstepTimeRef.current > 380) {
+        // Rhythmic footsteps audio
+        const footstepInterval = settings.walkSpeed === 'calm' ? 420 : 340;
+        if (settings.isSoundEnabled && time - lastFootstepTimeRef.current > footstepInterval) {
           soundManager.playFootstep();
           lastFootstepTimeRef.current = time;
         }
@@ -279,9 +323,9 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
         const cW = containerEl.clientWidth;
         const cH = containerEl.clientHeight;
 
-        // Character world pixel coordinates
-        const charPixelX = (posX / 100) * cW;
-        const charPixelY = (posY / 100) * cH;
+        // Character world pixel coordinates from ref
+        const charPixelX = (posRef.current.x / 100) * cW;
+        const charPixelY = (posRef.current.y / 100) * cH;
 
         // Centering target
         let targetCamX = (vW / 2) - charPixelX;
@@ -300,10 +344,17 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
           targetCamY = (vH - cH) / 2;
         }
 
-        setCamera((prev) => ({
-          x: prev.x + (targetCamX - prev.x) * 0.1,
-          y: prev.y + (targetCamY - prev.y) * 0.1,
-        }));
+        setCamera((prev) => {
+          const diffX = targetCamX - prev.x;
+          const diffY = targetCamY - prev.y;
+          if (Math.abs(diffX) < 0.15 && Math.abs(diffY) < 0.15) {
+            return prev;
+          }
+          return {
+            x: prev.x + diffX * 0.1,
+            y: prev.y + diffY * 0.1,
+          };
+        });
       }
 
       // Proximity detection for stations
@@ -312,20 +363,19 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
       let minDistance = 999;
 
       for (const st of stations) {
-        const dist = Math.hypot(posX - st.doorX, posY - st.doorY);
+        const dist = Math.hypot(posRef.current.x - st.doorX, posRef.current.y - st.doorY);
         if (dist < 11 && dist < minDistance) {
           minDistance = dist;
           closest = st;
         }
       }
 
-      if (closest !== nearbyStation) {
+      if (closest?.id !== lastNearbyStationIdRef.current) {
+        lastNearbyStationIdRef.current = closest?.id ?? null;
+        nearbyStationRef.current = closest;
         setNearbyStation(closest);
-        if (closest && closest.id !== lastNearbyStationIdRef.current) {
+        if (closest) {
           soundManager.playProximityChime();
-          lastNearbyStationIdRef.current = closest.id;
-        } else if (!closest) {
-          lastNearbyStationIdRef.current = null;
         }
       }
 
@@ -339,7 +389,7 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, [posX, posY, nearbyStation, settings.walkSpeed, settings.isSoundEnabled]);
+  }, [settings.walkSpeed, settings.isSoundEnabled]);
 
   const handleTouchStart = (dir: Direction) => {
     touchDirectionRef.current = dir;

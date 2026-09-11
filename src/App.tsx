@@ -11,12 +11,12 @@ import { IntroScene } from './components/IntroScene';
 import { CharacterSelect } from './components/CharacterSelect';
 import { GateOpeningScene } from './components/GateOpeningScene';
 import { VillageScene } from './components/VillageScene';
-import { SouqScene } from './components/SouqScene';
-import { StationInteriorModal } from './components/StationInteriorModal';
+import { StationScene } from './components/StationScene';
 import { PassportModal } from './components/PassportModal';
 import { SettingsModal } from './components/SettingsModal';
 import { MinimalHud } from './components/MinimalHud';
 import { soundManager } from './services/soundEffects';
+import { Direction } from './types';
 
 const STORAGE_KEY = 'qatar_lowwal_heritage_save_v1';
 
@@ -24,6 +24,20 @@ export default function App() {
   // Current game scene - default to 'village' for direct preview of the Master Map
   const [currentScene, setCurrentScene] = useState<GameScene>('village');
   const [activeStationId, setActiveStationId] = useState<StationId | null>(null);
+
+  // Cinematic fade transition state
+  const [isFading, setIsFading] = useState(false);
+
+  // Player position in village: starts in front of «بوابة قطر لوّل» (x: 50, y: 87)
+  const [playerVillagePos, setPlayerVillagePos] = useState<{
+    x: number;
+    y: number;
+    direction: Direction;
+  }>({
+    x: 50,
+    y: 87,
+    direction: 'up',
+  });
 
   // Character state
   const [gender, setGender] = useState<CharacterGender>('boy');
@@ -159,8 +173,43 @@ export default function App() {
   // Count stamped stations
   const stampedCount = Object.values(passportRecord.collectedStamps).filter(Boolean).length;
 
+  // Transition into Station Scene with Short Cinematic Fade
+  const handleEnterStation = (id: StationId) => {
+    const station = STATIONS_DATA[id];
+    // Record exact station door entrance coordinates as spawn point when returning
+    setPlayerVillagePos({
+      x: station.doorX,
+      y: station.doorY,
+      direction: 'down',
+    });
+    setIsFading(true);
+    setTimeout(() => {
+      setActiveStationId(id);
+      setCurrentScene('station_interior');
+      setIsFading(false);
+    }, 280);
+  };
+
+  // Return to Village with Short Cinematic Fade (character stays at same station entrance)
+  const handleReturnToVillage = () => {
+    setIsFading(true);
+    setTimeout(() => {
+      setCurrentScene('village');
+      setActiveStationId(null);
+      setIsFading(false);
+    }, 280);
+  };
+
   return (
     <div className="relative w-full h-screen overflow-hidden select-none bg-[#1a0e08] text-[#FAF5EA] font-sans">
+      {/* Cinematic Fade Transition Overlay */}
+      <div
+        id="cinematic-fade-overlay"
+        className={`fixed inset-0 z-[100] bg-black pointer-events-none transition-opacity duration-300 ease-in-out ${
+          isFading ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+
       {/* SCENE 1: Cinematic Intro Screen */}
       {currentScene === 'intro' && (
         <IntroScene
@@ -192,16 +241,14 @@ export default function App() {
       )}
 
       {/* SCENE 4: 2.5D Isometric Village World (Main Gameplay) */}
-      {(currentScene === 'village' || currentScene === 'station_interior') && (
+      {currentScene === 'village' && (
         <>
           <VillageScene
             gender={gender}
             settings={settings}
             stampedStations={passportRecord.collectedStamps}
-            onEnterStation={(id) => {
-              setActiveStationId(id);
-              setCurrentScene('station_interior');
-            }}
+            initialPos={playerVillagePos}
+            onEnterStation={handleEnterStation}
             onResetPositionRef={(fn) => {
               resetPositionRef.current = fn;
             }}
@@ -222,33 +269,16 @@ export default function App() {
         </>
       )}
 
-     {/* SOUQ: Full interactive exploration scene */}
-{currentScene === 'station_interior' && activeStationId === 'souq' && (
-  <SouqScene
-    gender={gender}
-    settings={settings}
-    onExit={() => {
-      setCurrentScene('village');
-      setActiveStationId(null);
-    }}
-  />
-)}
-
-{/* Other stations remain temporary modal views */}
-{currentScene === 'station_interior' &&
-  activeStationId &&
-  activeStationId !== 'souq' && (
-    <StationInteriorModal
-      station={STATIONS_DATA[activeStationId]}
-      gender={gender}
-      isStamped={passportRecord.collectedStamps[activeStationId]}
-      onStampPassport={(id) => handleStampStation(id as StationId)}
-      onClose={() => {
-        setCurrentScene('village');
-        setActiveStationId(null);
-      }}
-    />
-  )}
+      {/* SCENE 5: Independent Station Scene */}
+      {currentScene === 'station_interior' && activeStationId && (
+        <StationScene
+          station={STATIONS_DATA[activeStationId]}
+          gender={gender}
+          isStamped={passportRecord.collectedStamps[activeStationId]}
+          onStampPassport={(id) => handleStampStation(id as StationId)}
+          onReturnToVillage={handleReturnToVillage}
+        />
+      )}
 
       {/* GLOBAL MODAL: Passport Booklet («جوازي») */}
       {isPassportOpen && (
@@ -270,6 +300,7 @@ export default function App() {
             setPassportRecord((prev) => ({ ...prev, gender: newGender }));
           }}
           onResetPosition={() => {
+            setPlayerVillagePos({ x: 50, y: 87, direction: 'up' });
             if (resetPositionRef.current) {
               resetPositionRef.current();
             }
