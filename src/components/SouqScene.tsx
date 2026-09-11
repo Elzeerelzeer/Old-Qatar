@@ -1,6 +1,4 @@
-from pathlib import Path
-
-code = r'''import React, {
+import React, {
   useState,
   useEffect,
   useRef,
@@ -339,6 +337,9 @@ export function SouqScene({
   const [arabicVoice, setArabicVoice] =
     useState<SpeechSynthesisVoice | null>(null);
 
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
 
@@ -578,29 +579,74 @@ export function SouqScene({
   ============================================================ */
 
   const speakArabic = (name: string, description: string) => {
-    if (!('speechSynthesis' in window)) {
-      alert('الاستماع غير مدعوم في هذا المتصفح.');
+    setSpeechError(null);
+
+    if (
+      typeof window === 'undefined' ||
+      !('speechSynthesis' in window) ||
+      typeof SpeechSynthesisUtterance === 'undefined'
+    ) {
+      setSpeechError('الاستماع غير مدعوم في هذا المتصفح.');
       return;
     }
 
     const synth = window.speechSynthesis;
+    const textToSpeak = `${name}. ${description}`;
+
+    // Chrome can occasionally remain paused after cancel().
     synth.cancel();
+    synth.resume();
 
-    const utterance = new SpeechSynthesisUtterance(
-      `${name}. ${description}`
-    );
+    const voices = synth.getVoices();
 
-    utterance.lang = arabicVoice?.lang || 'ar-SA';
+    const liveArabicVoice =
+      voices.find((voice) => voice.lang === 'ar-QA') ||
+      voices.find((voice) => voice.lang === 'ar-SA') ||
+      voices.find((voice) => voice.lang.toLowerCase().startsWith('ar')) ||
+      arabicVoice ||
+      null;
 
-    if (arabicVoice) {
-      utterance.voice = arabicVoice;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+
+    utterance.lang = liveArabicVoice?.lang || 'ar-SA';
+
+    if (liveArabicVoice) {
+      utterance.voice = liveArabicVoice;
     }
 
     utterance.rate = 0.82;
     utterance.pitch = 1;
     utterance.volume = 1;
 
-    synth.speak(utterance);
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setSpeechError(null);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event.error);
+      setIsSpeaking(false);
+
+      if (event.error !== 'canceled' && event.error !== 'interrupted') {
+        setSpeechError('تعذر تشغيل الصوت. جرّب فتح المعاينة في نافذة مستقلة.');
+      }
+    };
+
+    // Small delay after cancel() improves reliability in Chrome.
+    window.setTimeout(() => {
+      try {
+        synth.resume();
+        synth.speak(utterance);
+      } catch (error) {
+        console.error('Speech synthesis failed:', error);
+        setIsSpeaking(false);
+        setSpeechError('تعذر تشغيل الصوت في هذه المعاينة.');
+      }
+    }, 120);
   };
 
   /* ============================================================
@@ -630,6 +676,9 @@ export function SouqScene({
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+
+    setIsSpeaking(false);
+    setSpeechError(null);
 
     setSelectedHotspot(null);
     setCurrentItemIndex(0);
@@ -1072,17 +1121,26 @@ export function SouqScene({
                 </p>
 
                 <button
+                  type="button"
                   onClick={() =>
                     speakArabic(
                       currentItem.name,
                       currentItem.description
                     )
                   }
-                  className="mt-5 w-full flex items-center justify-center gap-2 bg-[#8A1538] border-2 border-[#FFE082] text-[#FFE082] rounded-2xl py-3 font-black active:scale-95 shadow-lg"
+                  className={`mt-5 w-full flex items-center justify-center gap-2 border-2 border-[#FFE082] text-[#FFE082] rounded-2xl py-3 font-black active:scale-95 shadow-lg transition-all ${
+                    isSpeaking ? 'bg-[#6b102c] animate-pulse' : 'bg-[#8A1538]'
+                  }`}
                 >
                   <Volume2 className="w-6 h-6" />
-                  <span>استمع</span>
+                  <span>{isSpeaking ? 'يتم الاستماع...' : 'استمع'}</span>
                 </button>
+
+                {speechError && (
+                  <div className="mt-3 rounded-xl border border-amber-300/40 bg-amber-950/35 px-3 py-2 text-sm text-amber-100">
+                    {speechError}
+                  </div>
+                )}
 
                 <button
                   onClick={reset3DView}
@@ -1149,9 +1207,3 @@ export function SouqScene({
     </div>
   );
 }
-'''
-
-path = Path("/mnt/data/SouqScene.tsx")
-path.write_text(code, encoding="utf-8")
-print(f"Created: {path}")
-print(f"Lines: {len(code.splitlines())}")
