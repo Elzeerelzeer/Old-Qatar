@@ -3,7 +3,12 @@ import { CharacterGender, Direction, GameSettings } from '../types';
 import { CharacterAvatar } from './CharacterAvatar';
 import { soundManager } from '../services/soundEffects';
 import { ArrowRight } from 'lucide-react';
-
+import {
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react';
 interface SouqSceneProps {
   gender: CharacterGender;
   settings: GameSettings;
@@ -942,70 +947,132 @@ export function SouqScene({ gender, settings, onReturnToVillage }: SouqSceneProp
       {/* ===================================================================== */}
       {/* TOUCH CONTROLS (VIRTUAL D-PAD FOR MOBILE / TABLET - PRESERVED)       */}
       {/* ===================================================================== */}
-      <div className="absolute bottom-6 left-6 z-50 md:hidden pointer-events-auto">
-        <div className="relative w-36 h-36 bg-[#261309]/85 backdrop-blur-md rounded-full border-2 border-[#E6C280]/50 shadow-2xl p-2 flex items-center justify-center">
-          {/* Up */}
-          <button
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleTouchStart('up');
-            }}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={() => handleTouchStart('up')}
-            onMouseUp={handleTouchEnd}
-            className="absolute top-1 left-1/2 -translate-x-1/2 w-10 h-10 bg-[#8A1538] active:bg-[#a31a43] rounded-t-xl text-white font-bold flex items-center justify-center shadow"
-          >
-            ▲
-          </button>
+    {/* LARGE CLEAR TOUCH D-PAD */}
+<div
+  id="souq-touch-dpad"
+  className="
+    fixed bottom-6 left-6 z-[100]
+    w-[138px] h-[138px]
+    rounded-full
+    bg-[#2d180f]/90
+    border-2 border-[#E6C280]
+    shadow-[0_8px_30px_rgba(0,0,0,0.55)]
+    backdrop-blur-md
+    touch-none select-none
+  "
+>
+  {/* UP */}
+  <button
+    onPointerDown={() => handleTouchStart('up')}
+    onPointerUp={handleTouchEnd}
+    onPointerCancel={handleTouchEnd}
+    onPointerLeave={handleTouchEnd}
+    className="
+      absolute top-2 left-1/2 -translate-x-1/2
+      w-12 h-12
+      rounded-xl
+      bg-[#8A1538]
+      border-2 border-[#E6C280]
+      text-white
+      flex items-center justify-center
+      shadow-lg
+      active:scale-90
+      active:bg-[#A91D47]
+      transition
+    "
+    aria-label="تحرك للأعلى"
+  >
+    <ArrowUp className="w-8 h-8 stroke-[3]" />
+  </button>
 
-          {/* Down */}
-          <button
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleTouchStart('down');
-            }}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={() => handleTouchStart('down')}
-            onMouseUp={handleTouchEnd}
-            className="absolute bottom-1 left-1/2 -translate-x-1/2 w-10 h-10 bg-[#8A1538] active:bg-[#a31a43] rounded-b-xl text-white font-bold flex items-center justify-center shadow"
-          >
-            ▼
-          </button>
+  {/* DOWN */}
+  <button
+    onPointerDown={() => handleTouchStart('down')}
+    onPointerUp={handleTouchEnd}
+    onPointerCancel={handleTouchEnd}
+    onPointerLeave={handleTouchEnd}
+    className="
+      absolute bottom-2 left-1/2 -translate-x-1/2
+      w-12 h-12
+      rounded-xl
+      bg-[#8A1538]
+      border-2 border-[#E6C280]
+      text-white
+      flex items-center justify-center
+      shadow-lg
+      active:scale-90
+      active:bg-[#A91D47]
+      transition
+    "
+    aria-label="تحرك للأسفل"
+  >
+    <ArrowDown className="w-8 h-8 stroke-[3]" />
+  </button>
 
-          {/* Left */}
-          <button
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleTouchStart('left');
-            }}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={() => handleTouchStart('left')}
-            onMouseUp={handleTouchEnd}
-            className="absolute left-1 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#8A1538] active:bg-[#a31a43] rounded-l-xl text-white font-bold flex items-center justify-center shadow"
-          >
-            ◄
-          </button>
+  {/* LEFT */}
+  <button
+    onPointerDown={() => handleTouchStart('left')}
+    onPointerUp={handleTouchEnd}
+    onPointerCancel={handleTouchEnd}
+    onPointerLeave={handleTouchEnd}
+    className="
+      absolute left-2 top-1/2 -translate-y-1/2
+      w-12 h-12
+      rounded-xl
+      bg-[#8A1538]
+      border-2 border-[#E6C280]
+      text-white
+      flex items-center justify-center
+      shadow-lg
+      active:scale-90
+      active:bg-[#A91D47]
+      transition
+    "
+    aria-label="تحرك لليسار"
+  >
+    <ArrowLeft className="w-8 h-8 stroke-[3]" />
+  </button>
 
-          {/* Right */}
-          <button
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleTouchStart('right');
-            }}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={() => handleTouchStart('right')}
-            onMouseUp={handleTouchEnd}
-            className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#8A1538] active:bg-[#a31a43] rounded-r-xl text-white font-bold flex items-center justify-center shadow"
-          >
-            ►
-          </button>
+  {/* RIGHT */}
+  <button
+    onPointerDown={() => handleTouchStart('right')}
+    onPointerUp={handleTouchEnd}
+    onPointerCancel={handleTouchEnd}
+    onPointerLeave={handleTouchEnd}
+    className="
+      absolute right-2 top-1/2 -translate-y-1/2
+      w-12 h-12
+      rounded-xl
+      bg-[#8A1538]
+      border-2 border-[#E6C280]
+      text-white
+      flex items-center justify-center
+      shadow-lg
+      active:scale-90
+      active:bg-[#A91D47]
+      transition
+    "
+    aria-label="تحرك لليمين"
+  >
+    <ArrowRight className="w-8 h-8 stroke-[3]" />
+  </button>
 
-          {/* Center Hub */}
-          <div className="w-8 h-8 rounded-full bg-[#E6C280]/40 border border-[#FAF5EA]/50 flex items-center justify-center text-[10px] text-[#FAF5EA] font-bold">
-            ✥
-          </div>
-        </div>
-      </div>
+  {/* CENTER */}
+  <div
+    className="
+      absolute left-1/2 top-1/2
+      -translate-x-1/2 -translate-y-1/2
+      w-10 h-10 rounded-full
+      bg-[#B99658]
+      border-2 border-[#F6E3B4]
+      flex items-center justify-center
+      text-white text-lg
+      shadow-inner
+    "
+  >
+    ✦
+  </div>
+</div>
 
       {/* Desktop Keyboard Hints (Bottom-Right - PRESERVED) */}
       <div className="absolute bottom-4 right-4 z-50 hidden md:flex items-center gap-2 bg-[#261309]/85 backdrop-blur-sm border border-[#E6C280]/40 px-3 py-1.5 rounded-full text-xs text-[#FAF5EA]/90 pointer-events-none shadow-lg">
