@@ -44,6 +44,188 @@
   animation: goldPulse 2.4s infinite ease-in-out;
 }
 
+/* Cinematic Light Shafts & God Rays Animations */
+@keyframes rayShimmer1 {
+  0%, 100% {
+    opacity: 0.72;
+    transform: scaleX(1) skewX(0deg);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scaleX(1.04) skewX(0.5deg);
+  }
+}
+
+@keyframes rayShimmer2 {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scaleX(1) skewX(0deg);
+  }
+  50% {
+    opacity: 0.62;
+    transform: scaleX(0.97) skewX(-0.5deg);
+  }
+}
+
+@keyframes rayShimmer3 {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scaleX(1.02);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scaleX(0.98);
+  }
+}
+
+@keyframes floatMote1 {
+  0% {
+    transform: translate(0, 0) scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate(25px, -140px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+@keyframes floatMote2 {
+  0% {
+    transform: translate(0, 0) scale(0.9);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  75% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-30px, -160px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+@keyframes roofApertureGaze {
+  0%, 100% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 10px rgba(255, 220, 120, 0.6));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 22px rgba(255, 235, 160, 0.95));
+  }
+}
+
+.anim-ray-1 {
+  animation: rayShimmer1 8s infinite ease-in-out;
+}
+
+.anim-ray-2 {
+  animation: rayShimmer2 10.5s infinite ease-in-out 1.2s;
+}
+
+.anim-ray-3 {
+  animation: rayShimmer3 7s infinite ease-in-out 2.5s;
+}
+
+.anim-mote-1 {
+  animation: floatMote1 6.5s infinite ease-in-out;
+}
+
+.anim-mote-2 {
+  animation: floatMote2 8.5s infinite ease-in-out;
+}
+
+.anim-aperture {
+  animation: roofApertureGaze 5s infinite ease-in-out;
+}
+
+/* Dokan Active Radial Glow & Shimmer Keyframes */
+@keyframes dokanFlicker {
+  0%, 100% {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 14px rgba(255, 215, 107, 0.75));
+  }
+  25% {
+    opacity: 0.82;
+    filter: drop-shadow(0 0 9px rgba(255, 195, 75, 0.55));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 20px rgba(255, 235, 145, 0.95));
+  }
+  75% {
+    opacity: 0.88;
+    filter: drop-shadow(0 0 12px rgba(255, 205, 90, 0.65));
+  }
+}
+
+@keyframes dokanRadialBreathe {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.88;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes activeShopBeacon {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.8;
+  }
+  65% {
+    transform: translate(-50%, -50%) scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes dokanMoteFloat {
+  0% {
+    transform: translate(0, 0) scale(0.7);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(10px, -36px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.anim-dokan-flicker {
+  animation: dokanFlicker 3.2s infinite ease-in-out;
+}
+
+.anim-dokan-breathe {
+  animation: dokanRadialBreathe 4s infinite ease-in-out;
+}
+
+.anim-dokan-beacon {
+  animation: activeShopBeacon 3s infinite cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.anim-dokan-mote {
+  animation: dokanMoteFloat 4.2s infinite ease-in-out;
+}
+
 /* Quiet mode disables intense animations */
 body.quiet-mode * {
   animation-duration: 0.001ms !important;

@@ -69,3 +69,21 @@ export interface PassportRecord {
   gender: CharacterGender;
   journeyStartDate: string;
 }
+
+export interface SouqItem {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  accent: string;
+}
+
+export interface SouqHotspot {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  radius: number;
+  intro: string;
+  items: SouqItem[];
+}

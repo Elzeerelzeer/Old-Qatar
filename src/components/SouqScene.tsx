@@ -13,6 +13,10 @@ import {
 
 import { CharacterAvatar } from './CharacterAvatar';
 import { soundManager } from '../services/soundEffects';
+import { DallahStyle } from './QatariDallahVisual';
+import { HeritageItemVisual } from './HeritageItemVisual';
+import { SouqLightShafts } from './SouqLightShafts';
+import { SouqDokanGlow } from './SouqDokanGlow';
 
 import {
   ArrowRight,
@@ -21,6 +25,8 @@ import {
   ArrowLeft,
   Sparkles,
   Volume2,
+  VolumeX,
+  Sun,
   X,
   Rotate3D,
   ChevronRight,
@@ -79,6 +85,24 @@ const WORLD_HEIGHT = 900;
    EDUCATIONAL CONTENT
 ============================================================ */
 
+export const DALLAH_VARIANTS: Record<
+  DallahStyle,
+  { name: string; desc: string }
+> = {
+  qatari_gold: {
+    name: 'الدلّة القطرية الأصيلة',
+    desc: 'دلّة القهوة العربية المصنوعة من النحاس الأصفر المذهب، ذات تاج مدبب ومصب مقوس شامخ لضيافة أهل قطر لوّل.',
+  },
+  raslan_brass: {
+    name: 'دلّة رسلان النحاسية',
+    desc: 'دلّة نحاسية تراثية عريقة بنقوش يدوية هندسية وتضليع تقليدي، رمز الكرم في مجالس الأجداد.',
+  },
+  royal_silver: {
+    name: 'الدلّة الملكية الفضية',
+    desc: 'دلّة فضية مزدانة بالنقوش المذهبة واللمعان البراق، مخصصة للمناسبات والاحتفاء بالضيوف.',
+  },
+};
+
 const SOUQ_HOTSPOTS: SouqHotspot[] = [
   {
     id: 'pottery',
@@ -86,28 +110,28 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     x: 25,
     y: 38,
     radius: 14,
-    intro: 'أوانٍ استخدمها أهل قطر لوّل.',
+    intro: 'أوانٍ فخارية أصيلة استخدمها أهل قطر لوّل.',
     items: [
       {
         id: 'jar',
-        name: 'الجَرّة',
+        name: 'الجَرّة الفخارية (الحِب)',
         icon: '🏺',
-        description: 'إناء فخاري لحفظ الماء.',
+        description: 'إناء فخاري مسامي من الطين المحروق استُخدم لتبريد وحفظ مياه الشرب العذبة قديماً.',
         accent: '#B96E42',
       },
       {
         id: 'pot',
-        name: 'القدر الفخاري',
+        name: 'القدر الفخاري (البِرْمَة)',
         icon: '🥘',
-        description: 'استُخدم لإعداد وحفظ الطعام.',
+        description: 'قدر طيني متين محكم الغطاء لإعداد الأطباق الشعبية على الفحم والجمر ببطء ونكهة فريدة.',
         accent: '#A85A32',
       },
       {
         id: 'dallah',
-        name: 'الدلّة',
-        icon: '🫖',
-        description: 'لتقديم القهوة العربية.',
-        accent: '#C9A45F',
+        name: 'الدلّة القطرية الأصيلة',
+        icon: '🪙',
+        description: 'دلّة القهوة العربية الأصيلة لضيافة أهل قطر لوّل، رمز الكرم والشرف في المجالس.',
+        accent: '#E5B942',
       },
     ],
   },
@@ -121,30 +145,30 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     items: [
       {
         id: 'cardamom',
-        name: 'الهيل',
+        name: 'الهيل الأخضر الفاخر',
         icon: '🌿',
-        description: 'يُضاف إلى القهوة العربية.',
+        description: 'حبوب عطرية فاخرة تدق في النجر وتُضاف للقهوة العربية لمنحها النكهة القطرية الزكية.',
         accent: '#728C4A',
       },
       {
         id: 'saffron',
-        name: 'الزعفران',
+        name: 'الزعفران (الذهب الأحمر)',
         icon: '🌼',
-        description: 'من التوابل الثمينة والعطرية.',
+        description: 'أثمن التوابل التراثية العطرية، يُكرم به فنجان القهوة وتزين به أطباق الولائم.',
         accent: '#D69A27',
       },
       {
         id: 'cinnamon',
-        name: 'القرفة',
+        name: 'القرفة (الدارسين)',
         icon: '🪵',
-        description: 'بهار عطري للطعام والمشروبات.',
+        description: 'لحاء خشب عطري نفاذ يُلف بحبال الخيش، لإعداد المشروبات الدافئة وأطيب الأطعمة.',
         accent: '#9B5A35',
       },
       {
         id: 'clove',
-        name: 'القرنفل',
+        name: 'القرنفل (المسمار / العويدي)',
         icon: '🌱',
-        description: 'توابل عطرية قوية الرائحة.',
+        description: 'توابل عطرية زكية تشبه المسامير الصغيرة، تضفي حدة ونكهة فريدة على الشاي والقهوة.',
         accent: '#6D713C',
       },
     ],
@@ -159,23 +183,23 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     items: [
       {
         id: 'basket',
-        name: 'السلة',
+        name: 'السلة الخوص (المِخْرافَة)',
         icon: '🧺',
-        description: 'صُنعت لحمل وحفظ الأغراض.',
+        description: 'سلة مجدولة بإتقان من سعف النخيل، لحمل الرطب وحفظ المؤونة في بيوت لوّل.',
         accent: '#C29858',
       },
       {
         id: 'palm',
-        name: 'الخوص',
+        name: 'المهفّة (مروحة الخوص)',
         icon: '🌴',
-        description: 'يُؤخذ من سعف النخيل.',
+        description: 'مروحة يدوية تقليدية منسوجة من خوص النخيل الملون للتبريد والتهوية في صيف قطر.',
         accent: '#758B4C',
       },
       {
         id: 'fabric',
-        name: 'الأقمشة',
+        name: 'أقمشة الزري وثوب النشل',
         icon: '🧵',
-        description: 'لصناعة الملابس والمفروشات.',
+        description: 'أقمشة حريرية مطرزة بخيوط الذهب (الزري)، ترتديها الأمهات والبنات في الأعياد والمناسبات.',
         accent: '#8A1538',
       },
     ],
@@ -190,23 +214,23 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     items: [
       {
         id: 'scale',
-        name: 'الميزان',
+        name: 'ميزان اللؤلؤ والتجار',
         icon: '⚖️',
-        description: 'لوزن السلع قبل البيع.',
+        description: 'ميزان نحاسي دقيق ذو كفتين لوزن حبات اللؤلؤ الطبيعي والبهارات الثمينة.',
         accent: '#B99658',
       },
       {
         id: 'box',
-        name: 'الصندوق الخشبي',
+        name: 'الصندوق الخشبي (المَنْدُوس)',
         icon: '📦',
-        description: 'لحفظ ونقل البضائع.',
+        description: 'صندوق خشبي تراثي مصفح بنحاس ومسامير قبتية لحفظ الحلي والملابس الثمينة.',
         accent: '#805333',
       },
       {
         id: 'lantern',
-        name: 'الفانوس',
+        name: 'الفانوس التراثي (السِّراج)',
         icon: '🏮',
-        description: 'للإضاءة قبل انتشار الكهرباء.',
+        description: 'مصباح زيتي نحاسي مع زجاج واقٍ للإضاءة في أزقة الفرجان والمنازل قديماً.',
         accent: '#C97C31',
       },
     ],
@@ -221,23 +245,23 @@ const SOUQ_HOTSPOTS: SouqHotspot[] = [
     items: [
       {
         id: 'falcon',
-        name: 'الصقر',
+        name: 'الصقر العربي الأصيل (الحُر والشاهين)',
         icon: '🦅',
-        description: 'من رموز التراث القطري.',
+        description: 'رمز العزة والشهامة في قطر والخليج، يتوج بالبرقع الجلدي المطرز لحفظ هدوئه.',
         accent: '#8A6949',
       },
       {
         id: 'glove',
-        name: 'قفاز الصقّار',
+        name: 'قفاز الصقّار (الدَّس)',
         icon: '🧤',
-        description: 'يحمي يد الصقّار عند حمل الصقر.',
+        description: 'قفاز جلدي سميك مبطن يرتديه الصقار لحماية يده من مخالب الصقر الجارحة.',
         accent: '#8A1538',
       },
       {
         id: 'perch',
-        name: 'المجثم',
+        name: 'المجثم التراثي (الوَكْر)',
         icon: '🪵',
-        description: 'مكان يستقر عليه الصقر.',
+        description: 'قاعدة خشبية أسطوانية ذات مسند مخملي يستقر عليه الصقر في المجلس أو المخيم.',
         accent: '#795138',
       },
     ],
@@ -339,6 +363,52 @@ export function SouqScene({
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [dallahStyle, setDallahStyle] = useState<DallahStyle>('qatari_gold');
+  const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  /* ---------------- SOUQ AMBIENT AUDIO ---------------- */
+
+  const [isSouqAudioPlaying, setIsSouqAudioPlaying] = useState(!settings.isQuietMode);
+
+  /* ---------------- CINEMATIC LIGHT SHAFTS (GOD RAYS) ---------------- */
+  const [showLightShafts, setShowLightShafts] = useState(true);
+
+  // تشغيل تلقائي متكرر لملف أصوات السوق القديم عند الدخول، وإيقافه عند الخروج
+  useEffect(() => {
+    if (!settings.isQuietMode) {
+      soundManager.startAmbientSouq();
+      setIsSouqAudioPlaying(true);
+    } else {
+      soundManager.stopAmbientSouq();
+      setIsSouqAudioPlaying(false);
+    }
+
+    return () => {
+      // إيقاف الصوت والأجواء فور مغادرة SouqScene
+      soundManager.stopAmbientSouq();
+      if (narrationAudioRef.current) {
+        try {
+          narrationAudioRef.current.pause();
+          narrationAudioRef.current.currentTime = 0;
+        } catch {
+          // ignore
+        }
+        narrationAudioRef.current = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [settings.isQuietMode]);
+
+  // تحديث مستوى الصوت فوراً عند تغييره في الإعدادات
+  useEffect(() => {
+    soundManager.setVolume(settings.volume);
+  }, [settings.volume]);
 
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
@@ -574,79 +644,153 @@ export function SouqScene({
     return distance <= spot.radius;
   });
 
+  const lastChimeSpotRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (activeNearbyHotspot && activeNearbyHotspot.id !== lastChimeSpotRef.current) {
+      lastChimeSpotRef.current = activeNearbyHotspot.id;
+      if (settings.isSoundEnabled && !settings.isQuietMode) {
+        soundManager.playProximityChime();
+      }
+    } else if (!activeNearbyHotspot) {
+      lastChimeSpotRef.current = null;
+    }
+  }, [activeNearbyHotspot, settings.isSoundEnabled, settings.isQuietMode]);
+
   /* ============================================================
-     SPEECH
+     NARRATION & SPEECH
   ============================================================ */
 
-  const speakArabic = (name: string, description: string) => {
+  const stopNarration = useCallback(() => {
+    if (narrationAudioRef.current) {
+      try {
+        narrationAudioRef.current.pause();
+        narrationAudioRef.current.currentTime = 0;
+      } catch {
+        // ignore
+      }
+      narrationAudioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // ignore
+      }
+    }
+    setIsSpeaking(false);
     setSpeechError(null);
+  }, []);
 
-    if (
-      typeof window === 'undefined' ||
-      !('speechSynthesis' in window) ||
-      typeof SpeechSynthesisUtterance === 'undefined'
-    ) {
-      setSpeechError('الاستماع غير مدعوم في هذا المتصفح.');
+  const toggleNarration = (item: SouqItem) => {
+    // إذا كان الصوت يعمل حالياً، يتم إيقافه بنقرة ثانية
+    if (isSpeaking) {
+      soundManager.playClick();
+      stopNarration();
       return;
     }
 
-    const synth = window.speechSynthesis;
-    const textToSpeak = `${name}. ${description}`;
+    soundManager.playClick();
+    stopNarration();
+    setIsSpeaking(true);
+    setSpeechError(null);
 
-    // Chrome can occasionally remain paused after cancel().
-    synth.cancel();
-    synth.resume();
+    const audioPath = `/sounds/narration/${item.id}.wav`;
+    const audio = new Audio(audioPath);
+    audio.volume = Math.max(0.3, Math.min(1, settings.volume));
+    narrationAudioRef.current = audio;
 
-    const voices = synth.getVoices();
+    let fallbackTriggered = false;
 
-    const liveArabicVoice =
-      voices.find((voice) => voice.lang === 'ar-QA') ||
-      voices.find((voice) => voice.lang === 'ar-SA') ||
-      voices.find((voice) => voice.lang.toLowerCase().startsWith('ar')) ||
-      arabicVoice ||
-      null;
+    const triggerFallback = () => {
+      if (fallbackTriggered) return;
+      fallbackTriggered = true;
+      narrationAudioRef.current = null;
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-
-    utterance.lang = liveArabicVoice?.lang || 'ar-SA';
-
-    if (liveArabicVoice) {
-      utterance.voice = liveArabicVoice;
-    }
-
-    utterance.rate = 0.82;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setSpeechError(null);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-    };
-
-    utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event.error);
-      setIsSpeaking(false);
-
-      if (event.error !== 'canceled' && event.error !== 'interrupted') {
-        setSpeechError('تعذر تشغيل الصوت. جرّب فتح المعاينة في نافذة مستقلة.');
-      }
-    };
-
-    // Small delay after cancel() improves reliability in Chrome.
-    window.setTimeout(() => {
-      try {
-        synth.resume();
-        synth.speak(utterance);
-      } catch (error) {
-        console.error('Speech synthesis failed:', error);
+      if (
+        typeof window === 'undefined' ||
+        !('speechSynthesis' in window) ||
+        typeof SpeechSynthesisUtterance === 'undefined'
+      ) {
         setIsSpeaking(false);
-        setSpeechError('تعذر تشغيل الصوت في هذه المعاينة.');
+        setSpeechError('الاستماع غير مدعوم في هذا المتصفح.');
+        return;
       }
-    }, 120);
+
+      const synth = window.speechSynthesis;
+      const textToSpeak = `${item.name}. ${item.description}`;
+
+      try {
+        synth.cancel();
+        synth.resume();
+      } catch {
+        // ignore
+      }
+
+      const voices = synth.getVoices();
+
+      const liveArabicVoice =
+        voices.find((voice) => voice.lang === 'ar-QA') ||
+        voices.find((voice) => voice.lang === 'ar-SA') ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith('ar')) ||
+        arabicVoice ||
+        null;
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = liveArabicVoice?.lang || 'ar-SA';
+      if (liveArabicVoice) {
+        utterance.voice = liveArabicVoice;
+      }
+      utterance.rate = 0.82;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setSpeechError(null);
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+      };
+
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error);
+        setIsSpeaking(false);
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          setSpeechError('تعذر تشغيل الصوت. يرجى التحقق من إعدادات الصوت.');
+        }
+      };
+
+      window.setTimeout(() => {
+        try {
+          synth.resume();
+          synth.speak(utterance);
+        } catch (error) {
+          console.error('Speech synthesis failed:', error);
+          setIsSpeaking(false);
+          setSpeechError('تعذر تشغيل الصوت في هذه المعاينة.');
+        }
+      }, 120);
+    };
+
+    audio.onended = () => {
+      setIsSpeaking(false);
+      narrationAudioRef.current = null;
+    };
+
+    audio.onerror = () => {
+      console.warn(`Audio file ${audioPath} not found or failed, using fallback.`);
+      triggerFallback();
+    };
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn('Audio play failed or was blocked by autoplay:', err);
+        triggerFallback();
+      });
+    }
   };
 
   /* ============================================================
@@ -661,6 +805,7 @@ export function SouqScene({
 
   const openHotspot = (hotspot: SouqHotspot) => {
     soundManager.playClick();
+    stopNarration();
 
     keysPressed.current = {};
     touchDirectionRef.current = null;
@@ -673,13 +818,7 @@ export function SouqScene({
   };
 
   const closeHotspot = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    setIsSpeaking(false);
-    setSpeechError(null);
-
+    stopNarration();
     setSelectedHotspot(null);
     setCurrentItemIndex(0);
     reset3DView();
@@ -691,10 +830,7 @@ export function SouqScene({
 
   const nextItem = () => {
     if (!selectedHotspot) return;
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopNarration();
 
     setCurrentItemIndex((prev) =>
       (prev + 1) % selectedHotspot.items.length
@@ -705,10 +841,7 @@ export function SouqScene({
 
   const previousItem = () => {
     if (!selectedHotspot) return;
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopNarration();
 
     setCurrentItemIndex((prev) =>
       (prev - 1 + selectedHotspot.items.length) %
@@ -814,6 +947,14 @@ export function SouqScene({
   const currentItem =
     selectedHotspot?.items[currentItemIndex] ?? null;
 
+  const isDallah = currentItem?.id === 'dallah';
+  const activeItemName = isDallah
+    ? DALLAH_VARIANTS[dallahStyle].name
+    : (currentItem?.name ?? '');
+  const activeItemDesc = isDallah
+    ? DALLAH_VARIANTS[dallahStyle].desc
+    : (currentItem?.description ?? '');
+
   /* ============================================================
      RENDER
   ============================================================ */
@@ -828,20 +969,67 @@ export function SouqScene({
       {/* ======================== HEADER ======================== */}
 
       <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="pointer-events-auto bg-[#2b170d]/90 backdrop-blur-md border border-[#E6C280]/40 px-4 py-2 rounded-full shadow-xl text-[#FAF5EA] font-bold">
             سوق لوّل
           </div>
 
-          <div className="pointer-events-auto bg-[#2b170d]/90 border border-[#E6C280]/40 px-4 py-2 rounded-full text-xs text-[#FAF5EA]">
+          <div className="pointer-events-auto bg-[#2b170d]/90 border border-[#E6C280]/40 px-3.5 py-2 rounded-full text-xs text-[#FAF5EA]">
             رحلة السوق{' '}
             <span className="text-[#E6C280] font-black">0/2</span>
           </div>
+
+          {/* زر التحكم في أصوات السوق القديم (رياح خفيفة وهمهمات المارة) */}
+          <button
+            onClick={() => {
+              soundManager.playClick();
+              const active = soundManager.toggleAmbientSouq();
+              setIsSouqAudioPlaying(active);
+            }}
+            className={`pointer-events-auto flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-bold transition-all shadow-xl active:scale-95 ${
+              isSouqAudioPlaying
+                ? 'bg-[#2b170d]/90 text-[#FFE082] border-[#FFE082]/60 hover:bg-[#3d2012]'
+                : 'bg-black/60 text-white/70 border-white/20 hover:bg-black/80'
+            }`}
+            title={isSouqAudioPlaying ? 'كتم أصوات السوق القديم' : 'تشغيل أصوات السوق القديم'}
+            aria-label="التحكم في أصوات السوق القديم"
+          >
+            {isSouqAudioPlaying ? (
+              <>
+                <Volume2 className="w-4 h-4 text-[#FFE082] animate-pulse shrink-0" />
+                <span className="hidden md:inline">أصوات السوق (تعمل)</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-4 h-4 text-white/50 shrink-0" />
+                <span className="hidden md:inline">أصوات السوق (مكتومة)</span>
+              </>
+            )}
+          </button>
+
+          {/* زر التحكم في الإضاءة الشعاعية وسحر أشعة الشمس (God Rays) */}
+          <button
+            onClick={() => {
+              soundManager.playClick();
+              setShowLightShafts((prev) => !prev);
+            }}
+            className={`pointer-events-auto flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-bold transition-all shadow-xl active:scale-95 ${
+              showLightShafts
+                ? 'bg-[#2b170d]/90 text-[#FFE082] border-[#FFE082]/60 hover:bg-[#3d2012]'
+                : 'bg-black/60 text-white/70 border-white/20 hover:bg-black/80'
+            }`}
+            title={showLightShafts ? 'كتم الإضاءة الشعاعية (God Rays)' : 'تفعيل الإضاءة الشعاعية (God Rays)'}
+            aria-label="التحكم في الإضاءة الشعاعية"
+          >
+            <Sun className={`w-4 h-4 ${showLightShafts ? 'text-[#FFE082] animate-pulse' : 'text-white/50'} shrink-0`} />
+            <span className="hidden lg:inline">{showLightShafts ? 'أشعة الشمس (مفعلة)' : 'أشعة الشمس (معطلة)'}</span>
+          </button>
         </div>
 
         <button
           onClick={() => {
             soundManager.playClick();
+            soundManager.stopAmbientSouq();
 
             if ('speechSynthesis' in window) {
               window.speechSynthesis.cancel();
@@ -876,34 +1064,28 @@ export function SouqScene({
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
         />
 
-        {/* HOTSPOTS */}
+        {/* CINEMATIC LIGHT SHAFTS / GOD RAYS (أشعة شمس سينمائية تنبعث من فتحات سقف ومظلات السوق) */}
+        {showLightShafts && (
+          <SouqLightShafts
+            worldWidth={WORLD_WIDTH}
+            worldHeight={WORLD_HEIGHT}
+            isQuietMode={settings.isQuietMode}
+          />
+        )}
 
+        {/* DOKAN GOLDEN RADIAL GLOW & ACTIVE HOTSPOTS */}
         {SOUQ_HOTSPOTS.map((spot) => {
           const isNear = activeNearbyHotspot?.id === spot.id;
 
           return (
-            <div
+            <SouqDokanGlow
               key={spot.id}
-              className="absolute z-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              style={{
-                left: `${spot.x}%`,
-                top: `${spot.y}%`,
-              }}
-            >
-              {isNear && (
-                <>
-                  <div className="absolute -inset-16 rounded-full bg-[#FFD76B]/25 blur-2xl animate-pulse pointer-events-none" />
-
-                  <button
-                    onClick={() => openHotspot(spot)}
-                    className="relative pointer-events-auto bg-[#8A1538]/95 border-2 border-[#FFE082] text-[#FFE082] px-5 py-2.5 rounded-full shadow-xl flex items-center gap-2 font-black active:scale-95 transition-all"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>تعرّف</span>
-                  </button>
-                </>
-              )}
-            </div>
+              spot={spot}
+              playerPos={playerPos}
+              isNear={isNear}
+              isQuietMode={settings.isQuietMode}
+              onOpen={openHotspot}
+            />
           );
         })}
 
@@ -1086,13 +1268,17 @@ export function SouqScene({
                   />
 
                   <div
-                    className="relative text-[155px] sm:text-[205px] leading-none drop-shadow-[0_28px_22px_rgba(0,0,0,0.45)] pointer-events-none"
+                    className="relative flex items-center justify-center pointer-events-none"
                     style={{
                       transform: 'translateZ(75px)',
                       filter: 'saturate(1.12) contrast(1.05)',
                     }}
                   >
-                    {currentItem.icon}
+                    <HeritageItemVisual
+                      itemId={currentItem.id}
+                      dallahStyle={dallahStyle}
+                      size={280}
+                    />
                   </div>
 
                   <div
@@ -1113,27 +1299,83 @@ export function SouqScene({
 
               <div className="rounded-[24px] border border-[#E6C280]/30 bg-black/20 p-5 text-center">
                 <div className="text-[#FFE082] text-2xl font-black">
-                  {currentItem.name}
+                  {activeItemName}
                 </div>
 
                 <p className="mt-3 text-white text-lg leading-8 font-semibold">
-                  {currentItem.description}
+                  {activeItemDesc}
                 </p>
+
+                {isDallah && (
+                  <div className="mt-4 p-3 rounded-2xl bg-[#28150c]/90 border border-[#E6C280]/40 text-center">
+                    <div className="text-xs text-[#FFE082] font-bold mb-2 flex items-center justify-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#FFE082]" />
+                      <span>اختر شكل وطراز الدلّة:</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setDallahStyle('qatari_gold')}
+                        className={`py-2 px-1 text-xs rounded-xl font-black transition-all border ${
+                          dallahStyle === 'qatari_gold'
+                            ? 'bg-[#8A1538] border-[#FFE082] text-[#FFE082] shadow-md scale-[1.03]'
+                            : 'bg-black/30 border-white/10 text-white/70 hover:bg-black/50 hover:text-white'
+                        }`}
+                      >
+                        قطرية ذهبية
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDallahStyle('raslan_brass')}
+                        className={`py-2 px-1 text-xs rounded-xl font-black transition-all border ${
+                          dallahStyle === 'raslan_brass'
+                            ? 'bg-[#8A1538] border-[#FFE082] text-[#FFE082] shadow-md scale-[1.03]'
+                            : 'bg-black/30 border-white/10 text-white/70 hover:bg-black/50 hover:text-white'
+                        }`}
+                      >
+                        رسلان نحاس
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDallahStyle('royal_silver')}
+                        className={`py-2 px-1 text-xs rounded-xl font-black transition-all border ${
+                          dallahStyle === 'royal_silver'
+                            ? 'bg-[#8A1538] border-[#FFE082] text-[#FFE082] shadow-md scale-[1.03]'
+                            : 'bg-black/30 border-white/10 text-white/70 hover:bg-black/50 hover:text-white'
+                        }`}
+                      >
+                        ملكية فضية
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="button"
-                  onClick={() =>
-                    speakArabic(
-                      currentItem.name,
-                      currentItem.description
-                    )
-                  }
-                  className={`mt-5 w-full flex items-center justify-center gap-2 border-2 border-[#FFE082] text-[#FFE082] rounded-2xl py-3 font-black active:scale-95 shadow-lg transition-all ${
-                    isSpeaking ? 'bg-[#6b102c] animate-pulse' : 'bg-[#8A1538]'
+                  onClick={() => toggleNarration(currentItem)}
+                  className={`mt-5 w-full flex items-center justify-center gap-2.5 border-2 border-[#FFE082] text-[#FFE082] rounded-2xl py-3.5 font-black active:scale-95 shadow-lg transition-all cursor-pointer ${
+                    isSpeaking
+                      ? 'bg-[#590e23] hover:bg-[#470b1c] ring-2 ring-[#FFE082]/70'
+                      : 'bg-[#8A1538] hover:bg-[#9d1941]'
                   }`}
+                  title={isSpeaking ? 'إيقاف الاستماع' : 'استمع للشرح الصوتي'}
                 >
-                  <Volume2 className="w-6 h-6" />
-                  <span>{isSpeaking ? 'يتم الاستماع...' : 'استمع'}</span>
+                  {isSpeaking ? (
+                    <>
+                      <VolumeX className="w-6 h-6 text-[#FFE082]" />
+                      <span className="text-base sm:text-lg">إيقاف الاستماع</span>
+                      <div className="flex items-center gap-1 mr-1">
+                        <span className="w-1 h-3 bg-[#FFE082] rounded-full animate-pulse" />
+                        <span className="w-1.5 h-5 bg-[#FFE082] rounded-full animate-bounce" />
+                        <span className="w-1 h-3.5 bg-[#FFE082] rounded-full animate-pulse" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-6 h-6 text-[#FFE082]" />
+                      <span className="text-base sm:text-lg">استمع للشرح الصوتي</span>
+                    </>
+                  )}
                 </button>
 
                 {speechError && (
@@ -1172,20 +1414,26 @@ export function SouqScene({
                   <button
                     key={item.id}
                     onClick={() => {
-                      if ('speechSynthesis' in window) {
-                        window.speechSynthesis.cancel();
-                      }
-
+                      stopNarration();
                       setCurrentItemIndex(index);
                       reset3DView();
                     }}
-                    className={`transition-all rounded-full ${
+                    className={`relative p-1 rounded-xl transition-all border flex items-center justify-center ${
                       index === currentItemIndex
-                        ? 'w-9 h-3 bg-[#FFE082]'
-                        : 'w-3 h-3 bg-white/25'
+                        ? 'bg-[#8A1538] border-[#FFE082] ring-2 ring-[#FFE082]/60 scale-105 shadow-md'
+                        : 'bg-black/40 border-white/15 hover:bg-black/60 opacity-70 hover:opacity-100'
                     }`}
                     aria-label={item.name}
-                  />
+                    title={item.name}
+                  >
+                    <div className="w-8 h-8 flex items-center justify-center pointer-events-none overflow-hidden">
+                      <HeritageItemVisual
+                        itemId={item.id}
+                        dallahStyle={dallahStyle}
+                        size={32}
+                      />
+                    </div>
+                  </button>
                 ))}
               </div>
 
