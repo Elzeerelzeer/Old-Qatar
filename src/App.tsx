@@ -222,19 +222,33 @@ export default function App() {
         </>
       )}
 
-      {/* MODAL / SCENE 5: Station Interior View */}
-      {currentScene === 'station_interior' && activeStationId && (
-        <StationInteriorModal
-          station={STATIONS_DATA[activeStationId]}
-          gender={gender}
-          isStamped={passportRecord.collectedStamps[activeStationId]}
-          onStampPassport={(id) => handleStampStation(id as StationId)}
-          onClose={() => {
-            setCurrentScene('village');
-            setActiveStationId(null);
-          }}
-        />
-      )}
+     {/* SOUQ: Full interactive exploration scene */}
+{currentScene === 'station_interior' && activeStationId === 'souq' && (
+  <SouqScene
+    gender={gender}
+    settings={settings}
+    onExit={() => {
+      setCurrentScene('village');
+      setActiveStationId(null);
+    }}
+  />
+)}
+
+{/* Other stations remain temporary modal views */}
+{currentScene === 'station_interior' &&
+  activeStationId &&
+  activeStationId !== 'souq' && (
+    <StationInteriorModal
+      station={STATIONS_DATA[activeStationId]}
+      gender={gender}
+      isStamped={passportRecord.collectedStamps[activeStationId]}
+      onStampPassport={(id) => handleStampStation(id as StationId)}
+      onClose={() => {
+        setCurrentScene('village');
+        setActiveStationId(null);
+      }}
+    />
+  )}
 
       {/* GLOBAL MODAL: Passport Booklet («جوازي») */}
       {isPassportOpen && (
