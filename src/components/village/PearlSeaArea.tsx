@@ -1,233 +1,553 @@
-import React from 'react';
-import { Award } from 'lucide-react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
-interface PearlSeaAreaProps {
-  isNearby: boolean;
-  isStamped: boolean;
-  onEnter: () => void;
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Anchor,
+  Waves,
+} from 'lucide-react';
+
+import {
+  CharacterGender,
+  Direction,
+  GameSettings,
+} from '../types';
+
+interface PearlSceneProps {
+  gender: CharacterGender;
+  settings: GameSettings;
+  onReturnToVillage: () => void;
 }
 
-export const PearlSeaArea: React.FC<PearlSeaAreaProps> = ({ isNearby, isStamped, onEnter }) => {
+type PearlPhase = 'surface' | 'diving' | 'underwater';
+
+const MASTER_IMAGE_PATH = '/assets/pearl-sea-master-map.png';
+
+const WORLD_WIDTH = 1600;
+const WORLD_HEIGHT = 900;
+const PLAYER_RADIUS = 2.2;
+
+export function PearlScene({
+  gender,
+  settings,
+  onReturnToVillage,
+}: PearlSceneProps) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  const [phase, setPhase] = useState<PearlPhase>('surface');
+  const [playerPos, setPlayerPos] = useState({ x: 50, y: 72 });
+  const [direction, setDirection] = useState<Direction>('up');
+  const [isMoving, setIsMoving] = useState(false);
+  const [activeTouchDir, setActiveTouchDir] =
+    useState<Direction | null>(null);
+
+  const [viewportSize, setViewportSize] = useState({
+    width: 0,
+    height: 0,
+  });
+
+  const [diveProgress, setDiveProgress] = useState(0);
+
+  const keysPressed = useRef<Record<string, boolean>>({});
+  const touchDirectionRef = useRef<Direction | null>(null);
+
+  useEffect(() => {
+    const updateSize = () => {
+      const el = viewportRef.current;
+      if (!el) return;
+
+      setViewportSize({
+        width: el.clientWidth,
+        height: el.clientHeight,
+      });
+    };
+
+    updateSize();
+
+    const observer = new ResizeObserver(updateSize);
+
+    if (viewportRef.current) {
+      observer.observe(viewportRef.current);
+    }
+
+    window.addEventListener('resize', updateSize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
+  }, []);
+
+  const startDive = useCallback(() => {
+    if (phase !== 'surface') return;
+
+    setPhase('diving');
+    setDiveProgress(0);
+
+    const startedAt = performance.now();
+    const duration = 2300;
+
+    const animateDive = (time: number) => {
+      const progress = Math.min(1, (time - startedAt) / duration);
+
+      setDiveProgress(progress);
+
+      if (progress < 1) {
+        requestAnimationFrame(animateDive);
+        return;
+      }
+
+      setPlayerPos({ x: 50, y: 72 });
+      setDirection('up');
+      setPhase('underwater');
+    };
+
+    requestAnimationFrame(animateDive);
+  }, [phase]);
+
+  const checkCollision = useCallback((x: number, y: number) => {
+    if (x < 10 || x > 90) return true;
+    if (y < 48 || y > 89) return true;
+
+    if (
+      x + PLAYER_RADIUS > 10 &&
+      x - PLAYER_RADIUS < 24 &&
+      y + PLAYER_RADIUS > 48 &&
+      y - PLAYER_RADIUS < 69
+    ) {
+      return true;
+    }
+
+    if (
+      x + PLAYER_RADIUS > 78 &&
+      x - PLAYER_RADIUS < 92 &&
+      y + PLAYER_RADIUS > 48 &&
+      y - PLAYER_RADIUS < 68
+    ) {
+      return true;
+    }
+
+    if (
+      x + PLAYER_RADIUS > 57 &&
+      x - PLAYER_RADIUS < 68 &&
+      y + PLAYER_RADIUS > 57 &&
+      y - PLAYER_RADIUS < 69
+    ) {
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  useEffect(() => {
+    const keyDown = (e: KeyboardEvent) => {
+      if (phase !== 'underwater') return;
+
+      const key = e.key.toLowerCase();
+
+      if (
+        [
+          'arrowup',
+          'arrowdown',
+          'arrowleft',
+          'arrowright',
+          'w',
+          'a',
+          's',
+          'd',
+        ].includes(key)
+      ) {
+        e.preventDefault();
+        keysPressed.current[key] = true;
+      }
+    };
+
+    const keyUp = (e: KeyboardEvent) => {
+      keysPressed.current[e.key.toLowerCase()] = false;
+    };
+
+    window.addEventListener('keydown', keyDown);
+    window.addEventListener('keyup', keyUp);
+
+    return () => {
+      window.removeEventListener('keydown', keyDown);
+      window.removeEventListener('keyup', keyUp);
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    let frameId = 0;
+    let lastTime = performance.now();
+
+    const loop = (time: number) => {
+      const dt = Math.min((time - lastTime) / 16.6667, 2);
+      lastTime = time;
+
+      if (phase !== 'underwater') {
+        setIsMoving(false);
+        frameId = requestAnimationFrame(loop);
+        return;
+      }
+
+      const speed = settings.walkSpeed === 'calm' ? 0.30 : 0.44;
+
+      const keys = keysPressed.current;
+      const touch = touchDirectionRef.current;
+
+      let dx = 0;
+      let dy = 0;
+      let nextDir: Direction | null = null;
+
+      if (keys.arrowup || keys.w || touch === 'up') {
+        dy -= speed * dt;
+        nextDir = 'up';
+      }
+
+      if (keys.arrowdown || keys.s || touch === 'down') {
+        dy += speed * dt;
+        nextDir = 'down';
+      }
+
+      if (keys.arrowleft || keys.a || touch === 'left') {
+        dx -= speed * dt;
+        nextDir = 'left';
+      }
+
+      if (keys.arrowright || keys.d || touch === 'right') {
+        dx += speed * dt;
+        nextDir = 'right';
+      }
+
+      if (dx !== 0 && dy !== 0) {
+        dx *= 0.7071;
+        dy *= 0.7071;
+      }
+
+      if (dx !== 0 || dy !== 0) {
+        setIsMoving(true);
+
+        if (nextDir) {
+          setDirection(nextDir);
+        }
+
+        setPlayerPos((prev) => {
+          let nextX = prev.x;
+          let nextY = prev.y;
+
+          if (!checkCollision(prev.x + dx, prev.y)) {
+            nextX = prev.x + dx;
+          }
+
+          if (!checkCollision(nextX, prev.y + dy)) {
+            nextY = prev.y + dy;
+          }
+
+          return { x: nextX, y: nextY };
+        });
+      } else {
+        setIsMoving(false);
+      }
+
+      frameId = requestAnimationFrame(loop);
+    };
+
+    frameId = requestAnimationFrame(loop);
+
+    return () => cancelAnimationFrame(frameId);
+  }, [phase, settings.walkSpeed, checkCollision]);
+
+  const handleTouchStart = (dir: Direction) => {
+    if (phase !== 'underwater') return;
+
+    touchDirectionRef.current = dir;
+    setActiveTouchDir(dir);
+    setDirection(dir);
+  };
+
+  const handleTouchEnd = () => {
+    touchDirectionRef.current = null;
+    setActiveTouchDir(null);
+  };
+
+  const playerWorldPxX = (playerPos.x / 100) * WORLD_WIDTH;
+  const playerWorldPxY = (playerPos.y / 100) * WORLD_HEIGHT;
+
+  let focusX = WORLD_WIDTH * 0.5;
+  let focusY = WORLD_HEIGHT * 0.22;
+
+  if (phase === 'diving') {
+    focusY = WORLD_HEIGHT * (0.22 + 0.50 * diveProgress);
+  }
+
+  if (phase === 'underwater') {
+    focusX = playerWorldPxX;
+    focusY = playerWorldPxY;
+  }
+
+  const desiredCameraX = viewportSize.width / 2 - focusX;
+  const desiredCameraY = viewportSize.height / 2 - focusY;
+
+  const cameraX =
+    viewportSize.width <= 0
+      ? 0
+      : WORLD_WIDTH <= viewportSize.width
+        ? (viewportSize.width - WORLD_WIDTH) / 2
+        : Math.min(
+            0,
+            Math.max(
+              viewportSize.width - WORLD_WIDTH,
+              desiredCameraX
+            )
+          );
+
+  const cameraY =
+    viewportSize.height <= 0
+      ? 0
+      : WORLD_HEIGHT <= viewportSize.height
+        ? (viewportSize.height - WORLD_HEIGHT) / 2
+        : Math.min(
+            0,
+            Math.max(
+              viewportSize.height - WORLD_HEIGHT,
+              desiredCameraY
+            )
+          );
+
+  const diverFlip = direction === 'left' ? -1 : 1;
+
   return (
     <div
-      id="station-pearl-zone"
-      onClick={onEnter}
-      className={`absolute left-[36%] top-[6%] w-[30%] min-w-[300px] h-[26%] min-h-[220px] cursor-pointer transition-all duration-300 z-10 select-none group ${
-        isNearby ? 'scale-[1.02]' : 'hover:brightness-105'
-      }`}
+      ref={viewportRef}
+      className="relative w-full h-full overflow-hidden bg-[#06283a] select-none"
+      dir="rtl"
     >
-      {/* Illustrated 2.5D Coastal Shoreline, Pier & Dhow Boat (SVG) */}
-      <svg
-        viewBox="0 0 360 220"
-        className={`w-full h-full filter drop-shadow-xl transition-all duration-300 ${
-          isNearby ? 'drop-shadow-[0_0_25px_rgba(56,189,248,0.6)]' : ''
-        }`}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+      <div
+        className="absolute top-0 left-0 will-change-transform transition-transform duration-100 ease-out"
+        style={{
+          width: `${WORLD_WIDTH}px`,
+          height: `${WORLD_HEIGHT}px`,
+          transform: `translate3d(${cameraX}px, ${cameraY}px, 0)`,
+        }}
       >
-        <defs>
-          {/* Sea Water Gradient */}
-          <linearGradient id="seaWaterGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#0284C7" />
-            <stop offset="50%" stopColor="#0369A1" />
-            <stop offset="100%" stopColor="#082F49" />
-          </linearGradient>
-
-          {/* Sandy Shore Gradient */}
-          <linearGradient id="shoreSandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#D4A769" />
-            <stop offset="100%" stopColor="#E2C799" />
-          </linearGradient>
-
-          {/* Weathered Jetty Timber */}
-          <linearGradient id="jettyWood" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#5A3418" />
-            <stop offset="50%" stopColor="#43220A" />
-            <stop offset="100%" stopColor="#2D1504" />
-          </linearGradient>
-
-          {/* Dhow Boat Teak Wood */}
-          <linearGradient id="dhowHull" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#4A2511" />
-            <stop offset="70%" stopColor="#301608" />
-            <stop offset="100%" stopColor="#1B0A03" />
-          </linearGradient>
-
-          {/* Pearl Luster */}
-          <radialGradient id="pearlShine" cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="50%" stopColor="#E0F2FE" />
-            <stop offset="100%" stopColor="#94A3B8" />
-          </radialGradient>
-        </defs>
-
-        {/* ---------------------------------------------------- */}
-        {/* 1. SEAMLESS COASTAL WATER & GENTLE UNDULATING WAVES  */}
-        {/* ---------------------------------------------------- */}
-        {/* Open Gulf Seawater */}
-        <path
-          d="M 0 0 L 360 0 L 360 110 Q 260 118 180 110 Q 90 102 0 115 Z"
-          fill="url(#seaWaterGrad)"
+        <img
+          src={MASTER_IMAGE_PATH}
+          alt="بحر اللؤلؤ"
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
         />
 
-        {/* Animated Water Ripple Layer */}
-        <path
-          d="M 10 35 Q 60 25 120 35 Q 180 45 240 35 Q 300 25 350 35"
-          stroke="#7DD3FC"
-          strokeWidth="1.5"
-          opacity="0.6"
-          fill="none"
-          className="animate-pulse"
-        />
-        <path
-          d="M 30 65 Q 90 55 160 65 Q 230 75 300 65 Q 330 60 360 65"
-          stroke="#38BDF8"
-          strokeWidth="1.5"
-          opacity="0.5"
-          fill="none"
-        />
-
-        {/* Sandy Shore Transition (شاطئ رملي متعرج) */}
-        <path
-          d="M 0 115 Q 90 102 180 110 Q 260 118 360 110 L 360 220 L 0 220 Z"
-          fill="url(#shoreSandGrad)"
-        />
-        {/* Wet Sand Shoreline Fringe */}
-        <path
-          d="M 0 116 Q 90 103 180 111 Q 260 119 360 111"
-          stroke="#BA8F54"
-          strokeWidth="4"
-          fill="none"
-        />
-
-        {/* ---------------------------------------------------- */}
-        {/* 2. WEATHERED WOODEN JETTY / PIER (الرصيف الخشبي)     */}
-        {/* ---------------------------------------------------- */}
-        {/* Wooden Stilts in water */}
-        {[145, 175, 205].map((xStilt, idx) => (
-          <g key={idx}>
-            <rect x={xStilt - 3} y="85" width="6" height="55" rx="1" fill="url(#jettyWood)" />
-            {/* Water reflections at foot of stilt */}
-            <ellipse cx={xStilt} cy="138" rx="7" ry="2" fill="#0369A1" opacity="0.4" />
-          </g>
-        ))}
-
-        {/* Pier Planking Deck (ألواح خشب الرصيف) */}
-        <polygon points="120,85 230,85 245,175 105,175" fill="url(#jettyWood)" stroke="#1F0D03" strokeWidth="2" />
-
-        {/* Planks Grooves */}
-        {[95, 110, 125, 140, 155].map((yLine, i) => (
-          <line key={i} x1="112" y1={yLine} x2="238" y2={yLine} stroke="#2D1504" strokeWidth="1.8" />
-        ))}
-
-        {/* Pier Mooring Bollards (مرابط الحبال الخشبية) */}
-        <rect x="110" y="165" width="7" height="12" rx="2" fill="#241005" stroke="#120601" strokeWidth="1" />
-        <rect x="232" y="165" width="7" height="12" rx="2" fill="#241005" stroke="#120601" strokeWidth="1" />
-        {/* Coiled Hemp Rope around bollard */}
-        <ellipse cx="113.5" cy="172" rx="5" ry="2.5" fill="#D4A769" />
-
-        {/* ---------------------------------------------------- */}
-        {/* 3. TRADITIONAL QATARI DHOW BOAT (محمل قطري شراعي)    */}
-        {/* ---------------------------------------------------- */}
-        <g id="qatari-dhow" transform="translate(195, 20)">
-          {/* Boat Reflection / Shadow in Sea */}
-          <ellipse cx="65" cy="72" rx="58" ry="12" fill="#042F48" opacity="0.5" />
-
-          {/* Dhow Hull (بدن المحمل من خشب الساج التقليدي) */}
-          <path
-            d="M 5 62 Q 25 72 65 72 Q 105 72 128 50 Q 115 48 65 48 Q 20 48 5 62 Z"
-            fill="url(#dhowHull)"
-            stroke="#120601"
-            strokeWidth="1.8"
+        {(phase === 'diving' || phase === 'underwater') && (
+          <div
+            className="absolute inset-0 pointer-events-none transition-opacity duration-700"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(0,92,132,0.04), rgba(0,76,115,0.15))',
+            }}
           />
-          {/* Hull Timber Planks & Ribs */}
-          <path d="M 12 58 Q 50 67 118 52" stroke="#5C3415" strokeWidth="1.5" fill="none" />
-          <path d="M 22 62 Q 60 70 100 60" stroke="#5C3415" strokeWidth="1.2" fill="none" />
+        )}
 
-          {/* Tall Wooden Mast (صاري المحمل) */}
-          <line x1="68" y1="48" x2="68" y2="2" stroke="#3A1D0B" strokeWidth="3.5" strokeLinecap="round" />
+        {phase === 'underwater' && (
+          <div
+            className="absolute z-30 pointer-events-none"
+            style={{
+              left: `${playerPos.x}%`,
+              top: `${playerPos.y}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div className="absolute left-1/2 top-[78%] -translate-x-1/2 w-14 h-5 rounded-full bg-black/25 blur-md" />
 
-          {/* Rigging Ropes (حبال الصاري) */}
-          <line x1="68" y1="6" x2="10" y2="58" stroke="#D4A769" strokeWidth="1" opacity="0.75" />
-          <line x1="68" y1="6" x2="120" y2="52" stroke="#D4A769" strokeWidth="1" opacity="0.75" />
+            <div
+              className={`relative text-[74px] md:text-[82px] leading-none drop-shadow-[0_8px_10px_rgba(0,0,0,0.38)] transition-transform duration-100 ${
+                isMoving ? 'animate-pulse' : ''
+              }`}
+              style={{
+                transform: `scaleX(${diverFlip})`,
+              }}
+            >
+              🤿
+            </div>
 
-          {/* Triangular Cream Lateen Sail (شراع مثلث تقليدي) */}
-          <polygon
-            points="68,5 125,44 68,44"
-            fill="#F8FAFC"
-            stroke="#E2E8F0"
-            strokeWidth="1.2"
-            opacity="0.92"
+            {isMoving && (
+              <>
+                <span className="absolute -top-3 right-2 w-2 h-2 border border-white/60 rounded-full animate-ping" />
+                <span className="absolute -top-7 right-5 w-3 h-3 border border-white/45 rounded-full animate-pulse" />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {phase === 'surface' && (
+        <>
+          <div className="fixed top-5 right-5 z-50 bg-[#082d40]/90 backdrop-blur-md border border-[#E6C280]/60 rounded-full px-5 py-2 text-white shadow-xl">
+            <span className="font-black text-[#FFE082]">
+              بحر اللؤلؤ
+            </span>
+          </div>
+
+          <div className="fixed inset-x-0 bottom-8 z-50 flex justify-center px-4">
+            <div className="w-full max-w-md rounded-[28px] border-2 border-[#E6C280] bg-[#082d40]/88 backdrop-blur-md p-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+              <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-[#8A1538] border border-[#FFE082] flex items-center justify-center">
+                <Anchor className="w-7 h-7 text-[#FFE082]" />
+              </div>
+
+              <h2 className="text-2xl font-black text-[#FFE082]">
+                رحلة إلى قاع الزمن
+              </h2>
+
+              <p className="mt-2 text-sm text-white/90 leading-7">
+                ابدأ رحلة الغوص واكتشف أسرار اللؤلؤ في بحر قطر.
+              </p>
+
+              <button
+                onClick={startDive}
+                className="mt-4 w-full py-3.5 rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] text-[#FFE082] font-black text-lg active:scale-95 transition-transform shadow-lg flex items-center justify-center gap-2"
+              >
+                <Waves className="w-6 h-6" />
+                <span>ابدأ رحلة الغوص</span>
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={onReturnToVillage}
+            className="fixed top-5 left-5 z-50 rounded-full bg-[#8A1538] border border-[#FFE082] text-white px-4 py-2 font-bold shadow-xl active:scale-95"
+          >
+            العودة إلى القرية
+          </button>
+        </>
+      )}
+
+      {phase === 'diving' && (
+        <div className="fixed inset-0 z-40 pointer-events-none flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-[#006b94]"
+            style={{
+              opacity: 0.05 + diveProgress * 0.20,
+            }}
           />
-          {/* Sail Folds */}
-          <line x1="68" y1="5" x2="95" y2="44" stroke="#CBD5E1" strokeWidth="1" />
 
-          {/* Qatari Maroon Pennant at masthead */}
-          <polygon points="68,2 60,5 68,8" fill="#8A1538" />
-        </g>
+          <div className="relative text-center">
+            <div className="mx-auto relative w-28 h-28">
+              <div className="absolute left-2 bottom-1 w-4 h-4 border-2 border-white/70 rounded-full animate-ping" />
+              <div className="absolute right-4 top-5 w-7 h-7 border-2 border-white/60 rounded-full animate-pulse" />
+              <div className="absolute left-1/2 top-1/2 w-5 h-5 border-2 border-white/50 rounded-full animate-bounce" />
+            </div>
 
-        {/* ---------------------------------------------------- */}
-        {/* 4. PEARLING GEAR: OYSTERS, NETS, PEARLS & WEIGHTS    */}
-        {/* ---------------------------------------------------- */}
-        {/* Draped Fishing Nets & Coiled Ropes on Shore */}
-        <g id="fishing-nets" transform="translate(65, 140)">
-          <path
-            d="M 5 25 Q 25 10 50 25 Q 40 40 10 38 Z"
-            fill="#0F766E"
-            opacity="0.35"
-          />
-          {/* Net Mesh Pattern */}
-          <path d="M 10 24 L 40 34 M 15 20 L 45 30 M 18 36 L 38 18 M 28 38 L 46 22" stroke="#0F766E" strokeWidth="1" />
-        </g>
-
-        {/* Basket of Pearl Oysters with Glistening Pearl (سلة المحار والدانة) */}
-        <g id="pearl-oysters" transform="translate(70, 160)">
-          {/* Woven Palm Basket (مخرف/قفة) */}
-          <ellipse cx="22" cy="22" rx="16" ry="10" fill="#92400E" stroke="#451A03" strokeWidth="1.5" />
-          {/* Oyster Shells */}
-          <ellipse cx="14" cy="20" rx="6" ry="4" fill="#64748B" stroke="#334155" />
-          <ellipse cx="26" cy="19" rx="7" ry="4.5" fill="#475569" stroke="#1E293B" />
-          {/* Large Shimmering Pearl (الدانة الفريدة) */}
-          <circle cx="20" cy="17" r="4.5" fill="url(#pearlShine)" stroke="#CBD5E1" strokeWidth="0.8" className="animate-pulse" />
-          <circle cx="18.5" cy="15.5" r="1.5" fill="#FFFFFF" />
-        </g>
-
-        {/* Diver's Gear: Stone Weight (حصاة الغوص) & Nose Clip (فطام) */}
-        <g id="diver-tools" transform="translate(250, 150)">
-          {/* Diving Stone Weight with Rope */}
-          <polygon points="12,18 20,24 16,34 6,32" fill="#475569" stroke="#1E293B" strokeWidth="1.2" />
-          <path d="M 14 18 Q 18 8 26 12" stroke="#D4A769" strokeWidth="1.8" fill="none" />
-          {/* Nose Clip (الفطام) on mat */}
-          <path d="M 32 25 Q 36 21 34 29" stroke="#EAB308" strokeWidth="2.5" fill="none" />
-          {/* Woven Neck-bag (الديين) */}
-          <ellipse cx="45" cy="26" rx="9" ry="7" fill="#854D0E" stroke="#3A1A05" strokeWidth="1" />
-        </g>
-
-        {/* ---------------------------------------------------- */}
-        {/* CARVED WOODEN SIGNPOST: «بحر اللؤلؤ»                */}
-        {/* ---------------------------------------------------- */}
-        <g id="pearl-sign" transform="translate(135, 172)">
-          {/* Wooden Post */}
-          <rect x="41" y="14" width="6" height="24" rx="1" fill="#3D1F0C" stroke="#1A0A02" strokeWidth="1" />
-          {/* Board */}
-          <rect x="0" y="0" width="88" height="22" rx="4" fill="#0C4A6E" stroke="#38BDF8" strokeWidth="1.8" />
-          <text x="44" y="15" textAnchor="middle" fill="#F0F9FF" fontSize="11" fontWeight="900" fontFamily="Amiri, serif">
-            بحر اللؤلؤ
-          </text>
-        </g>
-      </svg>
-
-      {/* Visited Stamp Badge */}
-      {isStamped && (
-        <div className="absolute top-2 right-4 w-7 h-7 rounded-full bg-[#0284C7] border-2 border-[#FFE082] flex items-center justify-center text-white shadow-lg z-20">
-          <Award className="w-4 h-4 text-[#FFE082]" />
+            <div className="mt-2 px-6 py-3 rounded-full bg-black/35 border border-white/25 text-white font-bold backdrop-blur-md">
+              ننزل إلى عالم اللؤلؤ...
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Interactive Pier Glow on proximity */}
-      {isNearby && (
-        <div className="absolute left-[50%] bottom-[12%] -translate-x-1/2 w-16 h-12 rounded-full bg-[#38BDF8]/30 blur-md pointer-events-none animate-pulse" />
+      {phase === 'underwater' && (
+        <>
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-full bg-[#06283a]/90 border border-[#E6C280]/55 px-4 py-2 backdrop-blur-md shadow-xl">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-300 animate-pulse shadow-[0_0_10px_rgba(103,232,249,0.9)]" />
+            <span className="font-black text-[#FFE082]">
+              قاع بحر اللؤلؤ
+            </span>
+          </div>
+
+          <button
+            onClick={onReturnToVillage}
+            className="fixed top-4 left-4 z-50 rounded-full bg-[#8A1538] border border-[#FFE082] text-white px-4 py-2 font-bold shadow-xl active:scale-95"
+          >
+            العودة إلى القرية
+          </button>
+
+          <div className="fixed top-16 right-4 z-50 rounded-full bg-black/35 border border-white/20 px-4 py-2 text-xs text-white/90 backdrop-blur-sm">
+            المرحلة 1: استكشف قاع البحر
+          </div>
+
+          <div className="fixed bottom-6 left-6 z-[100] w-[138px] h-[138px] rounded-full bg-[#032536]/90 border-2 border-[#E6C280] shadow-[0_8px_30px_rgba(0,0,0,0.55)] backdrop-blur-md touch-none select-none">
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handleTouchStart('up');
+              }}
+              onPointerUp={handleTouchEnd}
+              onPointerLeave={handleTouchEnd}
+              onPointerCancel={handleTouchEnd}
+              className={`absolute top-2 left-1/2 -translate-x-1/2 w-11 h-11 rounded-xl border-2 border-[#E6C280] flex items-center justify-center text-white shadow-lg active:scale-90 ${
+                activeTouchDir === 'up'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }`}
+              aria-label="تحرك للأعلى"
+            >
+              <ArrowUp className="w-7 h-7 stroke-[3]" />
+            </button>
+
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handleTouchStart('down');
+              }}
+              onPointerUp={handleTouchEnd}
+              onPointerLeave={handleTouchEnd}
+              onPointerCancel={handleTouchEnd}
+              className={`absolute bottom-2 left-1/2 -translate-x-1/2 w-11 h-11 rounded-xl border-2 border-[#E6C280] flex items-center justify-center text-white shadow-lg active:scale-90 ${
+                activeTouchDir === 'down'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }`}
+              aria-label="تحرك للأسفل"
+            >
+              <ArrowDown className="w-7 h-7 stroke-[3]" />
+            </button>
+
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handleTouchStart('left');
+              }}
+              onPointerUp={handleTouchEnd}
+              onPointerLeave={handleTouchEnd}
+              onPointerCancel={handleTouchEnd}
+              className={`absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl border-2 border-[#E6C280] flex items-center justify-center text-white shadow-lg active:scale-90 ${
+                activeTouchDir === 'left'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }`}
+              aria-label="تحرك لليسار"
+            >
+              <ArrowLeft className="w-7 h-7 stroke-[3]" />
+            </button>
+
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handleTouchStart('right');
+              }}
+              onPointerUp={handleTouchEnd}
+              onPointerLeave={handleTouchEnd}
+              onPointerCancel={handleTouchEnd}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl border-2 border-[#E6C280] flex items-center justify-center text-white shadow-lg active:scale-90 ${
+                activeTouchDir === 'right'
+                  ? 'bg-[#A91D47]'
+                  : 'bg-[#8A1538]'
+              }`}
+              aria-label="تحرك لليمين"
+            >
+              <ArrowRight className="w-7 h-7 stroke-[3]" />
+            </button>
+
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#B99658] border-2 border-[#F6E3B4] flex items-center justify-center text-white pointer-events-none">
+              ✦
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
-};
+}
