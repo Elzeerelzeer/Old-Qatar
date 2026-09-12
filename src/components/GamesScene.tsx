@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CheckCircle2, Gamepad2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CheckCircle2, Gamepad2, Sparkles, X } from 'lucide-react';
 import { CharacterGender, Direction, GameSettings } from '../types';
 import { CharacterAvatar } from './CharacterAvatar';
 
@@ -18,6 +18,12 @@ const SPOTS = [
   { id: 'saqla' as GameId, title: 'الصقلة', x: 76, y: 58 },
 ];
 
+const GAME_TITLES: Record<GameId, string> = {
+  dahrooj: 'الدحروي',
+  teela: 'التيلة',
+  saqla: 'الصقلة',
+};
+
 export function GamesScene({ gender, settings, onReturnToVillage, onComplete }: GamesSceneProps) {
   const [pos, setPos] = useState({ x: 50, y: 80 });
   const [direction, setDirection] = useState<Direction>('up');
@@ -28,6 +34,117 @@ export function GamesScene({ gender, settings, onReturnToVillage, onComplete }: 
   const keys = useRef<Record<string, boolean>>({});
   const touch = useRef<Direction | null>(null);
   const reported = useRef(false);
+
+  const [showIntroGuide, setShowIntroGuide] = useState(true);
+  const [reinforcement, setReinforcement] = useState<string | null>(null);
+  const [characterSize, setCharacterSize] = useState(62);
+
+  const speakArabic = (message: string) => {
+    if (!settings.isSoundEnabled) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(message);
+    const voices = synth.getVoices();
+    const arabicVoice =
+      voices.find(v => v.lang === 'ar-QA') ||
+      voices.find(v => v.lang === 'ar-SA') ||
+      voices.find(v => v.lang.toLowerCase().startsWith('ar'));
+
+    if (arabicVoice) utterance.voice = arabicVoice;
+    utterance.lang = arabicVoice?.lang || 'ar-SA';
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
+    utterance.volume = Math.max(0.2, Math.min(1, settings.volume ?? 0.6));
+
+    synth.speak(utterance);
+  };
+
+  const playSuccessChime = () => {
+    if (!settings.isSoundEnabled || typeof window === 'undefined') return;
+
+    try {
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext;
+
+      if (!AudioContextClass) return;
+
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99];
+
+      notes.forEach((frequency, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, now + index * 0.12);
+        gain.gain.exponentialRampToValueAtTime(
+          Math.max(0.04, (settings.volume ?? 0.6) * 0.12),
+          now + index * 0.12 + 0.02
+        );
+        gain.gain.exponentialRampToValueAtTime(
+          0.0001,
+          now + index * 0.12 + 0.28
+        );
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + index * 0.12);
+        osc.stop(now + index * 0.12 + 0.3);
+      });
+
+      window.setTimeout(() => {
+        ctx.close().catch(() => undefined);
+      }, 900);
+    } catch {
+      // Keep the game working even if Web Audio is blocked.
+    }
+  };
+
+  useEffect(() => {
+    const updateCharacterSize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const shortestSide = Math.min(width, height);
+
+      if (width < 480) {
+        setCharacterSize(44);
+      } else if (width < 768) {
+        setCharacterSize(50);
+      } else if (width < 1200) {
+        setCharacterSize(58);
+      } else if (width < 1800) {
+        setCharacterSize(66);
+      } else {
+        setCharacterSize(shortestSide > 900 ? 76 : 70);
+      }
+    };
+
+    updateCharacterSize();
+    window.addEventListener('resize', updateCharacterSize);
+    return () => window.removeEventListener('resize', updateCharacterSize);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowIntroGuide(false);
+    }, 6000);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!settings.isSoundEnabled) return;
+
+    const timer = window.setTimeout(() => {
+      speakArabic('إلى أين تتجه الشخصية؟ اختر الدحروي، أو التيلة، أو الصقلة.');
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+    // Run when sound becomes enabled while the scene is open.
+  }, [settings.isSoundEnabled]);
 
   const near = useMemo(() => {
     return SPOTS.find(s => Math.hypot(pos.x - s.x, pos.y - s.y) < 11) || null;
@@ -69,15 +186,41 @@ export function GamesScene({ gender, settings, onReturnToVillage, onComplete }: 
   }, [active, success, settings.walkSpeed]);
 
   const done = (game: GameId) => {
+    const gameTitle = GAME_TITLES[game];
+
+    playSuccessChime();
+    setReinforcement(`أحسنت! أكملت ${gameTitle}`);
+
+    if (settings.isSoundEnabled) {
+      speakArabic(`أحسنت! أكملت ${gameTitle}.`);
+    }
+
+    window.setTimeout(() => {
+      setReinforcement(null);
+    }, 2200);
+
     setCompleted(prev => {
       if(prev.includes(game)) return prev;
+
       const next=[...prev,game];
+
       if(next.length>=2 && !reported.current){
         reported.current=true;
-        setTimeout(()=>{ onComplete?.(); setSuccess(true); },300);
+
+        setTimeout(()=>{
+          playSuccessChime();
+          onComplete?.();
+          setSuccess(true);
+
+          if (settings.isSoundEnabled) {
+            speakArabic('ممتاز! أنجزت لعبتين وحصلت على ختم فريج الألعاب.');
+          }
+        },450);
       }
+
       return next;
     });
+
     setActive(null);
   };
 
@@ -103,10 +246,28 @@ export function GamesScene({ gender, settings, onReturnToVillage, onComplete }: 
 
     <div className="absolute z-30 pointer-events-none" style={{left:`${pos.x}%`,top:`${pos.y}%`,transform:'translate(-50%,-88%)'}}>
       <div className="absolute left-1/2 bottom-0 -translate-x-1/2 w-12 h-3 rounded-full bg-black/25 blur-sm"/>
-      <CharacterAvatar gender={gender} direction={direction} isMoving={moving} isCelebrating={false} size={62}/>
+      <CharacterAvatar gender={gender} direction={direction} isMoving={moving} isCelebrating={false} size={characterSize}/>
     </div>
 
     {near && !completed.includes(near.id) && !active && <button onClick={()=>setActive(near.id)} className="fixed left-1/2 bottom-7 -translate-x-1/2 z-[100] min-w-[240px] rounded-2xl bg-[#8A1538] border-[3px] border-[#FFE082] px-7 py-3.5 text-xl font-black text-[#FFE082] shadow-2xl"><span className="flex items-center justify-center gap-2"><Gamepad2 className="w-6 h-6"/>ابدأ {near.title}</span></button>}
+
+    {showIntroGuide && !active && !success && (
+      <div className="fixed left-1/2 top-5 -translate-x-1/2 z-[120] w-[min(92vw,560px)] rounded-2xl border-2 border-[#FFE082] bg-[#06283a]/95 px-5 py-3 text-center shadow-2xl backdrop-blur-md">
+        <div className="text-lg sm:text-xl font-black text-[#FFE082]">
+          إلى أين تتجه الشخصية؟
+        </div>
+        <div className="mt-1 text-sm sm:text-base font-bold text-white/90">
+          تحرّك نحو الدحروي أو التيلة أو الصقلة، ثم ابدأ اللعبة.
+        </div>
+      </div>
+    )}
+
+    {reinforcement && (
+      <div className="fixed left-1/2 top-[92px] -translate-x-1/2 z-[220] flex items-center gap-2 rounded-full border-2 border-[#FFE082] bg-emerald-800/95 px-6 py-3 text-base sm:text-lg font-black text-white shadow-2xl">
+        <Sparkles className="w-5 h-5 text-[#FFE082]" />
+        {reinforcement}
+      </div>
+    )}
 
     <DPad onStart={startTouch} onEnd={stopTouch}/>
 
@@ -117,6 +278,7 @@ export function GamesScene({ gender, settings, onReturnToVillage, onComplete }: 
     {success&&<div className="fixed inset-0 z-[300] bg-black/65 backdrop-blur-md flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-[30px] border-2 border-[#FFE082] bg-[#06283a]/95 p-6 text-center shadow-2xl">
         <div className="text-6xl">🏅</div><h2 className="mt-3 text-3xl font-black text-[#FFE082]">أحسنت!</h2>
+        <div className="mt-3 rounded-full border border-[#FFE082]/50 bg-[#FFE082]/10 px-4 py-2 text-sm font-bold text-[#FFE082]">تعزيز: ممتاز • استمر بهذا الأداء</div>
         <p className="mt-2 text-white text-lg">أنجزت لعبتين وحصلت على ختم فريج الألعاب.</p>
         <button onClick={onReturnToVillage} className="mt-6 w-full rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] py-3.5 text-[#FFE082] font-black">العودة إلى القرية</button>
       </div>
