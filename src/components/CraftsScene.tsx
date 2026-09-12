@@ -621,13 +621,22 @@ export function CraftsScene({
         className="
           absolute
           inset-x-0
-          bottom-[16%]
+          bottom-[5%]
+          sm:bottom-[9%]
+          lg:bottom-[12%]
           z-20
-          flex
-          justify-center
-          gap-3
-          sm:gap-6
+          grid
+          grid-cols-1
+          sm:grid-cols-3
+          gap-2.5
+          sm:gap-4
+          lg:gap-6
+          w-full
+          max-w-6xl
+          mx-auto
           px-3
+          sm:px-5
+          lg:px-8
         "
       >
         <CraftCard
@@ -856,20 +865,27 @@ function CraftCard({
 }) {
   return (
     <button
-      onClick={
-        onClick
-      }
+      onClick={onClick}
       className={`
-        w-[min(30vw,250px)]
-        min-h-[135px]
-        rounded-[24px]
+        relative
+        w-full
+        max-w-[420px]
+        mx-auto
+        min-h-[84px]
+        sm:min-h-[126px]
+        lg:min-h-[150px]
+        rounded-[18px]
+        sm:rounded-[24px]
         border-2
-        p-4
+        p-2.5
+        sm:p-4
+        lg:p-5
         text-center
         shadow-2xl
         backdrop-blur-md
-        active:scale-95
-        transition-transform
+        active:scale-[0.97]
+        transition-all
+        duration-150
 
         ${
           done
@@ -880,57 +896,65 @@ function CraftCard({
     >
       <div
         className="
-          mx-auto
-          w-14
-          h-14
-          rounded-full
-          bg-black/20
-          border
-          border-white/15
           flex
+          sm:flex-col
           items-center
           justify-center
-          text-[#FFE082]
+          gap-3
+          sm:gap-1
+          h-full
         "
       >
-        {done ? (
-          <CheckCircle2
-            className="
-              w-9
-              h-9
-              text-emerald-200
-            "
-          />
-        ) : (
-          icon
-        )}
-      </div>
-
-      <div
-        className="
-          mt-2
-          text-lg
-          font-black
-          text-[#FFE082]
-        "
-      >
-        {done
-          ? 'مكتمل'
-          : title}
-      </div>
-
-      {!done && (
         <div
           className="
-            mt-1
-            text-xs
-            sm:text-sm
-            text-white/85
+            shrink-0
+            w-[clamp(42px,7vw,64px)]
+            h-[clamp(42px,7vw,64px)]
+            rounded-full
+            bg-black/20
+            border
+            border-white/15
+            flex
+            items-center
+            justify-center
+            text-[#FFE082]
+            [&>svg]:w-[clamp(24px,4vw,36px)]
+            [&>svg]:h-[clamp(24px,4vw,36px)]
           "
         >
-          {subtitle}
+          {done ? (
+            <CheckCircle2 className="text-emerald-200" />
+          ) : (
+            icon
+          )}
         </div>
-      )}
+
+        <div className="min-w-0">
+          <div
+            className="
+              text-[clamp(15px,2vw,22px)]
+              leading-tight
+              font-black
+              text-[#FFE082]
+            "
+          >
+            {done ? 'مكتمل' : title}
+          </div>
+
+          {!done && (
+            <div
+              className="
+                mt-1
+                text-[clamp(11px,1.35vw,15px)]
+                leading-snug
+                text-white/85
+              "
+            >
+              {subtitle}
+            </div>
+          )}
+        </div>
+      </div>
     </button>
   );
 }
@@ -955,54 +979,54 @@ function CraftModal({
         flex
         items-center
         justify-center
-        p-2
-        sm:p-4
+        p-1.5
+        sm:p-3
+        lg:p-5
       "
       dir="rtl"
     >
       <div
         className="
           relative
-          w-full
-          max-w-2xl
-          max-h-[calc(100dvh-1rem)]
+          w-[min(97vw,900px)]
+          max-h-[calc(100dvh-0.75rem)]
+          sm:max-h-[calc(100dvh-1.5rem)]
           overflow-y-auto
-          rounded-[28px]
+          overscroll-contain
+          rounded-[20px]
+          sm:rounded-[28px]
           border-2
           border-[#FFE082]
           bg-[#402718]/97
-          p-4
-          sm:p-6
+          p-3
+          sm:p-5
+          lg:p-6
           pb-24
           shadow-2xl
+          [scrollbar-width:thin]
         "
       >
         <button
-          onClick={
-            onClose
-          }
+          onClick={onClose}
           className="
             sticky
             top-0
             float-left
             z-40
-            w-10
-            h-10
+            w-[clamp(38px,5vw,44px)]
+            h-[clamp(38px,5vw,44px)]
             rounded-full
-            bg-black/30
+            bg-black/35
             border
             border-white/20
             flex
             items-center
             justify-center
+            shadow-lg
           "
+          aria-label="إغلاق"
         >
-          <X
-            className="
-              w-5
-              h-5
-            "
-          />
+          <X className="w-5 h-5" />
         </button>
 
         <h2
@@ -1013,8 +1037,8 @@ function CraftModal({
             bg-[#402718]/97
             py-2
             text-center
-            text-2xl
-            sm:text-3xl
+            text-[clamp(22px,3vw,34px)]
+            leading-tight
             font-black
             text-[#FFE082]
           "
@@ -1022,11 +1046,7 @@ function CraftModal({
           {title}
         </h2>
 
-        <div
-          className="
-            clear-both
-          "
-        >
+        <div className="clear-both">
           {children}
         </div>
       </div>
@@ -1138,6 +1158,8 @@ function SaduTask({
         className="
           mt-2
           text-center
+          text-[clamp(13px,1.7vw,17px)]
+          leading-relaxed
           text-white/90
         "
       >
@@ -1153,7 +1175,8 @@ function SaduTask({
           border-2
           border-[#FFE082]
           bg-[#c5a16f]
-          p-5
+          p-3
+          sm:p-5
         "
       >
         <div
@@ -1185,7 +1208,7 @@ function SaduTask({
                   index
                 }
                 className={`
-                  h-16
+                  h-[clamp(42px,8vw,64px)]
                   rounded-sm
 
                   ${
@@ -1237,7 +1260,7 @@ function SaduTask({
                     index
                   }
                   className={`
-                    h-16
+                    h-[clamp(42px,8vw,64px)]
                     rounded-sm
                     border
                     border-[#6f4a2d]/25
@@ -1266,7 +1289,9 @@ function SaduTask({
             mt-6
             flex
             justify-center
-            gap-3
+            gap-2
+            sm:gap-3
+            flex-wrap
           "
         >
           {tones.map(
@@ -1284,8 +1309,8 @@ function SaduTask({
                   finished
                 }
                 className={`
-                  w-20
-                  h-20
+                  w-[clamp(62px,16vw,84px)]
+                  h-[clamp(62px,16vw,84px)]
                   rounded-2xl
                   border-2
                   border-white/60
@@ -1346,7 +1371,9 @@ function SaduTask({
             bg-emerald-700
             border-[3px]
             border-[#FFE082]
-            py-3.5
+            py-3
+            sm:py-3.5
+            text-[clamp(14px,1.8vw,17px)]
             font-black
             text-white
             shadow-2xl
@@ -1438,6 +1465,8 @@ function PalmTask({
         className="
           mt-2
           text-center
+          text-[clamp(13px,1.7vw,17px)]
+          leading-relaxed
           text-white/90
         "
       >
@@ -1449,12 +1478,14 @@ function PalmTask({
       <div
         className="
           mt-6
-          min-h-[340px]
+          min-h-[280px]
+          sm:min-h-[340px]
           rounded-3xl
           border-2
           border-[#FFE082]
           bg-[#d7bd79]
-          p-6
+          p-3
+          sm:p-6
         "
       >
         <div
@@ -1465,7 +1496,8 @@ function PalmTask({
             border
             border-[#6f5a31]/35
             bg-[#b29a5f]/35
-            p-5
+            p-3
+            sm:p-5
           "
         >
           <div
@@ -1490,7 +1522,7 @@ function PalmTask({
                     }
                     className="
                       relative
-                      h-32
+                      h-[clamp(78px,17vw,128px)]
                       rounded-xl
                       border
                       border-[#6f5a31]/25
@@ -1528,10 +1560,14 @@ function PalmTask({
 
         <div
           className="
-            mt-7
+            mt-5
+            sm:mt-7
             flex
+            flex-col
+            sm:flex-row
             justify-center
-            gap-4
+            gap-3
+            sm:gap-4
           "
         >
           <button
@@ -1544,13 +1580,18 @@ function PalmTask({
               finished
             }
             className="
-              min-w-[150px]
+              w-full
+              sm:min-w-[150px]
+              sm:w-auto
               rounded-2xl
               border-2
               border-[#FFE082]
               bg-[#56702f]
-              px-6
-              py-4
+              px-4
+              sm:px-6
+              py-3
+              sm:py-4
+              text-[clamp(13px,1.6vw,16px)]
               font-black
               text-white
               shadow-lg
@@ -1570,13 +1611,18 @@ function PalmTask({
               finished
             }
             className="
-              min-w-[150px]
+              w-full
+              sm:min-w-[150px]
+              sm:w-auto
               rounded-2xl
               border-2
               border-[#FFE082]
               bg-[#6f8239]
-              px-6
-              py-4
+              px-4
+              sm:px-6
+              py-3
+              sm:py-4
+              text-[clamp(13px,1.6vw,16px)]
               font-black
               text-white
               shadow-lg
@@ -1628,7 +1674,9 @@ function PalmTask({
             bg-emerald-700
             border-[3px]
             border-[#FFE082]
-            py-3.5
+            py-3
+            sm:py-3.5
+            text-[clamp(14px,1.8vw,17px)]
             font-black
             text-white
             shadow-2xl
@@ -1717,6 +1765,8 @@ function DhowTask({
         className="
           mt-2
           text-center
+          text-[clamp(13px,1.7vw,17px)]
+          leading-relaxed
           text-white/90
         "
       >
@@ -1729,20 +1779,22 @@ function DhowTask({
       <div
         className="
           mt-6
-          min-h-[350px]
+          min-h-[300px]
+          sm:min-h-[350px]
           rounded-3xl
           border-2
           border-[#FFE082]
           bg-[#b98552]
-          p-6
+          p-3
+          sm:p-6
         "
       >
         <div
           className="
             relative
             mx-auto
-            h-52
-            max-w-lg
+            h-[clamp(190px,30vw,260px)]
+            max-w-2xl
             rounded-2xl
             border
             border-[#6f4629]/35
@@ -1769,7 +1821,7 @@ function DhowTask({
                 left-1/2
                 bottom-[30%]
                 -translate-x-1/2
-                text-7xl
+                text-[clamp(48px,10vw,86px)]
               "
             >
               🛶
@@ -1784,8 +1836,8 @@ function DhowTask({
                 absolute
                 left-1/2
                 bottom-[40%]
-                w-2
-                h-28
+                w-[clamp(5px,0.8vw,8px)]
+                h-[clamp(86px,17vw,120px)]
                 -translate-x-1/2
                 bg-[#684327]
                 rounded-full
@@ -1803,21 +1855,28 @@ function DhowTask({
                 bottom-[47%]
                 w-0
                 h-0
-                border-y-[55px]
-                border-y-transparent
-                border-r-[90px]
-                border-r-[#eee0c0]
               "
+              style={{
+                borderTop:
+                  'clamp(38px, 7vw, 58px) solid transparent',
+                borderBottom:
+                  'clamp(38px, 7vw, 58px) solid transparent',
+                borderRight:
+                  'clamp(64px, 12vw, 102px) solid #eee0c0',
+              }}
             />
           )}
         </div>
 
         <div
           className="
-            mt-7
+            mt-5
+            sm:mt-7
             grid
-            grid-cols-3
-            gap-3
+            grid-cols-1
+            sm:grid-cols-3
+            gap-2.5
+            sm:gap-3
           "
         >
           {parts.map(
@@ -1851,7 +1910,10 @@ function DhowTask({
                   className={`
                     rounded-2xl
                     border-2
-                    p-4
+                    p-3
+                    sm:p-4
+                    min-h-[82px]
+                    sm:min-h-[105px]
                     text-center
                     shadow-lg
 
@@ -1866,7 +1928,7 @@ function DhowTask({
                 >
                   <div
                     className="
-                      text-4xl
+                      text-[clamp(28px,5vw,40px)]
                     "
                   >
                     {done
@@ -1876,7 +1938,8 @@ function DhowTask({
 
                   <div
                     className="
-                      mt-2
+                      mt-1.5
+                      text-[clamp(13px,1.6vw,16px)]
                       font-black
                     "
                   >
@@ -1906,7 +1969,9 @@ function DhowTask({
             bg-emerald-700
             border-[3px]
             border-[#FFE082]
-            py-3.5
+            py-3
+            sm:py-3.5
+            text-[clamp(14px,1.8vw,17px)]
             font-black
             text-white
             shadow-2xl
