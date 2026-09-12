@@ -143,100 +143,164 @@ function Frame({title,onClose,children}:{title:string;onClose:()=>void;children:
 }
 
 function Dahrooj({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
-  const [ringX,setRingX]=useState(10);
-  const [ringY,setRingY]=useState(58);
+  const [ring,setRing]=useState({x:10,y:58});
   const [passed,setPassed]=useState<number[]>([]);
   const [finished,setFinished]=useState(false);
-  const dragging=useRef(false);
 
   const gates=[28,52,76];
 
-  const move=(e:React.PointerEvent<HTMLDivElement>)=>{
-    if(!dragging.current||finished)return;
+  const moveRing=(dx:number,dy:number)=>{
+    if(finished)return;
 
-    const rect=e.currentTarget.getBoundingClientRect();
-    const x=((e.clientX-rect.left)/rect.width)*100;
-    const y=((e.clientY-rect.top)/rect.height)*100;
+    setRing(prev=>{
+      const next={
+        x:Math.max(8,Math.min(90,prev.x+dx)),
+        y:Math.max(36,Math.min(72,prev.y+dy)),
+      };
 
-    const nextX=Math.max(8,Math.min(90,x));
-    const nextY=Math.max(36,Math.min(72,y));
+      const newPassed=gates.filter(g=>next.x>=g);
+      setPassed(newPassed);
 
-    setRingX(nextX);
-    setRingY(nextY);
+      if(next.x>=88&&newPassed.length===3){
+        setFinished(true);
+      }
 
-    const newPassed=gates.filter(g=>nextX>=g);
-    setPassed(newPassed);
+      return next;
+    });
+  };
 
-    if(nextX>=88&&newPassed.length===3){
-      setFinished(true);
+  const repeatRef=useRef<number|null>(null);
+
+  const startRepeat=(dx:number,dy:number)=>{
+    moveRing(dx,dy);
+
+    if(repeatRef.current){
+      window.clearInterval(repeatRef.current);
+    }
+
+    repeatRef.current=window.setInterval(()=>{
+      moveRing(dx,dy);
+    },85);
+  };
+
+  const stopRepeat=()=>{
+    if(repeatRef.current){
+      window.clearInterval(repeatRef.current);
+      repeatRef.current=null;
     }
   };
 
+  useEffect(()=>{
+    return ()=>stopRepeat();
+  },[]);
+
   return <Frame title="الدحروي" onClose={onClose}>
     <p className="mt-2 text-center text-white/90">
-      حرّك الحلقة بالعصا، مرّ عبر البوابات الثلاث، ثم أصل إلى خط النهاية.
+      حرّك الحلقة بالأزرار، مرّ عبر البوابات الثلاث، ثم أصل إلى خط النهاية.
     </p>
 
-    <div
-      onPointerMove={move}
-      onPointerUp={()=>dragging.current=false}
-      onPointerCancel={()=>dragging.current=false}
-      onPointerLeave={()=>dragging.current=false}
-      className="mt-6 h-56 rounded-3xl border-2 border-[#FFE082] relative overflow-hidden touch-none bg-[linear-gradient(180deg,#d7b27a_0%,#c69760_100%)] shadow-inner"
-    >
-      {/* sandy track */}
+    <div className="mt-6 h-56 rounded-3xl border-2 border-[#FFE082] relative overflow-hidden bg-[linear-gradient(180deg,#d7b27a_0%,#c69760_100%)] shadow-inner">
       <div className="absolute left-[6%] right-[6%] top-1/2 h-20 -translate-y-1/2 rounded-full border-2 border-dashed border-[#7c4f2a]/45 bg-[#e1bd86]/55" />
 
-      {/* gates */}
       {gates.map((g,i)=>{
         const ok=passed.includes(g);
+
         return <div key={g} className="absolute top-[24%] bottom-[24%] w-14 -translate-x-1/2" style={{left:`${g}%`}}>
           <div className={`absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 ${ok?'bg-emerald-600/70':'bg-[#8A1538]/55'}`} />
           <div className={`absolute top-0 left-0 right-0 h-2 rounded-full ${ok?'bg-emerald-500':'bg-[#8A1538]'}`} />
           <span className={`absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-black ${ok?'bg-emerald-700 border-emerald-200 text-white':'bg-[#06283a] border-[#FFE082] text-[#FFE082]'}`}>
             {ok?'✓':i+1}
           </span>
-        </div>
+        </div>;
       })}
 
-      {/* finish */}
       <div className="absolute right-[3%] top-[24%] bottom-[24%] w-10 flex flex-col justify-center items-center">
         <div className="text-4xl">🏁</div>
         <div className="mt-1 text-xs font-black text-[#5d371e]">النهاية</div>
       </div>
 
-      {/* stick attached behind ring */}
       <div
         className="absolute z-20 h-3 rounded-full bg-[linear-gradient(90deg,#6b3b1f,#b87942,#6b3b1f)] shadow-md origin-right pointer-events-none"
         style={{
           width:'110px',
-          left:`calc(${ringX}% - 102px)`,
-          top:`calc(${ringY}% + 14px)`,
+          left:`calc(${ring.x}% - 102px)`,
+          top:`calc(${ring.y}% + 14px)`,
           transform:'rotate(9deg)',
         }}
       />
 
-      {/* real-looking metal ring */}
-      <button
-        type="button"
-        onPointerDown={e=>{
-          dragging.current=true;
-          e.currentTarget.setPointerCapture(e.pointerId);
-        }}
-        className="absolute z-30 w-20 h-20 rounded-full border-[8px] border-[#76818a] bg-transparent shadow-[inset_0_0_0_3px_rgba(255,255,255,.55),0_8px_18px_rgba(0,0,0,.35)] cursor-grab active:cursor-grabbing"
+      <div
+        className="absolute z-30 w-20 h-20 rounded-full border-[8px] border-[#76818a] bg-transparent shadow-[inset_0_0_0_3px_rgba(255,255,255,.55),0_8px_18px_rgba(0,0,0,.35)] pointer-events-none"
         style={{
-          left:`${ringX}%`,
-          top:`${ringY}%`,
+          left:`${ring.x}%`,
+          top:`${ring.y}%`,
           transform:'translate(-50%,-50%)',
         }}
-        aria-label="اسحب حلقة الدحروي"
       >
         <span className="absolute inset-2 rounded-full border border-white/35" />
-      </button>
+      </div>
 
       {finished&&<div className="absolute inset-0 z-40 bg-emerald-950/25 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
-        <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-6 py-3 text-xl font-black text-white shadow-xl">أحسنت! وصلت للنهاية ✓</div>
+        <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-6 py-3 text-xl font-black text-white shadow-xl">
+          أحسنت! وصلت للنهاية ✓
+        </div>
       </div>}
+    </div>
+
+    <div className="mt-5 flex flex-col items-center gap-3">
+      <div className="relative w-40 h-40 rounded-full bg-black/25 border-2 border-[#E6C280]/70 shadow-inner select-none touch-none">
+        <button
+          onPointerDown={()=>startRepeat(0,-2.2)}
+          onPointerUp={stopRepeat}
+          onPointerLeave={stopRepeat}
+          onPointerCancel={stopRepeat}
+          className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 rounded-xl bg-[#8A1538] border-2 border-[#FFE082] flex items-center justify-center text-white active:scale-95"
+          aria-label="تحريك الحلقة للأعلى"
+        >
+          <ArrowUp className="w-7 h-7 stroke-[3]" />
+        </button>
+
+        <button
+          onPointerDown={()=>startRepeat(0,2.2)}
+          onPointerUp={stopRepeat}
+          onPointerLeave={stopRepeat}
+          onPointerCancel={stopRepeat}
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 rounded-xl bg-[#8A1538] border-2 border-[#FFE082] flex items-center justify-center text-white active:scale-95"
+          aria-label="تحريك الحلقة للأسفل"
+        >
+          <ArrowDown className="w-7 h-7 stroke-[3]" />
+        </button>
+
+        <button
+          onPointerDown={()=>startRepeat(-2.2,0)}
+          onPointerUp={stopRepeat}
+          onPointerLeave={stopRepeat}
+          onPointerCancel={stopRepeat}
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-[#8A1538] border-2 border-[#FFE082] flex items-center justify-center text-white active:scale-95"
+          aria-label="تحريك الحلقة لليسار"
+        >
+          <ArrowLeft className="w-7 h-7 stroke-[3]" />
+        </button>
+
+        <button
+          onPointerDown={()=>startRepeat(2.2,0)}
+          onPointerUp={stopRepeat}
+          onPointerLeave={stopRepeat}
+          onPointerCancel={stopRepeat}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-[#8A1538] border-2 border-[#FFE082] flex items-center justify-center text-white active:scale-95"
+          aria-label="تحريك الحلقة لليمين"
+        >
+          <ArrowRight className="w-7 h-7 stroke-[3]" />
+        </button>
+
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[#B99658] border-2 border-[#F6E3B4] flex items-center justify-center text-white text-xl">
+          ✦
+        </div>
+      </div>
+
+      <div className="text-sm text-white/75">
+        اضغط مطولًا على السهم للحركة المستمرة
+      </div>
     </div>
 
     <div className="mt-4 grid grid-cols-2 gap-3">
@@ -244,13 +308,16 @@ function Dahrooj({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
         <div className="text-sm text-white/70">البوابات</div>
         <div className="text-2xl font-black text-[#FFE082]">{passed.length}/3</div>
       </div>
+
       <div className="rounded-2xl bg-black/25 border border-white/15 py-3 text-center">
         <div className="text-sm text-white/70">الحالة</div>
         <div className="text-lg font-black text-[#FFE082]">{finished?'تم الإنجاز':'استمر'}</div>
       </div>
     </div>
 
-    {finished&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">اعتماد الإنجاز ✓</button>}
+    {finished&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">
+      اعتماد الإنجاز ✓
+    </button>}
   </Frame>;
 }
 function Teela({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
@@ -387,75 +454,175 @@ function Saqla({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
   const [stage,setStage]=useState<'ready'|'air'|'catch'|'done'>('ready');
   const [tossed,setTossed]=useState<number|null>(null);
   const [collected,setCollected]=useState<number[]>([]);
+  const [roundMessage,setRoundMessage]=useState('اختر حصاة لرميها');
 
   const targetCount=level===1?1:2;
-  const stones=[1,2,3,4,5];
+
+  const stones=[
+    {id:1,x:18,y:66,rotation:-10},
+    {id:2,x:36,y:72,rotation:8},
+    {id:3,x:52,y:64,rotation:-5},
+    {id:4,x:68,y:73,rotation:11},
+    {id:5,x:82,y:63,rotation:-7},
+  ];
 
   const toss=(stone:number)=>{
     if(stage!=='ready')return;
+
     setTossed(stone);
     setCollected([]);
     setStage('air');
+    setRoundMessage(`التقط ${targetCount} ${targetCount===1?'حصاة':'حصاتين'} بسرعة`);
   };
 
   const collect=(stone:number)=>{
     if(stage!=='air'||stone===tossed)return;
+
     setCollected(prev=>{
       if(prev.includes(stone))return prev;
+
       const next=[...prev,stone];
-      if(next.length>=targetCount)setStage('catch');
+
+      if(next.length>=targetCount){
+        setStage('catch');
+        setRoundMessage('أمسك الحصاة المرمية قبل أن تسقط');
+      }
+
       return next;
     });
   };
 
   const catchStone=()=>{
     if(stage!=='catch')return;
+
     if(level===1){
       setLevel(2);
       setStage('ready');
       setTossed(null);
       setCollected([]);
+      setRoundMessage('ممتاز! الآن اختر حصاة للمستوى الثاني');
     }else{
       setStage('done');
+      setRoundMessage('أحسنت! أكملت الصقلة');
     }
   };
 
   return <Frame title="الصقلة" onClose={onClose}>
-    <p className="mt-2 text-center">
+    <p className="mt-2 text-center text-white/90">
       {level===1
         ? 'المستوى الأول: ارمِ حصاة، التقط حصاة واحدة، ثم أمسك الحصاة المرمية.'
         : 'المستوى الثاني: ارمِ حصاة، التقط حصاتين، ثم أمسك الحصاة المرمية.'}
     </p>
 
-    <div className="mt-6 min-h-[270px] rounded-2xl bg-[#c9a77a] border-2 border-[#FFE082] p-5">
-      {stage==='ready'&&<div className="mb-4 text-center font-black text-[#5b321d]">اختر حصاة لترميها للأعلى</div>}
-      {stage==='air'&&<div className="mb-4 text-center font-black text-[#8A1538]">التقط {targetCount} من الحصوات</div>}
-      {stage==='catch'&&<button onClick={catchStone} className="mx-auto mb-5 block rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-6 py-3 text-[#FFE082] font-black shadow-xl">✋ أمسك الحصاة المرمية</button>}
+    <div className="mt-6 relative min-h-[360px] rounded-3xl border-2 border-[#FFE082] overflow-hidden bg-[radial-gradient(circle_at_50%_35%,#e6c28b_0%,#c99d67_58%,#ad7442_100%)] shadow-inner">
+      <div className="absolute inset-x-10 top-8 h-16 rounded-[50%] border-2 border-dashed border-[#7e4f2e]/40" />
 
-      <div className="grid grid-cols-5 gap-3 items-end">
-        {stones.map(stone=>{
-          const isTossed=tossed===stone;
-          const isCollected=collected.includes(stone);
-          return <button
-            key={stone}
-            disabled={isCollected||(isTossed&&stage!=='ready')}
-            onClick={()=>stage==='ready'?toss(stone):collect(stone)}
-            className={`aspect-square rounded-[48%_52%_45%_55%] border-2 text-2xl font-black shadow-lg transition-all active:scale-90 ${
-              isCollected
-                ? 'bg-emerald-700 border-emerald-200 text-white -translate-y-3'
-                : isTossed
-                  ? 'bg-[#FFE082] border-[#8A1538] text-[#8A1538] -translate-y-12'
-                  : 'bg-[#8f7962] border-[#f4e1b7] text-white'
-            }`}
-          >
-            {isCollected?'✓':stone}
-          </button>
-        })}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-[#06283a]/92 border border-[#FFE082]/70 px-5 py-2 text-sm font-black text-[#FFE082] shadow-lg">
+        {roundMessage}
       </div>
 
-      <div className="mt-6 text-center font-black text-[#5b321d]">المستوى {level}/2</div>
+      {/* Toss arc */}
+      {tossed!==null&&stage!=='ready'&&stage!=='done'&&
+        <div className="absolute left-1/2 top-[30%] -translate-x-1/2 w-24 h-24 pointer-events-none">
+          <div className="absolute inset-0 rounded-full border-t-2 border-dashed border-white/55" />
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 text-3xl">↗</div>
+        </div>
+      }
+
+      {stones.map(stone=>{
+        const isTossed=tossed===stone.id;
+        const isCollected=collected.includes(stone.id);
+
+        let top=`${stone.y}%`;
+        let transform=`translate(-50%,-50%) rotate(${stone.rotation}deg)`;
+
+        if(isTossed&&stage!=='ready'){
+          top='30%';
+          transform=`translate(-50%,-50%) rotate(${stone.rotation+22}deg) scale(1.08)`;
+        }
+
+        return <button
+          key={stone.id}
+          disabled={isCollected||(isTossed&&stage!=='ready')}
+          onClick={()=>{
+            if(stage==='ready'){
+              toss(stone.id);
+            }else{
+              collect(stone.id);
+            }
+          }}
+          className={`
+            absolute
+            w-[74px]
+            h-[56px]
+            rounded-[46%_54%_42%_58%]
+            border-2
+            font-black
+            shadow-[inset_6px_5px_10px_rgba(255,255,255,.22),inset_-7px_-6px_12px_rgba(55,35,20,.22),0_10px_18px_rgba(0,0,0,.25)]
+            transition-all
+            duration-300
+            active:scale-90
+
+            ${
+              isCollected
+                ? 'bg-emerald-700 border-emerald-200 text-white opacity-45'
+                : isTossed&&stage!=='ready'
+                  ? 'bg-[#d8c4a8] border-[#FFE082] text-[#8A1538] z-20'
+                  : 'bg-[linear-gradient(145deg,#b9a58d,#88735f)] border-[#ead8b8] text-white'
+            }
+          `}
+          style={{
+            left:`${stone.x}%`,
+            top,
+            transform,
+          }}
+          aria-label={`الحصاة ${stone.id}`}
+        >
+          {isCollected?'✓':''}
+        </button>;
+      })}
+
+      {/* Hand target during catch */}
+      {stage==='catch'&&
+        <button
+          onClick={catchStone}
+          className="absolute left-1/2 bottom-7 -translate-x-1/2 rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] px-7 py-3 text-lg font-black text-[#FFE082] shadow-2xl active:scale-95"
+        >
+          ✋ أمسك الحصاة الآن
+        </button>
+      }
+
+      {stage==='air'&&
+        <div className="absolute bottom-7 left-1/2 -translate-x-1/2 rounded-full bg-black/25 border border-white/15 px-5 py-2 text-sm text-white/90">
+          التقطت {collected.length}/{targetCount}
+        </div>
+      }
+
+      {stage==='done'&&
+        <div className="absolute inset-0 bg-emerald-950/25 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-7 py-3 text-xl font-black text-white shadow-xl">
+            أكملت الصقلة ✓
+          </div>
+        </div>
+      }
     </div>
 
-    {stage==='done'&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="rounded-2xl bg-black/25 border border-white/15 py-3 text-center">
+        <div className="text-sm text-white/70">المستوى</div>
+        <div className="text-2xl font-black text-[#FFE082]">{level}/2</div>
+      </div>
+
+      <div className="rounded-2xl bg-black/25 border border-white/15 py-3 text-center">
+        <div className="text-sm text-white/70">الحالة</div>
+        <div className="text-lg font-black text-[#FFE082]">
+          {stage==='done'?'تم الإنجاز':stage==='catch'?'أمسك المرمية':stage==='air'?'اجمع الحصوات':'ابدأ'}
+        </div>
+      </div>
+    </div>
+
+    {stage==='done'&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">
+      اعتماد الإنجاز ✓
+    </button>}
   </Frame>;
 }
