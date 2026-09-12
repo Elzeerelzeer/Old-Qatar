@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Coffee, Flame, Sparkles, Volume2, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { CheckCircle2, Coffee, Flame, Sparkles, X } from 'lucide-react';
 import { CharacterGender, GameSettings } from '../types';
 
 interface MajlisSceneProps {
@@ -313,80 +313,291 @@ function CoffeeTask({
   onClose: () => void;
   onWin: () => void;
 }) {
-  const [x, setX] = useState(14);
-  const [y, setY] = useState(72);
-  const [served, setServed] = useState(false);
-  const dragging = useRef(false);
+  const guests = [
+    { id: 0, label: 'الضيف الأول', x: 76, y: 43 },
+    { id: 1, label: 'الضيف الثاني', x: 80, y: 60 },
+    { id: 2, label: 'الضيف الثالث', x: 74, y: 77 },
+  ];
 
-  const move = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging.current || served) return;
+  const [servedGuests, setServedGuests] = useState<number[]>([]);
+  const [cupFilled, setCupFilled] = useState(false);
+  const [cupPos, setCupPos] = useState({ x: 35, y: 72 });
+  const [pouring, setPouring] = useState(false);
+  const draggingCup = useRef(false);
+
+  const currentGuest =
+    guests.find(g => !servedGuests.includes(g.id)) || null;
+
+  const resetCup = () => {
+    setCupPos({ x: 35, y: 72 });
+    setCupFilled(false);
+    setPouring(false);
+  };
+
+  const pourCoffee = () => {
+    if (cupFilled || servedGuests.length >= guests.length) return;
+
+    setPouring(true);
+
+    window.setTimeout(() => {
+      setCupFilled(true);
+      setPouring(false);
+    }, 650);
+  };
+
+  const moveCup = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingCup.current || !cupFilled || !currentGuest) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * 100;
     const py = ((e.clientY - rect.top) / rect.height) * 100;
 
-    const nx = Math.max(8, Math.min(92, px));
-    const ny = Math.max(18, Math.min(82, py));
+    const x = Math.max(8, Math.min(92, px));
+    const y = Math.max(18, Math.min(86, py));
 
-    setX(nx);
-    setY(ny);
+    setCupPos({ x, y });
 
-    if (nx > 70 && ny > 42 && ny < 78) {
-      setServed(true);
+    const distance = Math.hypot(
+      x - currentGuest.x,
+      y - currentGuest.y
+    );
+
+    if (distance < 9) {
+      draggingCup.current = false;
+
+      setServedGuests(prev => [
+        ...prev,
+        currentGuest.id,
+      ]);
+
+      window.setTimeout(() => {
+        resetCup();
+      }, 350);
     }
   };
 
+  const finished = servedGuests.length >= guests.length;
+
   return (
-    <ModalFrame title="تقديم القهوة" onClose={onClose}>
+    <ModalFrame title="تقديم الضيافة" onClose={onClose}>
       <p className="mt-2 text-center text-white/90">
-        اسحب الفنجان إلى يد الضيف.
+        صبّ قليلًا من القهوة في الفنجان، ثم قدّمه للضيف المحدد.
       </p>
 
+      <div className="mt-4 flex items-center justify-center gap-2 text-sm">
+        <span className="rounded-full border border-[#FFE082]/40 bg-black/20 px-4 py-2">
+          1. صب القهوة
+        </span>
+        <span className="text-[#FFE082]">←</span>
+        <span className="rounded-full border border-[#FFE082]/40 bg-black/20 px-4 py-2">
+          2. قدّم الفنجان
+        </span>
+      </div>
+
       <div
-        onPointerMove={move}
-        onPointerUp={() => (dragging.current = false)}
-        onPointerCancel={() => (dragging.current = false)}
-        onPointerLeave={() => (dragging.current = false)}
-        className="mt-6 relative h-[320px] rounded-3xl border-2 border-[#FFE082] overflow-hidden touch-none bg-[radial-gradient(circle_at_50%_40%,#b27a48,#85512f_60%,#5f351f_100%)]"
+        onPointerMove={moveCup}
+        onPointerUp={() => {
+          draggingCup.current = false;
+        }}
+        onPointerCancel={() => {
+          draggingCup.current = false;
+        }}
+        className="
+          mt-5
+          relative
+          h-[390px]
+          rounded-3xl
+          border-2
+          border-[#FFE082]
+          overflow-hidden
+          touch-none
+          bg-[radial-gradient(circle_at_48%_42%,#b98652_0%,#875331_55%,#54301f_100%)]
+        "
       >
-        <div className="absolute right-[8%] top-[28%] w-32 h-44 rounded-[44%_44%_38%_38%] bg-[#f1eadc] border-2 border-white/70 shadow-xl">
-          <div className="absolute left-1/2 -translate-x-1/2 top-3 w-16 h-16 rounded-full bg-[#d7b38b]" />
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-sm font-black text-[#5d321d]">
-            الضيف
-          </div>
-          <div className="absolute left-[-38px] top-[92px] text-5xl">🤲</div>
+        {/* Carpet */}
+        <div className="absolute inset-x-[6%] bottom-[6%] h-[54%] rounded-[45%] border-2 border-[#c89f67]/55 bg-[#6f2f2d]/30" />
+
+        {/* Low serving table */}
+        <div className="absolute left-[8%] bottom-[12%] w-[45%] h-[27%] rounded-[50%] border-2 border-[#c99c61] bg-[#5b321f] shadow-[0_16px_30px_rgba(0,0,0,.35)]">
+          <div className="absolute inset-[7%] rounded-[50%] border border-[#dfb879]/40" />
         </div>
 
-        <button
-          onPointerDown={(e) => {
-            if (served) return;
-            dragging.current = true;
-            e.currentTarget.setPointerCapture(e.pointerId);
-          }}
-          className="absolute z-20 w-20 h-20 rounded-full border-2 border-[#FFE082] bg-[#8A1538] text-5xl shadow-xl cursor-grab active:cursor-grabbing"
-          style={{
-            left: `${x}%`,
-            top: `${y}%`,
-            transform: 'translate(-50%,-50%)',
-          }}
-          aria-label="فنجان القهوة"
-        >
-          ☕
-        </button>
+        {/* Realistic Dallah */}
+        <div className="absolute left-[13%] bottom-[20%] w-28 h-36">
+          <div className="absolute bottom-0 left-[30%] w-16 h-20 rounded-[44%_44%_36%_36%] border-2 border-[#f0d195] bg-[linear-gradient(145deg,#f7dfa7,#b9843f_52%,#6f451f)] shadow-[inset_7px_5px_12px_rgba(255,255,255,.4),0_10px_18px_rgba(0,0,0,.3)]" />
+          <div className="absolute left-[43%] top-[18%] w-7 h-20 rounded-t-full bg-[linear-gradient(90deg,#c99a55,#f4d796,#8f612d)]" />
+          <div className="absolute left-[50%] top-[7%] w-5 h-7 rounded-full bg-[#d9ae64] border border-[#ffe9b2]" />
+          <div className="absolute left-[5%] top-[40%] w-16 h-4 rounded-full bg-[linear-gradient(90deg,#6f451f,#d9aa63)] -rotate-[18deg] origin-right" />
+          <div className="absolute right-[0%] top-[41%] w-12 h-16 rounded-r-[70%] border-r-4 border-[#d9aa63]" />
+        </div>
 
-        {served && (
-          <div className="absolute inset-0 bg-emerald-950/20 flex items-center justify-center">
-            <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-6 py-3 text-xl font-black shadow-xl">
-              أحسنت في تقديم القهوة ✓
+        {/* Pour stream */}
+        {pouring && (
+          <div className="absolute left-[29%] bottom-[25%] z-20 h-16 w-[3px] rotate-[18deg] origin-top rounded-full bg-[#6d3c1d] shadow-[0_0_8px_rgba(255,217,154,.28)]" />
+        )}
+
+        {/* Pour button */}
+        {!cupFilled && !finished && (
+          <button
+            onClick={pourCoffee}
+            disabled={pouring}
+            className="
+              absolute
+              left-[9%]
+              top-[8%]
+              z-30
+              rounded-full
+              border-2
+              border-[#FFE082]
+              bg-[#8A1538]
+              px-5
+              py-2.5
+              text-sm
+              font-black
+              text-[#FFE082]
+              shadow-xl
+              active:scale-95
+            "
+          >
+            {pouring ? 'يتم الصب...' : 'صب القهوة'}
+          </button>
+        )}
+
+        {/* Guests */}
+        {guests.map((guest, index) => {
+          const served = servedGuests.includes(guest.id);
+          const active = currentGuest?.id === guest.id;
+
+          return (
+            <div
+              key={guest.id}
+              className="
+                absolute
+                z-10
+                w-[110px]
+                h-[92px]
+                -translate-x-1/2
+                -translate-y-1/2
+              "
+              style={{
+                left: `${guest.x}%`,
+                top: `${guest.y}%`,
+              }}
+            >
+              <div
+                className={`
+                  absolute
+                  inset-0
+                  rounded-[50%_50%_42%_42%]
+                  border-2
+                  bg-[#eee5d5]
+                  shadow-lg
+                  transition-all
+                  ${
+                    served
+                      ? 'border-emerald-300 opacity-70'
+                      : active
+                        ? 'border-[#FFE082] shadow-[0_0_22px_rgba(255,224,130,.45)]'
+                        : 'border-white/45 opacity-75'
+                  }
+                `}
+              >
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-[#d7b38b]" />
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[11px] font-black text-[#5d321d] whitespace-nowrap">
+                  {served ? 'تمت الضيافة ✓' : guest.label}
+                </div>
+              </div>
+
+              {active && !served && (
+                <div className="absolute -left-7 top-1/2 -translate-y-1/2 text-4xl">
+                  🤲
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Finjan */}
+        {!finished && (
+          <button
+            onPointerDown={(e) => {
+              if (!cupFilled) return;
+              draggingCup.current = true;
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            className={`
+              absolute
+              z-30
+              w-16
+              h-16
+              -translate-x-1/2
+              -translate-y-1/2
+              rounded-full
+              border-2
+              shadow-xl
+              transition-shadow
+              ${
+                cupFilled
+                  ? 'cursor-grab active:cursor-grabbing border-[#FFE082] bg-[#f2e7d1]'
+                  : 'border-white/35 bg-[#eadfc9]/80'
+              }
+            `}
+            style={{
+              left: `${cupPos.x}%`,
+              top: `${cupPos.y}%`,
+            }}
+            aria-label="فنجان القهوة"
+          >
+            <span className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-10 h-9 rounded-[10%_10%_48%_48%] border-2 border-[#d6b77b] bg-[#f7eedf]">
+              {cupFilled && (
+                <span className="absolute left-1/2 top-1 -translate-x-1/2 w-7 h-3 rounded-[50%] bg-[#6f3a1d]" />
+              )}
+            </span>
+          </button>
+        )}
+
+        {/* Current instruction */}
+        {!finished && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 rounded-full border border-white/15 bg-black/35 px-5 py-2 text-sm font-bold text-white/95 whitespace-nowrap">
+            {!cupFilled
+              ? 'اضغط «صب القهوة» أولًا'
+              : `قدّم الفنجان إلى ${currentGuest?.label}`}
+          </div>
+        )}
+
+        {finished && (
+          <div className="absolute inset-0 z-50 bg-emerald-950/25 backdrop-blur-[1px] flex items-center justify-center">
+            <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-7 py-3 text-xl font-black text-white shadow-xl">
+              تمت الضيافة للضيوف ✓
             </div>
           </div>
         )}
       </div>
 
-      {served && (
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
+          <div className="text-xs text-white/65">تمت الضيافة</div>
+          <div className="mt-1 text-2xl font-black text-[#FFE082]">
+            {servedGuests.length}/3
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
+          <div className="text-xs text-white/65">حالة الفنجان</div>
+          <div className="mt-1 text-lg font-black text-[#FFE082]">
+            {finished
+              ? 'مكتمل'
+              : cupFilled
+                ? 'جاهز للتقديم'
+                : 'فارغ'}
+          </div>
+        </div>
+      </div>
+
+      {finished && (
         <button
           onClick={onWin}
-          className="sticky bottom-2 z-50 mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-2xl"
+          className="sticky bottom-2 z-50 mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-2xl active:scale-95"
         >
           اعتماد الإنجاز ✓
         </button>
@@ -402,68 +613,208 @@ function IncenseTask({
   onClose: () => void;
   onWin: () => void;
 }) {
-  const [progress, setProgress] = useState(0);
-  const [x, setX] = useState(18);
+  const guests = [
+    { id: 0, label: 'الضيف الأول', x: 24, y: 48 },
+    { id: 1, label: 'الضيف الثاني', x: 50, y: 42 },
+    { id: 2, label: 'الضيف الثالث', x: 76, y: 48 },
+  ];
+
+  const [burnerPos, setBurnerPos] = useState({ x: 18, y: 76 });
+  const [perfumedGuests, setPerfumedGuests] = useState<number[]>([]);
   const dragging = useRef(false);
 
-  const move = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging.current || progress >= 100) return;
+  const moveBurner = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || perfumedGuests.length >= guests.length) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * 100;
-    const nx = Math.max(10, Math.min(90, px));
+    const py = ((e.clientY - rect.top) / rect.height) * 100;
 
-    setX(nx);
-    setProgress(prev => Math.min(100, Math.max(prev, Math.round((nx - 10) * 1.25))));
+    const x = Math.max(8, Math.min(92, px));
+    const y = Math.max(24, Math.min(84, py));
+
+    setBurnerPos({ x, y });
+
+    for (const guest of guests) {
+      if (perfumedGuests.includes(guest.id)) continue;
+
+      const distance = Math.hypot(
+        x - guest.x,
+        y - guest.y
+      );
+
+      if (distance < 12) {
+        setPerfumedGuests(prev =>
+          prev.includes(guest.id)
+            ? prev
+            : [...prev, guest.id]
+        );
+        break;
+      }
+    }
   };
+
+  const finished = perfumedGuests.length >= guests.length;
 
   return (
     <ModalFrame title="تبخير المجلس" onClose={onClose}>
       <p className="mt-2 text-center text-white/90">
-        مرّر المبخرة من بداية المجلس إلى نهايته.
+        احمل المبخرة ومرّرها بالقرب من الضيوف واحدًا تلو الآخر.
       </p>
 
       <div
-        onPointerMove={move}
-        onPointerUp={() => (dragging.current = false)}
-        onPointerCancel={() => (dragging.current = false)}
-        onPointerLeave={() => (dragging.current = false)}
-        className="mt-6 relative h-[300px] rounded-3xl border-2 border-[#FFE082] overflow-hidden touch-none bg-[linear-gradient(180deg,#95603b_0%,#6b3f28_100%)]"
+        onPointerMove={moveBurner}
+        onPointerUp={() => {
+          dragging.current = false;
+        }}
+        onPointerCancel={() => {
+          dragging.current = false;
+        }}
+        className="
+          mt-6
+          relative
+          h-[390px]
+          rounded-3xl
+          border-2
+          border-[#FFE082]
+          overflow-hidden
+          touch-none
+          bg-[radial-gradient(circle_at_50%_38%,#9b633d_0%,#6e4329_58%,#43271b_100%)]
+        "
       >
-        <div className="absolute left-[8%] right-[8%] bottom-[24%] h-3 rounded-full bg-[#d4b07f]/40" />
+        {/* Majlis seating */}
+        <div className="absolute left-[7%] right-[7%] top-[28%] h-[36%] rounded-[38px] border border-[#c49867]/40 bg-[#6f2f2d]/28" />
 
-        {progress > 8 && (
-          <>
-            <div className="absolute left-[38%] top-[26%] w-16 h-28 rounded-full bg-white/10 blur-2xl" />
-            <div className="absolute left-[54%] top-[16%] w-14 h-32 rounded-full bg-white/10 blur-2xl" />
-            <div className="absolute left-[68%] top-[28%] w-20 h-24 rounded-full bg-white/10 blur-2xl" />
-          </>
-        )}
+        {/* Guests */}
+        {guests.map(guest => {
+          const done = perfumedGuests.includes(guest.id);
 
+          return (
+            <div
+              key={guest.id}
+              className="
+                absolute
+                z-10
+                w-[120px]
+                h-[118px]
+                -translate-x-1/2
+                -translate-y-1/2
+              "
+              style={{
+                left: `${guest.x}%`,
+                top: `${guest.y}%`,
+              }}
+            >
+              <div
+                className={`
+                  absolute
+                  inset-0
+                  rounded-[48%_48%_38%_38%]
+                  border-2
+                  bg-[#eee5d5]
+                  shadow-lg
+                  transition-all
+                  ${
+                    done
+                      ? 'border-emerald-300 opacity-75'
+                      : 'border-white/45'
+                  }
+                `}
+              >
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#d7b38b]" />
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] font-black text-[#5d321d] whitespace-nowrap">
+                  {done ? 'تم التبخير ✓' : guest.label}
+                </div>
+              </div>
+
+              {done && (
+                <>
+                  <div className="absolute left-1/2 -translate-x-1/2 -top-10 w-12 h-20 rounded-full bg-white/12 blur-xl" />
+                  <div className="absolute left-[40%] -top-3 w-8 h-14 rounded-full bg-white/10 blur-lg" />
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Smoke plume following burner */}
+        <div
+          className="absolute z-20 pointer-events-none"
+          style={{
+            left: `${burnerPos.x}%`,
+            top: `calc(${burnerPos.y}% - 94px)`,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <div className="absolute left-0 bottom-0 w-12 h-28 rounded-full bg-white/12 blur-xl" />
+          <div className="absolute left-4 bottom-8 w-8 h-20 rounded-full bg-white/10 blur-lg" />
+          <div className="absolute -left-3 bottom-16 w-10 h-16 rounded-full bg-white/8 blur-xl" />
+        </div>
+
+        {/* Realistic brass mabkhara */}
         <button
           onPointerDown={(e) => {
+            if (finished) return;
             dragging.current = true;
             e.currentTarget.setPointerCapture(e.pointerId);
           }}
-          className="absolute bottom-[18%] w-24 h-24 -translate-x-1/2 rounded-3xl border-2 border-[#FFE082] bg-[#6f2b1c] shadow-xl text-5xl cursor-grab active:cursor-grabbing"
-          style={{ left: `${x}%` }}
+          className="
+            absolute
+            z-30
+            w-[92px]
+            h-[112px]
+            -translate-x-1/2
+            -translate-y-1/2
+            cursor-grab
+            active:cursor-grabbing
+          "
+          style={{
+            left: `${burnerPos.x}%`,
+            top: `${burnerPos.y}%`,
+          }}
           aria-label="المبخرة"
         >
-          🏺
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 w-16 h-12 rounded-[10px_10px_18px_18px] border-2 border-[#f0d195] bg-[linear-gradient(145deg,#f3d99a,#b37a32_55%,#694019)] shadow-[inset_5px_5px_8px_rgba(255,255,255,.35),0_10px_20px_rgba(0,0,0,.35)]" />
+          <div className="absolute left-1/2 bottom-9 -translate-x-1/2 w-12 h-12 rotate-45 border-2 border-[#f0d195] bg-[linear-gradient(145deg,#e5c47c,#956326)] shadow-md" />
+          <div className="absolute left-1/2 bottom-[68px] -translate-x-1/2 w-9 h-9 rotate-45 border-2 border-[#f0d195] bg-[#9f6d2e]" />
+          <div className="absolute left-1/2 bottom-[86px] -translate-x-1/2 w-4 h-4 rounded-full bg-[#5f351e] shadow-[0_0_12px_rgba(255,159,67,.55)]" />
         </button>
 
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-[72%] h-3 rounded-full bg-black/25 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-[#FFE082] transition-[width]"
-            style={{ width: `${progress}%` }}
-          />
+        {!finished && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 rounded-full border border-white/15 bg-black/35 px-5 py-2 text-sm font-bold text-white/95 whitespace-nowrap">
+            اقترب بالمبخرة من كل ضيف
+          </div>
+        )}
+
+        {finished && (
+          <div className="absolute inset-0 z-50 bg-emerald-950/25 backdrop-blur-[1px] flex items-center justify-center">
+            <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-7 py-3 text-xl font-black text-white shadow-xl">
+              تم تبخير المجلس ✓
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
+          <div className="text-xs text-white/65">تم التبخير</div>
+          <div className="mt-1 text-2xl font-black text-[#FFE082]">
+            {perfumedGuests.length}/3
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
+          <div className="text-xs text-white/65">الحالة</div>
+          <div className="mt-1 text-lg font-black text-[#FFE082]">
+            {finished ? 'مكتمل' : 'مرّر المبخرة'}
+          </div>
         </div>
       </div>
 
-      {progress >= 100 && (
+      {finished && (
         <button
           onClick={onWin}
-          className="sticky bottom-2 z-50 mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-2xl"
+          className="sticky bottom-2 z-50 mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-2xl active:scale-95"
         >
           اعتماد الإنجاز ✓
         </button>
@@ -471,4 +822,3 @@ function IncenseTask({
     </ModalFrame>
   );
 }
-
