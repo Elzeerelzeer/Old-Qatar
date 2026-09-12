@@ -106,7 +106,7 @@ export function GamesScene({ gender, settings, onReturnToVillage, onComplete }: 
       <CharacterAvatar gender={gender} direction={direction} isMoving={moving} isCelebrating={false} size={62}/>
     </div>
 
-    {near && !completed.includes(near.id) && !active && <button onClick={()=>setActive(near.id)} className="fixed left-1/2 bottom-7 -translate-x-1/2 z-[100] min-w-[240px] rounded-2xl bg-[#8A1538] border-[3px] border-[#FFE082] px-7 py-3.5 text-xl font-black text-[#FFE082] shadow-2xl"><span className="flex items-center justify-center gap-2"><Gamepad2 className="w-6 h-6"/>العب {near.title}</span></button>}
+    {near && !completed.includes(near.id) && !active && <button onClick={()=>setActive(near.id)} className="fixed left-1/2 bottom-7 -translate-x-1/2 z-[100] min-w-[240px] rounded-2xl bg-[#8A1538] border-[3px] border-[#FFE082] px-7 py-3.5 text-xl font-black text-[#FFE082] shadow-2xl"><span className="flex items-center justify-center gap-2"><Gamepad2 className="w-6 h-6"/>ابدأ {near.title}</span></button>}
 
     <DPad onStart={startTouch} onEnd={stopTouch}/>
 
@@ -143,30 +143,174 @@ function Frame({title,onClose,children}:{title:string;onClose:()=>void;children:
 }
 
 function Dahrooj({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
-  const [p,setP]=useState(0);
-  return <Frame title="الدحروي" onClose={onClose}><p className="mt-2 text-center">المس الحلقة 5 مرات لتوصلها إلى النهاية.</p>
-    <div className="mt-6 h-36 rounded-2xl bg-[#d7b27a] border-2 border-[#FFE082] relative overflow-hidden">
-      <button onClick={()=>setP(v=>Math.min(5,v+1))} className="absolute top-1/2 -translate-y-1/2 text-6xl transition-all duration-300" style={{left:`${7+p*16}%`}}>⭕</button>
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-5xl">🏁</div>
-    </div><div className="mt-4 text-center text-2xl font-black text-[#FFE082]">{p}/5</div>
-    {p>=5&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
+  const [ringX,setRingX]=useState(8);
+  const [passed,setPassed]=useState<number[]>([]);
+  const dragging=useRef(false);
+
+  const move=(e:React.PointerEvent<HTMLDivElement>)=>{
+    if(!dragging.current)return;
+    const rect=e.currentTarget.getBoundingClientRect();
+    const x=((e.clientX-rect.left)/rect.width)*100;
+    const next=Math.max(6,Math.min(90,x));
+    setRingX(next);
+    setPassed([28,52,76].filter(g=>next>=g));
+  };
+
+  const finished=passed.length===3;
+
+  return <Frame title="الدحروي" onClose={onClose}>
+    <p className="mt-2 text-center">اسحب الحلقة عبر البوابات الثلاث حتى تصل إلى خط النهاية.</p>
+
+    <div
+      onPointerMove={move}
+      onPointerUp={()=>dragging.current=false}
+      onPointerLeave={()=>dragging.current=false}
+      className="mt-6 h-40 rounded-2xl bg-[#d7b27a] border-2 border-[#FFE082] relative overflow-hidden touch-none"
+    >
+      {[28,52,76].map((g,i)=><div key={g} className="absolute top-3 bottom-3 w-1 bg-white/45" style={{left:`${g}%`}}>
+        <span className="absolute -top-1 -left-3 rounded-full bg-[#06283a] px-2 py-1 text-xs">{i+1}</span>
+      </div>)}
+
+      <button
+        onPointerDown={e=>{
+          dragging.current=true;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        className="absolute top-1/2 text-6xl cursor-grab active:cursor-grabbing"
+        style={{left:`${ringX}%`,transform:'translate(-50%,-50%)'}}
+      >
+        ⭕
+      </button>
+
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-5xl">🏁</div>
+    </div>
+
+    <div className="mt-4 text-center text-2xl font-black text-[#FFE082]">{passed.length}/3 بوابات</div>
+
+    {finished&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
   </Frame>;
 }
-
 function Teela({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
-  const [hits,setHits]=useState<number[]>([]);
-  return <Frame title="التيلة" onClose={onClose}><p className="mt-2 text-center">أصب ثلاثة أهداف.</p><div className="mt-7 flex justify-center gap-5">
-    {[1,2,3].map(n=><button key={n} onClick={()=>setHits(v=>v.includes(n)?v:[...v,n])} className={`w-24 h-32 rounded-xl border-2 text-5xl ${hits.includes(n)?'bg-emerald-700 border-emerald-200':'bg-[#a85d35] border-[#FFE082]'}`}>{hits.includes(n)?'✓':'🥫'}</button>)}
-  </div><div className="mt-5 text-center text-2xl font-black text-[#FFE082]">{hits.length}/3</div>
-  {hits.length===3&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}</Frame>;
-}
+  const [hits,setHits]=useState(0);
+  const [shots,setShots]=useState(0);
+  const [power,setPower]=useState(0);
+  const startY=useRef(0);
+  const dragging=useRef(false);
 
+  const shoot=()=>{
+    setShots(v=>v+1);
+    if(power>=45&&power<=90)setHits(v=>Math.min(3,v+1));
+    setPower(0);
+  };
+
+  return <Frame title="التيلة" onClose={onClose}>
+    <p className="mt-2 text-center">اسحب التيلة للخلف ثم اتركها لتصيب الهدف.</p>
+
+    <div className="mt-6 h-56 rounded-2xl bg-[#c59a65] border-2 border-[#FFE082] relative overflow-hidden touch-none">
+      <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full border-4 border-[#8A1538] bg-[#FFE082]/20 flex items-center justify-center text-2xl font-black text-[#8A1538]">
+        الهدف
+      </div>
+
+      <button
+        onPointerDown={e=>{
+          dragging.current=true;
+          startY.current=e.clientY;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={e=>{
+          if(!dragging.current)return;
+          setPower(Math.max(0,Math.min(100,e.clientY-startY.current)));
+        }}
+        onPointerUp={()=>{
+          if(dragging.current){dragging.current=false;shoot();}
+        }}
+        onPointerCancel={()=>dragging.current=false}
+        className="absolute bottom-6 left-1/2 w-14 h-14 rounded-full border-2 border-white/80 bg-[radial-gradient(circle_at_30%_25%,#ffffff,#7dd3fc_35%,#2563eb_75%,#172554)] shadow-[0_10px_25px_rgba(0,0,0,.35)]"
+        style={{transform:`translate(-50%, ${Math.min(power,80)}px)`}}
+      />
+
+      <div className="absolute bottom-4 right-4 rounded-full bg-black/40 px-3 py-1 text-sm">القوة {power}%</div>
+    </div>
+
+    <div className="mt-4 text-center text-xl font-black text-[#FFE082]">إصابات: {hits}/3 • محاولات: {shots}</div>
+
+    {hits>=3&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
+  </Frame>;
+}
 function Saqla({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
-  const [next,setNext]=useState(1); const [wrong,setWrong]=useState(false);
-  const press=(n:number)=>{if(n===next){setWrong(false);setNext(v=>v+1)}else{setWrong(true);setNext(1)}};
-  return <Frame title="الصقلة" onClose={onClose}><p className="mt-2 text-center">المس الأحجار بالترتيب من 1 إلى 5.</p>
-    <div className="mt-7 grid grid-cols-3 gap-4 max-w-sm mx-auto">{[3,1,5,2,4].map(n=><button key={n} disabled={n<next} onClick={()=>press(n)} className={`aspect-square rounded-full border-2 text-3xl font-black ${n<next?'bg-emerald-700 border-emerald-200':'bg-[#9a8064] border-[#FFE082]'}`}>{n<next?'✓':n}</button>)}</div>
-    {wrong&&<div className="mt-4 text-center text-amber-200 font-bold">ابدأ من 1 مرة أخرى</div>}
-    {next===6&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
+  const [level,setLevel]=useState(1);
+  const [stage,setStage]=useState<'ready'|'air'|'catch'|'done'>('ready');
+  const [tossed,setTossed]=useState<number|null>(null);
+  const [collected,setCollected]=useState<number[]>([]);
+
+  const targetCount=level===1?1:2;
+  const stones=[1,2,3,4,5];
+
+  const toss=(stone:number)=>{
+    if(stage!=='ready')return;
+    setTossed(stone);
+    setCollected([]);
+    setStage('air');
+  };
+
+  const collect=(stone:number)=>{
+    if(stage!=='air'||stone===tossed)return;
+    setCollected(prev=>{
+      if(prev.includes(stone))return prev;
+      const next=[...prev,stone];
+      if(next.length>=targetCount)setStage('catch');
+      return next;
+    });
+  };
+
+  const catchStone=()=>{
+    if(stage!=='catch')return;
+    if(level===1){
+      setLevel(2);
+      setStage('ready');
+      setTossed(null);
+      setCollected([]);
+    }else{
+      setStage('done');
+    }
+  };
+
+  return <Frame title="الصقلة" onClose={onClose}>
+    <p className="mt-2 text-center">
+      {level===1
+        ? 'المستوى الأول: ارمِ حصاة، التقط حصاة واحدة، ثم أمسك الحصاة المرمية.'
+        : 'المستوى الثاني: ارمِ حصاة، التقط حصاتين، ثم أمسك الحصاة المرمية.'}
+    </p>
+
+    <div className="mt-6 min-h-[270px] rounded-2xl bg-[#c9a77a] border-2 border-[#FFE082] p-5">
+      {stage==='ready'&&<div className="mb-4 text-center font-black text-[#5b321d]">اختر حصاة لترميها للأعلى</div>}
+      {stage==='air'&&<div className="mb-4 text-center font-black text-[#8A1538]">التقط {targetCount} من الحصوات</div>}
+      {stage==='catch'&&<button onClick={catchStone} className="mx-auto mb-5 block rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-6 py-3 text-[#FFE082] font-black shadow-xl">✋ أمسك الحصاة المرمية</button>}
+
+      <div className="grid grid-cols-5 gap-3 items-end">
+        {stones.map(stone=>{
+          const isTossed=tossed===stone;
+          const isCollected=collected.includes(stone);
+          return <button
+            key={stone}
+            disabled={isCollected||(isTossed&&stage!=='ready')}
+            onClick={()=>stage==='ready'?toss(stone):collect(stone)}
+            className={`aspect-square rounded-[48%_52%_45%_55%] border-2 text-2xl font-black shadow-lg transition-all active:scale-90 ${
+              isCollected
+                ? 'bg-emerald-700 border-emerald-200 text-white -translate-y-3'
+                : isTossed
+                  ? 'bg-[#FFE082] border-[#8A1538] text-[#8A1538] -translate-y-12'
+                  : 'bg-[#8f7962] border-[#f4e1b7] text-white'
+            }`}
+          >
+            {isCollected?'✓':stone}
+          </button>
+        })}
+      </div>
+
+      <div className="mt-6 text-center font-black text-[#5b321d]">المستوى {level}/2</div>
+    </div>
+
+    {stage==='done'&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
   </Frame>;
 }
