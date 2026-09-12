@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -11,7 +12,14 @@ import {
   ArrowRight,
   ArrowUp,
   Anchor,
+  Award,
+  Clock3,
+  Gem,
+  Rotate3D,
+  Shell,
+  Sparkles,
   Waves,
+  X,
 } from 'lucide-react';
 
 import {
@@ -20,16 +28,56 @@ import {
   GameSettings,
 } from '../types';
 
+/* ============================================================
+   PROPS
+============================================================ */
+
 interface PearlSceneProps {
   gender: CharacterGender;
   settings: GameSettings;
   onReturnToVillage: () => void;
+
+  /*
+    Optional so the current App.tsx still compiles.
+    Later you can pass:
+    onComplete={() => handleStampStation('pearl')}
+  */
+  onComplete?: () => void;
 }
+
+/* ============================================================
+   TYPES
+============================================================ */
 
 type PearlPhase =
   | 'surface'
   | 'diving'
-  | 'underwater';
+  | 'underwater'
+  | 'finished';
+
+type ShellReward =
+  | 'empty'
+  | 'pearl'
+  | 'dana';
+
+interface ShellHotspot {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  reward: ShellReward;
+  points: number;
+}
+
+interface OpenedShellState {
+  shell: ShellHotspot;
+  title: string;
+  message: string;
+}
+
+/* ============================================================
+   ASSETS
+============================================================ */
 
 const MASTER_IMAGE_PATH =
   '/assets/pearl-sea-master-map.png';
@@ -37,21 +85,97 @@ const MASTER_IMAGE_PATH =
 const DIVER_IMAGE_PATH =
   '/assets/pearl-diver.png';
 
+/* ============================================================
+   WORLD
+============================================================ */
+
 const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 900;
 
 const PLAYER_RADIUS = 2.2;
 
+const ROUND_SECONDS = 60;
+
+/* ============================================================
+   SHELL HOTSPOTS
+   Coordinates are percentages of the 1600x900 master map.
+   Fine-tune later if needed to sit exactly over the painted shells.
+============================================================ */
+
+const SHELLS: ShellHotspot[] = [
+  {
+    id: 'shell-1',
+    x: 27,
+    y: 70,
+    radius: 8,
+    reward: 'empty',
+    points: 0,
+  },
+  {
+    id: 'shell-2',
+    x: 42,
+    y: 60,
+    radius: 8,
+    reward: 'pearl',
+    points: 10,
+  },
+  {
+    id: 'shell-3',
+    x: 52,
+    y: 50,
+    radius: 8,
+    reward: 'empty',
+    points: 0,
+  },
+  {
+    id: 'shell-4',
+    x: 72,
+    y: 59,
+    radius: 8,
+    reward: 'pearl',
+    points: 10,
+  },
+  {
+    id: 'shell-5',
+    x: 82,
+    y: 69,
+    radius: 8,
+    reward: 'dana',
+    points: 50,
+  },
+  {
+    id: 'shell-6',
+    x: 91,
+    y: 82,
+    radius: 8,
+    reward: 'pearl',
+    points: 10,
+  },
+];
+
+/* ============================================================
+   COMPONENT
+============================================================ */
+
 export function PearlScene({
   gender,
   settings,
   onReturnToVillage,
+  onComplete,
 }: PearlSceneProps) {
   const viewportRef =
-    useRef<HTMLDivElement>(null);
+    useRef<HTMLDivElement | null>(null);
+
+  /* ==========================================================
+     PHASE
+  ========================================================== */
 
   const [phase, setPhase] =
     useState<PearlPhase>('surface');
+
+  /* ==========================================================
+     PLAYER
+  ========================================================== */
 
   const [playerPos, setPlayerPos] =
     useState({
@@ -60,25 +184,35 @@ export function PearlScene({
     });
 
   const [direction, setDirection] =
-    useState<Direction>('up');
+    useState<Direction>('right');
 
   const [
     lastHorizontalDirection,
     setLastHorizontalDirection,
-  ] = useState<'left' | 'right'>(
-    'right'
-  );
+  ] = useState<'left' | 'right'>('right');
 
   const [isMoving, setIsMoving] =
     useState(false);
+
+  /* ==========================================================
+     INPUT
+  ========================================================== */
 
   const [
     activeTouchDir,
     setActiveTouchDir,
   ] =
-    useState<Direction | null>(
-      null
-    );
+    useState<Direction | null>(null);
+
+  const touchDirectionRef =
+    useRef<Direction | null>(null);
+
+  const keysPressed =
+    useRef<Record<string, boolean>>({});
+
+  /* ==========================================================
+     VIEWPORT / CAMERA
+  ========================================================== */
 
   const [
     viewportSize,
@@ -93,33 +227,63 @@ export function PearlScene({
     setDiveProgress,
   ] = useState(0);
 
-  const keysPressed =
-    useRef<
-      Record<string, boolean>
-    >({});
+  /* ==========================================================
+     GAME STATE
+  ========================================================== */
 
-  const touchDirectionRef =
-    useRef<Direction | null>(
-      null
-    );
+  const [timeLeft, setTimeLeft] =
+    useState(ROUND_SECONDS);
 
-  /* ============================================================
+  const [score, setScore] =
+    useState(0);
+
+  const [
+    openedShellIds,
+    setOpenedShellIds,
+  ] = useState<string[]>([]);
+
+  const [
+    openedShell,
+    setOpenedShell,
+  ] =
+    useState<OpenedShellState | null>(null);
+
+  const [
+    hasFoundDana,
+    setHasFoundDana,
+  ] = useState(false);
+
+  const [
+    hasReportedComplete,
+    setHasReportedComplete,
+  ] = useState(false);
+
+  /*
+    Simple breathing representation.
+    5 bubbles = plenty of breath, then it gradually drops.
+  */
+  const breathCount = Math.max(
+    0,
+    Math.ceil(
+      (timeLeft / ROUND_SECONDS) * 5
+    )
+  );
+
+  /* ==========================================================
      VIEWPORT SIZE
-  ============================================================ */
+  ========================================================== */
 
   useEffect(() => {
     const updateSize = () => {
-      const el =
-        viewportRef.current;
+      const el = viewportRef.current;
 
-      if (!el) return;
+      if (!el) {
+        return;
+      }
 
       setViewportSize({
-        width:
-          el.clientWidth,
-
-        height:
-          el.clientHeight,
+        width: el.clientWidth,
+        height: el.clientHeight,
       });
     };
 
@@ -162,9 +326,32 @@ export function PearlScene({
     };
   }, []);
 
-  /* ============================================================
-     START DIVE
-  ============================================================ */
+  /* ==========================================================
+     START / RESET ROUND
+  ========================================================== */
+
+  const resetRound = useCallback(() => {
+    setPlayerPos({
+      x: 50,
+      y: 72,
+    });
+
+    setDirection('right');
+    setLastHorizontalDirection('right');
+
+    setTimeLeft(ROUND_SECONDS);
+    setScore(0);
+    setOpenedShellIds([]);
+    setOpenedShell(null);
+
+    setHasFoundDana(false);
+    setHasReportedComplete(false);
+
+    keysPressed.current = {};
+    touchDirectionRef.current = null;
+    setActiveTouchDir(null);
+    setIsMoving(false);
+  }, []);
 
   const startDive =
     useCallback(() => {
@@ -173,6 +360,8 @@ export function PearlScene({
       ) {
         return;
       }
+
+      resetRound();
 
       setPhase('diving');
       setDiveProgress(0);
@@ -188,8 +377,10 @@ export function PearlScene({
         const progress =
           Math.min(
             1,
-            (time -
-              startedAt) /
+            (
+              time -
+              startedAt
+            ) /
               duration
           );
 
@@ -207,17 +398,6 @@ export function PearlScene({
           return;
         }
 
-        setPlayerPos({
-          x: 50,
-          y: 72,
-        });
-
-        setDirection('up');
-
-        setLastHorizontalDirection(
-          'right'
-        );
-
         setPhase(
           'underwater'
         );
@@ -226,11 +406,16 @@ export function PearlScene({
       requestAnimationFrame(
         animateDive
       );
-    }, [phase]);
+    }, [phase, resetRound]);
 
-  /* ============================================================
+  const restartDive = () => {
+    resetRound();
+    setPhase('underwater');
+  };
+
+  /* ==========================================================
      COLLISION
-  ============================================================ */
+  ========================================================== */
 
   const checkCollision =
     useCallback(
@@ -238,73 +423,61 @@ export function PearlScene({
         x: number,
         y: number
       ) => {
+        /*
+          Main safe underwater area.
+          Slightly wider than before so the player can reach
+          the shells at both sides.
+        */
         if (
-          x < 10 ||
-          x > 90
+          x < 8 ||
+          x > 94
         ) {
           return true;
         }
 
         if (
-          y < 48 ||
-          y > 89
+          y < 43 ||
+          y > 91
         ) {
           return true;
         }
 
-        /* Left reef */
-
+        /*
+          Left reef.
+        */
         if (
           x +
             PLAYER_RADIUS >
-            10 &&
+            8 &&
           x -
             PLAYER_RADIUS <
-            24 &&
+            20 &&
           y +
             PLAYER_RADIUS >
-            48 &&
+            43 &&
           y -
             PLAYER_RADIUS <
-            69
+            63
         ) {
           return true;
         }
 
-        /* Right reef */
-
+        /*
+          Right reef.
+        */
         if (
           x +
             PLAYER_RADIUS >
-            78 &&
+            85 &&
           x -
             PLAYER_RADIUS <
-            92 &&
+            95 &&
           y +
             PLAYER_RADIUS >
-            48 &&
+            43 &&
           y -
             PLAYER_RADIUS <
-            68
-        ) {
-          return true;
-        }
-
-        /* Central rocks */
-
-        if (
-          x +
-            PLAYER_RADIUS >
-            57 &&
-          x -
-            PLAYER_RADIUS <
-            68 &&
-          y +
-            PLAYER_RADIUS >
-            57 &&
-          y -
-            PLAYER_RADIUS <
-            69
+            61
         ) {
           return true;
         }
@@ -314,51 +487,59 @@ export function PearlScene({
       []
     );
 
-  /* ============================================================
+  /* ==========================================================
      KEYBOARD
-  ============================================================ */
+  ========================================================== */
 
   useEffect(() => {
-    const handleKeyDown = (
-      e: KeyboardEvent
-    ) => {
-      if (
-        phase !==
-        'underwater'
-      ) {
-        return;
-      }
+    const handleKeyDown =
+      (
+        e: KeyboardEvent
+      ) => {
+        if (
+          phase !==
+            'underwater' ||
+          openedShell
+        ) {
+          return;
+        }
 
-      const key =
-        e.key.toLowerCase();
+        const key =
+          e.key.toLowerCase();
 
-      if (
-        [
-          'arrowup',
-          'arrowdown',
-          'arrowleft',
-          'arrowright',
-          'w',
-          'a',
-          's',
-          'd',
-        ].includes(key)
-      ) {
-        e.preventDefault();
+        const allowed =
+          [
+            'arrowup',
+            'arrowdown',
+            'arrowleft',
+            'arrowright',
+            'w',
+            'a',
+            's',
+            'd',
+          ];
 
+        if (
+          allowed.includes(
+            key
+          )
+        ) {
+          e.preventDefault();
+
+          keysPressed.current[
+            key
+          ] = true;
+        }
+      };
+
+    const handleKeyUp =
+      (
+        e: KeyboardEvent
+      ) => {
         keysPressed.current[
-          key
-        ] = true;
-      }
-    };
-
-    const handleKeyUp = (
-      e: KeyboardEvent
-    ) => {
-      keysPressed.current[
-        e.key.toLowerCase()
-      ] = false;
-    };
+          e.key.toLowerCase()
+        ] = false;
+      };
 
     window.addEventListener(
       'keydown',
@@ -381,11 +562,14 @@ export function PearlScene({
         handleKeyUp
       );
     };
-  }, [phase]);
+  }, [
+    phase,
+    openedShell,
+  ]);
 
-  /* ============================================================
+  /* ==========================================================
      MOVEMENT LOOP
-  ============================================================ */
+  ========================================================== */
 
   useEffect(() => {
     let frameId = 0;
@@ -398,8 +582,10 @@ export function PearlScene({
     ) => {
       const dt =
         Math.min(
-          (time -
-            lastTime) /
+          (
+            time -
+            lastTime
+          ) /
             16.6667,
 
           2
@@ -409,9 +595,12 @@ export function PearlScene({
 
       if (
         phase !==
-        'underwater'
+          'underwater' ||
+        openedShell
       ) {
-        setIsMoving(false);
+        setIsMoving(
+          false
+        );
 
         frameId =
           requestAnimationFrame(
@@ -440,8 +629,6 @@ export function PearlScene({
         | Direction
         | null = null;
 
-      /* UP */
-
       if (
         keys.arrowup ||
         keys.w ||
@@ -453,8 +640,6 @@ export function PearlScene({
         nextDir = 'up';
       }
 
-      /* DOWN */
-
       if (
         keys.arrowdown ||
         keys.s ||
@@ -463,10 +648,9 @@ export function PearlScene({
         dy +=
           speed * dt;
 
-        nextDir = 'down';
+        nextDir =
+          'down';
       }
-
-      /* LEFT */
 
       if (
         keys.arrowleft ||
@@ -476,10 +660,9 @@ export function PearlScene({
         dx -=
           speed * dt;
 
-        nextDir = 'left';
+        nextDir =
+          'left';
       }
-
-      /* RIGHT */
 
       if (
         keys.arrowright ||
@@ -493,8 +676,6 @@ export function PearlScene({
           'right';
       }
 
-      /* Diagonal normalization */
-
       if (
         dx !== 0 &&
         dy !== 0
@@ -507,7 +688,9 @@ export function PearlScene({
         dx !== 0 ||
         dy !== 0
       ) {
-        setIsMoving(true);
+        setIsMoving(
+          true
+        );
 
         if (
           nextDir
@@ -536,12 +719,11 @@ export function PearlScene({
             let nextY =
               prev.y;
 
-            /* X movement */
-
             if (
               !checkCollision(
                 prev.x +
                   dx,
+
                 prev.y
               )
             ) {
@@ -550,11 +732,10 @@ export function PearlScene({
                 dx;
             }
 
-            /* Y movement */
-
             if (
               !checkCollision(
                 nextX,
+
                 prev.y +
                   dy
               )
@@ -571,7 +752,9 @@ export function PearlScene({
           }
         );
       } else {
-        setIsMoving(false);
+        setIsMoving(
+          false
+        );
       }
 
       frameId =
@@ -594,15 +777,14 @@ export function PearlScene({
     phase,
     settings.walkSpeed,
     checkCollision,
+    openedShell,
   ]);
 
-  /* ============================================================
-     TOUCH CONTROLS
-  ============================================================ */
+  /* ==========================================================
+     TIMER
+  ========================================================== */
 
-  const handleTouchStart = (
-    dir: Direction
-  ) => {
+  useEffect(() => {
     if (
       phase !==
       'underwater'
@@ -610,24 +792,77 @@ export function PearlScene({
       return;
     }
 
-    touchDirectionRef.current =
-      dir;
+    const timer =
+      window.setInterval(
+        () => {
+          setTimeLeft(
+            (prev) => {
+              if (
+                prev <= 1
+              ) {
+                window.clearInterval(
+                  timer
+                );
 
-    setActiveTouchDir(
-      dir
-    );
+                setPhase(
+                  'finished'
+                );
 
-    setDirection(dir);
+                return 0;
+              }
 
-    if (
-      dir === 'left' ||
-      dir === 'right'
-    ) {
-      setLastHorizontalDirection(
+              return (
+                prev - 1
+              );
+            }
+          );
+        },
+        1000
+      );
+
+    return () => {
+      window.clearInterval(
+        timer
+      );
+    };
+  }, [phase]);
+
+  /* ==========================================================
+     TOUCH
+  ========================================================== */
+
+  const handleTouchStart =
+    (
+      dir: Direction
+    ) => {
+      if (
+        phase !==
+          'underwater' ||
+        openedShell
+      ) {
+        return;
+      }
+
+      touchDirectionRef.current =
+        dir;
+
+      setActiveTouchDir(
         dir
       );
-    }
-  };
+
+      setDirection(
+        dir
+      );
+
+      if (
+        dir === 'left' ||
+        dir === 'right'
+      ) {
+        setLastHorizontalDirection(
+          dir
+        );
+      }
+    };
 
   const handleTouchEnd =
     () => {
@@ -639,25 +874,237 @@ export function PearlScene({
       );
     };
 
-  /* ============================================================
+  /* ==========================================================
+     NEAREST SHELL + PEARL PULSE
+  ========================================================== */
+
+  const nearestShell =
+    useMemo(() => {
+      if (
+        phase !==
+        'underwater'
+      ) {
+        return null;
+      }
+
+      let closest:
+        | ShellHotspot
+        | null = null;
+
+      let minDistance =
+        Number.POSITIVE_INFINITY;
+
+      for (
+        const shell
+        of SHELLS
+      ) {
+        if (
+          openedShellIds.includes(
+            shell.id
+          )
+        ) {
+          continue;
+        }
+
+        const distance =
+          Math.hypot(
+            playerPos.x -
+              shell.x,
+
+            playerPos.y -
+              shell.y
+          );
+
+        if (
+          distance <
+          minDistance
+        ) {
+          minDistance =
+            distance;
+
+          closest =
+            shell;
+        }
+      }
+
+      if (
+        !closest
+      ) {
+        return null;
+      }
+
+      return {
+        shell:
+          closest,
+
+        distance:
+          minDistance,
+      };
+    }, [
+      phase,
+      playerPos,
+      openedShellIds,
+    ]);
+
+  const nearShell =
+    nearestShell &&
+    nearestShell.distance <=
+      nearestShell.shell
+        .radius
+      ? nearestShell.shell
+      : null;
+
+  const pulseStrength =
+    nearestShell
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            1 -
+              nearestShell.distance /
+                24
+          )
+        )
+      : 0;
+
+  /* ==========================================================
+     OPEN SHELL
+  ========================================================== */
+
+  const openShell = (
+    shell: ShellHotspot
+  ) => {
+    if (
+      openedShellIds.includes(
+        shell.id
+      )
+    ) {
+      return;
+    }
+
+    keysPressed.current =
+      {};
+
+    touchDirectionRef.current =
+      null;
+
+    setActiveTouchDir(
+      null
+    );
+
+    setIsMoving(false);
+
+    setOpenedShellIds(
+      (prev) => [
+        ...prev,
+        shell.id,
+      ]
+    );
+
+    if (
+      shell.reward ===
+      'empty'
+    ) {
+      setOpenedShell({
+        shell,
+        title:
+          'محارة فارغة',
+
+        message:
+          'ليست كل محارة تحمل لؤلؤة.',
+      });
+
+      return;
+    }
+
+    if (
+      shell.reward ===
+      'pearl'
+    ) {
+      setScore(
+        (prev) =>
+          prev +
+          shell.points
+      );
+
+      setOpenedShell({
+        shell,
+        title:
+          'لؤلؤة! +10',
+
+        message:
+          'عثرت على لؤلؤة جميلة.',
+      });
+
+      return;
+    }
+
+    setScore(
+      (prev) =>
+        prev +
+        shell.points
+    );
+
+    setHasFoundDana(true);
+
+    setOpenedShell({
+      shell,
+      title:
+        'الدانة! +50',
+
+      message:
+        'وجدت الدانة، لؤلؤة كبيرة ثمينة.',
+    });
+  };
+
+  /* ==========================================================
+     COMPLETION
+  ========================================================== */
+
+  useEffect(() => {
+    if (
+      !hasFoundDana ||
+      hasReportedComplete
+    ) {
+      return;
+    }
+
+    setHasReportedComplete(
+      true
+    );
+
+    onComplete?.();
+  }, [
+    hasFoundDana,
+    hasReportedComplete,
+    onComplete,
+  ]);
+
+  /* ==========================================================
      CAMERA
-  ============================================================ */
+  ========================================================== */
 
   const playerWorldPxX =
-    (playerPos.x / 100) *
+    (
+      playerPos.x /
+      100
+    ) *
     WORLD_WIDTH;
 
   const playerWorldPxY =
-    (playerPos.y / 100) *
+    (
+      playerPos.y /
+      100
+    ) *
     WORLD_HEIGHT;
 
   let focusX =
-    WORLD_WIDTH * 0.5;
+    WORLD_WIDTH *
+    0.5;
 
   let focusY =
-    WORLD_HEIGHT * 0.22;
-
-  /* Dive camera */
+    WORLD_HEIGHT *
+    0.22;
 
   if (
     phase === 'diving'
@@ -671,11 +1118,11 @@ export function PearlScene({
       );
   }
 
-  /* Follow player */
-
   if (
     phase ===
-    'underwater'
+      'underwater' ||
+    phase ===
+      'finished'
   ) {
     focusX =
       playerWorldPxX;
@@ -693,8 +1140,6 @@ export function PearlScene({
     viewportSize.height /
       2 -
     focusY;
-
-  /* Clamp X */
 
   const cameraX =
     viewportSize.width <=
@@ -716,8 +1161,6 @@ export function PearlScene({
               desiredCameraX
             )
           );
-
-  /* Clamp Y */
 
   const cameraY =
     viewportSize.height <=
@@ -746,13 +1189,15 @@ export function PearlScene({
       ? -1
       : 1;
 
-  /* ============================================================
+  /* ==========================================================
      RENDER
-  ============================================================ */
+  ========================================================== */
 
   return (
     <div
-      ref={viewportRef}
+      ref={
+        viewportRef
+      }
       data-character-gender={
         gender
       }
@@ -775,9 +1220,7 @@ export function PearlScene({
           absolute
           top-0
           left-0
-
           will-change-transform
-
           transition-transform
           duration-100
           ease-out
@@ -793,8 +1236,6 @@ export function PearlScene({
             `translate3d(${cameraX}px, ${cameraY}px, 0)`,
         }}
       >
-        {/* MASTER MAP */}
-
         <img
           src={
             MASTER_IMAGE_PATH
@@ -806,52 +1247,156 @@ export function PearlScene({
           className="
             absolute
             inset-0
-
             w-full
             h-full
-
             object-cover
-
             pointer-events-none
             select-none
           "
         />
 
-        {/* Underwater tint */}
-
         {(phase ===
           'diving' ||
           phase ===
-            'underwater') && (
+            'underwater' ||
+          phase ===
+            'finished') && (
           <div
             className="
               absolute
               inset-0
-
               pointer-events-none
-
-              transition-opacity
-              duration-700
             "
             style={{
               background:
-                'linear-gradient(to bottom, rgba(0,92,132,0.04), rgba(0,76,115,0.15))',
+                'linear-gradient(to bottom, rgba(0,92,132,0.03), rgba(0,76,115,0.10))',
             }}
           />
         )}
 
         {/* ====================================================
-            TRADITIONAL PEARL DIVER
+            SHELL HOTSPOTS – CLEAR & NON-FLASHING
         ==================================================== */}
 
         {phase ===
-          'underwater' && (
+          'underwater' &&
+          SHELLS.map(
+            (shell) => {
+              const opened =
+                openedShellIds.includes(
+                  shell.id
+                );
+
+              if (opened) {
+                return null;
+              }
+
+              const distance =
+                Math.hypot(
+                  playerPos.x -
+                    shell.x,
+
+                  playerPos.y -
+                    shell.y
+                );
+
+              const isClose =
+                distance <=
+                shell.radius;
+
+              const isNearby =
+                distance <= 20;
+
+              return (
+                <div
+                  key={
+                    shell.id
+                  }
+                  className="
+                    absolute
+                    z-20
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    pointer-events-none
+                  "
+                  style={{
+                    left:
+                      `${shell.x}%`,
+
+                    top:
+                      `${shell.y}%`,
+                  }}
+                >
+                  {isNearby && (
+                    <div
+                      className="
+                        absolute
+                        left-1/2
+                        top-1/2
+                        -translate-x-1/2
+                        -translate-y-1/2
+                        w-24
+                        h-24
+                        rounded-full
+                        bg-[#FFD86A]/18
+                        blur-xl
+                        pointer-events-none
+                      "
+                    />
+                  )}
+
+                  {isClose && (
+                    <>
+                      <div
+                        className="
+                          absolute
+                          left-1/2
+                          top-1/2
+                          -translate-x-1/2
+                          -translate-y-1/2
+                          w-16
+                          h-16
+                          rounded-full
+                          border-2
+                          border-[#FFE082]
+                          bg-[#FFE082]/10
+                          shadow-[0_0_18px_rgba(255,224,130,0.45)]
+                        "
+                      />
+
+                      <div
+                        className="
+                          absolute
+                          left-1/2
+                          top-1/2
+                          -translate-x-1/2
+                          -translate-y-1/2
+                          text-3xl
+                          drop-shadow-[0_3px_5px_rgba(0,0,0,0.5)]
+                        "
+                      >
+                        🦪
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            }
+          )}
+
+        {/* ====================================================
+            DIVER
+        ==================================================== */}
+
+        {(phase ===
+          'underwater' ||
+          phase ===
+            'finished') && (
           <div
             id="pearl-diver-player"
             className="
               absolute
               z-30
-
               pointer-events-none
             "
             style={{
@@ -865,34 +1410,23 @@ export function PearlScene({
                 'translate(-50%, -50%)',
             }}
           >
-            {/* Soft shadow */}
-
             <div
               className="
                 absolute
-
                 left-1/2
-                bottom-[-8px]
-
+                bottom-[-10px]
                 -translate-x-1/2
-
                 w-36
                 h-7
-
                 rounded-full
-
                 bg-black/20
-
                 blur-lg
               "
             />
 
-            {/* Diver wrapper */}
-
             <div
               className={`
                 relative
-
                 transition-transform
                 duration-100
                 ease-out
@@ -905,14 +1439,12 @@ export function PearlScene({
               `}
               style={{
                 width:
-                  '210px',
+                  '220px',
 
                 maxWidth:
-                  '25vw',
+                  '27vw',
               }}
             >
-              {/* REAL DIVER IMAGE */}
-
               <img
                 src={
                   DIVER_IMAGE_PATH
@@ -923,17 +1455,12 @@ export function PearlScene({
                 }
                 className="
                   block
-
                   w-full
                   h-auto
-
                   object-contain
-
                   select-none
-
                   pointer-events-none
-
-                  drop-shadow-[0_10px_14px_rgba(0,0,0,0.32)]
+                  drop-shadow-[0_10px_14px_rgba(0,0,0,0.35)]
                 "
                 style={{
                   transform:
@@ -944,35 +1471,25 @@ export function PearlScene({
                 }}
               />
 
-              {/* =================================================
-                  SWIMMING BUBBLES
-              ================================================= */}
-
               {isMoving && (
                 <>
                   <span
                     className={`
                       absolute
-
                       top-[18%]
-
                       w-3
                       h-3
-
                       rounded-full
-
                       border
                       border-white/70
-
                       bg-cyan-100/15
-
                       animate-ping
 
                       ${
                         lastHorizontalDirection ===
                         'right'
-                          ? 'right-[3%]'
-                          : 'left-[3%]'
+                          ? 'right-[2%]'
+                          : 'left-[2%]'
                       }
                     `}
                   />
@@ -980,51 +1497,19 @@ export function PearlScene({
                   <span
                     className={`
                       absolute
-
-                      top-[2%]
-
+                      top-[3%]
                       w-4
                       h-4
-
                       rounded-full
-
                       border
                       border-white/55
-
                       bg-cyan-100/10
-
-                      animate-pulse
-
+  
                       ${
                         lastHorizontalDirection ===
                         'right'
                           ? 'right-[10%]'
                           : 'left-[10%]'
-                      }
-                    `}
-                  />
-
-                  <span
-                    className={`
-                      absolute
-
-                      -top-4
-
-                      w-2
-                      h-2
-
-                      rounded-full
-
-                      border
-                      border-white/75
-
-                      animate-ping
-
-                      ${
-                        lastHorizontalDirection ===
-                        'right'
-                          ? 'right-[18%]'
-                          : 'left-[18%]'
                       }
                     `}
                   />
@@ -1042,31 +1527,20 @@ export function PearlScene({
       {phase ===
         'surface' && (
         <>
-          {/* Title */}
-
           <div
             className="
               fixed
-
               top-5
               right-5
-
               z-50
-
               bg-[#082d40]/90
-
               backdrop-blur-md
-
               border
               border-[#E6C280]/60
-
               rounded-full
-
               px-5
               py-2
-
               text-white
-
               shadow-xl
             "
           >
@@ -1080,56 +1554,38 @@ export function PearlScene({
             </span>
           </div>
 
-          {/* Back */}
-
           <button
             onClick={
               onReturnToVillage
             }
             className="
               fixed
-
               top-5
               left-5
-
               z-50
-
               rounded-full
-
               bg-[#8A1538]
-
               border
               border-[#FFE082]
-
               text-white
-
-              px-4
-              py-2
-
+              px-5
+              py-2.5
               font-bold
-
               shadow-xl
-
               active:scale-95
             "
           >
             العودة إلى القرية
           </button>
 
-          {/* Dive card */}
-
           <div
             className="
               fixed
-
               inset-x-0
               bottom-8
-
               z-50
-
               flex
               justify-center
-
               px-4
             "
           >
@@ -1137,20 +1593,13 @@ export function PearlScene({
               className="
                 w-full
                 max-w-md
-
                 rounded-[28px]
-
                 border-2
                 border-[#E6C280]
-
                 bg-[#082d40]/88
-
                 backdrop-blur-md
-
                 p-5
-
                 text-center
-
                 shadow-[0_20px_60px_rgba(0,0,0,0.45)]
               "
             >
@@ -1158,17 +1607,12 @@ export function PearlScene({
                 className="
                   mx-auto
                   mb-3
-
                   w-14
                   h-14
-
                   rounded-full
-
                   bg-[#8A1538]
-
                   border
                   border-[#FFE082]
-
                   flex
                   items-center
                   justify-center
@@ -1178,7 +1622,6 @@ export function PearlScene({
                   className="
                     w-7
                     h-7
-
                     text-[#FFE082]
                   "
                 />
@@ -1187,9 +1630,7 @@ export function PearlScene({
               <h2
                 className="
                   text-2xl
-
                   font-black
-
                   text-[#FFE082]
                 "
               >
@@ -1199,15 +1640,12 @@ export function PearlScene({
               <p
                 className="
                   mt-2
-
                   text-sm
-
                   text-white/90
-
                   leading-7
                 "
               >
-                ابدأ رحلة الغوص واكتشف أسرار اللؤلؤ في بحر قطر.
+                اقترب من المحار واتبع نبض اللؤلؤ للعثور على الدانة.
               </p>
 
               <button
@@ -1216,29 +1654,18 @@ export function PearlScene({
                 }
                 className="
                   mt-4
-
                   w-full
-
                   py-3.5
-
                   rounded-2xl
-
                   bg-[#8A1538]
-
                   border-2
                   border-[#FFE082]
-
                   text-[#FFE082]
-
                   font-black
                   text-lg
-
                   active:scale-95
-
                   transition-transform
-
                   shadow-lg
-
                   flex
                   items-center
                   justify-center
@@ -1271,11 +1698,8 @@ export function PearlScene({
           className="
             fixed
             inset-0
-
             z-40
-
             pointer-events-none
-
             flex
             items-center
             justify-center
@@ -1285,7 +1709,6 @@ export function PearlScene({
             className="
               absolute
               inset-0
-
               bg-[#006b94]
             "
             style={{
@@ -1305,9 +1728,7 @@ export function PearlScene({
             <div
               className="
                 mx-auto
-
                 relative
-
                 w-28
                 h-28
               "
@@ -1315,18 +1736,13 @@ export function PearlScene({
               <div
                 className="
                   absolute
-
                   left-2
                   bottom-1
-
                   w-4
                   h-4
-
                   border-2
                   border-white/70
-
                   rounded-full
-
                   animate-ping
                 "
               />
@@ -1334,38 +1750,14 @@ export function PearlScene({
               <div
                 className="
                   absolute
-
                   right-4
                   top-5
-
                   w-7
                   h-7
-
                   border-2
                   border-white/60
-
                   rounded-full
-
                   animate-pulse
-                "
-              />
-
-              <div
-                className="
-                  absolute
-
-                  left-1/2
-                  top-1/2
-
-                  w-5
-                  h-5
-
-                  border-2
-                  border-white/50
-
-                  rounded-full
-
-                  animate-bounce
                 "
               />
             </div>
@@ -1373,21 +1765,14 @@ export function PearlScene({
             <div
               className="
                 mt-2
-
                 px-6
                 py-3
-
                 rounded-full
-
                 bg-black/35
-
                 border
                 border-white/25
-
                 text-white
-
                 font-bold
-
                 backdrop-blur-md
               "
             >
@@ -1404,131 +1789,287 @@ export function PearlScene({
       {phase ===
         'underwater' && (
         <>
-          {/* Header */}
+          {/* RIGHT HUD */}
 
           <div
             className="
               fixed
-
               top-4
               right-4
-
               z-50
-
               flex
-              items-center
+              flex-col
+              items-end
               gap-2
-
-              rounded-full
-
-              bg-[#06283a]/90
-
-              border
-              border-[#E6C280]/55
-
-              px-4
-              py-2
-
-              backdrop-blur-md
-
-              shadow-xl
             "
           >
-            <span
+            <div
               className="
-                w-2.5
-                h-2.5
-
+                flex
+                items-center
+                gap-2
                 rounded-full
-
-                bg-cyan-300
-
-                animate-pulse
-
-                shadow-[0_0_10px_rgba(103,232,249,0.9)]
-              "
-            />
-
-            <span
-              className="
-                font-black
-                text-[#FFE082]
+                bg-[#06283a]/90
+                border
+                border-[#E6C280]/55
+                px-4
+                py-2
+                backdrop-blur-md
+                shadow-xl
               "
             >
-              قاع بحر اللؤلؤ
-            </span>
+              <span
+                className="
+                  w-2.5
+                  h-2.5
+                  rounded-full
+                  bg-cyan-300
+                  animate-pulse
+                "
+              />
+
+              <span
+                className="
+                  font-black
+                  text-[#FFE082]
+                "
+              >
+                قاع بحر اللؤلؤ
+              </span>
+            </div>
+
+            <div
+              className="
+                flex
+                items-center
+                gap-2
+                rounded-full
+                bg-black/45
+                border
+                border-white/20
+                px-4
+                py-2
+                text-white
+                backdrop-blur-md
+              "
+            >
+              <Clock3
+                className="
+                  w-4
+                  h-4
+                  text-cyan-200
+                "
+              />
+
+              <span
+                className="
+                  font-black
+                "
+              >
+                {timeLeft}
+              </span>
+
+              <span
+                className="
+                  text-white/70
+                  text-xs
+                "
+              >
+                ثانية
+              </span>
+            </div>
+
+            <div
+              className="
+                flex
+                items-center
+                gap-1.5
+                rounded-full
+                bg-black/45
+                border
+                border-white/20
+                px-4
+                py-2
+                backdrop-blur-md
+              "
+            >
+              {Array.from({
+                length: 5,
+              }).map(
+                (_, index) => (
+                  <span
+                    key={
+                      index
+                    }
+                    className={`
+                      w-4
+                      h-4
+                      rounded-full
+                      border
+                      transition-all
+
+                      ${
+                        index <
+                        breathCount
+                          ? 'bg-cyan-300/70 border-white/70 shadow-[0_0_9px_rgba(103,232,249,.55)]'
+                          : 'bg-white/5 border-white/15'
+                      }
+                    `}
+                  />
+                )
+              )}
+
+              <span
+                className="
+                  mr-2
+                  text-xs
+                  text-white/80
+                "
+              >
+                النفس
+              </span>
+            </div>
           </div>
 
-          {/* Back */}
-
-          <button
-            onClick={
-              onReturnToVillage
-            }
-            className="
-              fixed
-
-              top-4
-              left-4
-
-              z-50
-
-              rounded-full
-
-              bg-[#8A1538]
-
-              border
-              border-[#FFE082]
-
-              text-white
-
-              px-4
-              py-2
-
-              font-bold
-
-              shadow-xl
-
-              active:scale-95
-            "
-          >
-            العودة إلى القرية
-          </button>
-
-          {/* ==================================================
-              TOUCH D-PAD
-          ================================================== */}
+          {/* LEFT HUD */}
 
           <div
             className="
               fixed
+              top-4
+              left-4
+              z-50
+              flex
+              flex-col
+              gap-2
+              items-start
+            "
+          >
+            <button
+              onClick={
+                onReturnToVillage
+              }
+              className="
+                rounded-full
+                bg-[#8A1538]
+                border
+                border-[#FFE082]
+                text-white
+                px-5
+                py-2.5
+                font-bold
+                shadow-xl
+                active:scale-95
+              "
+            >
+              العودة إلى القرية
+            </button>
 
+            <div
+              className="
+                flex
+                items-center
+                gap-2
+                rounded-full
+                bg-black/45
+                border
+                border-[#FFE082]/40
+                px-4
+                py-2
+                text-[#FFE082]
+                backdrop-blur-md
+              "
+            >
+              <Gem
+                className="
+                  w-4
+                  h-4
+                "
+              />
+
+              <span
+                className="
+                  font-black
+                "
+              >
+                {score}
+              </span>
+
+              <span
+                className="
+                  text-xs
+                "
+              >
+                نقطة
+              </span>
+            </div>
+          </div>
+
+          {/* OPEN SHELL ACTION */}
+
+          {nearShell && (
+            <button
+              onClick={() =>
+                openShell(
+                  nearShell
+                )
+              }
+              className="
+                fixed
+                left-1/2
+                bottom-8
+                -translate-x-1/2
+                z-[120]
+                flex
+                items-center
+                gap-3
+                rounded-2xl
+                bg-[#8A1538]
+                border-2
+                border-[#FFE082]
+                px-7
+                py-3.5
+                text-[#FFE082]
+                text-lg
+                font-black
+                shadow-[0_10px_30px_rgba(0,0,0,0.5)]
+                active:scale-95
+                transition-transform
+              "
+            >
+              <Shell
+                className="
+                  w-6
+                  h-6
+                "
+              />
+
+              <span>
+                افتح المحارة
+              </span>
+            </button>
+          )}
+
+          {/* D-PAD */}
+
+          <div
+            className="
+              fixed
               bottom-6
               left-6
-
               z-[100]
-
               w-[138px]
               h-[138px]
-
               rounded-full
-
               bg-[#032536]/90
-
               border-2
               border-[#E6C280]
-
               shadow-[0_8px_30px_rgba(0,0,0,0.55)]
-
               backdrop-blur-md
-
               touch-none
-
               select-none
             "
           >
-            {/* UP */}
-
             <button
               onPointerDown={(
                 e
@@ -1550,28 +2091,19 @@ export function PearlScene({
               }
               className={`
                 absolute
-
                 top-2
                 left-1/2
-
                 -translate-x-1/2
-
                 w-11
                 h-11
-
                 rounded-xl
-
                 border-2
                 border-[#E6C280]
-
                 flex
                 items-center
                 justify-center
-
                 text-white
-
                 shadow-lg
-
                 active:scale-90
 
                 ${
@@ -1592,8 +2124,6 @@ export function PearlScene({
               />
             </button>
 
-            {/* DOWN */}
-
             <button
               onPointerDown={(
                 e
@@ -1615,28 +2145,19 @@ export function PearlScene({
               }
               className={`
                 absolute
-
                 bottom-2
                 left-1/2
-
                 -translate-x-1/2
-
                 w-11
                 h-11
-
                 rounded-xl
-
                 border-2
                 border-[#E6C280]
-
                 flex
                 items-center
                 justify-center
-
                 text-white
-
                 shadow-lg
-
                 active:scale-90
 
                 ${
@@ -1657,8 +2178,6 @@ export function PearlScene({
               />
             </button>
 
-            {/* LEFT */}
-
             <button
               onPointerDown={(
                 e
@@ -1680,28 +2199,19 @@ export function PearlScene({
               }
               className={`
                 absolute
-
                 left-2
                 top-1/2
-
                 -translate-y-1/2
-
                 w-11
                 h-11
-
                 rounded-xl
-
                 border-2
                 border-[#E6C280]
-
                 flex
                 items-center
                 justify-center
-
                 text-white
-
                 shadow-lg
-
                 active:scale-90
 
                 ${
@@ -1722,8 +2232,6 @@ export function PearlScene({
               />
             </button>
 
-            {/* RIGHT */}
-
             <button
               onPointerDown={(
                 e
@@ -1745,28 +2253,19 @@ export function PearlScene({
               }
               className={`
                 absolute
-
                 right-2
                 top-1/2
-
                 -translate-y-1/2
-
                 w-11
                 h-11
-
                 rounded-xl
-
                 border-2
                 border-[#E6C280]
-
                 flex
                 items-center
                 justify-center
-
                 text-white
-
                 shadow-lg
-
                 active:scale-90
 
                 ${
@@ -1787,34 +2286,23 @@ export function PearlScene({
               />
             </button>
 
-            {/* CENTER */}
-
             <div
               className="
                 absolute
-
                 left-1/2
                 top-1/2
-
                 -translate-x-1/2
                 -translate-y-1/2
-
                 w-10
                 h-10
-
                 rounded-full
-
                 bg-[#B99658]
-
                 border-2
                 border-[#F6E3B4]
-
                 flex
                 items-center
                 justify-center
-
                 text-white
-
                 pointer-events-none
               "
             >
@@ -1823,6 +2311,477 @@ export function PearlScene({
           </div>
         </>
       )}
+
+      {/* ======================================================
+          OPEN SHELL MODAL
+      ====================================================== */}
+
+      {openedShell && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[300]
+            bg-black/65
+            backdrop-blur-md
+            flex
+            items-center
+            justify-center
+            p-4
+          "
+        >
+          <div
+            className="
+              relative
+              w-full
+              max-w-lg
+              rounded-[30px]
+              border-2
+              border-[#E6C280]
+              bg-gradient-to-b
+              from-[#123e50]
+              to-[#06283a]
+              p-6
+              text-center
+              shadow-[0_30px_100px_rgba(0,0,0,.65)]
+            "
+          >
+            <button
+              onClick={() =>
+                setOpenedShell(
+                  null
+                )
+              }
+              className="
+                absolute
+                top-4
+                left-4
+                w-10
+                h-10
+                rounded-full
+                bg-black/30
+                border
+                border-white/20
+                text-white
+                flex
+                items-center
+                justify-center
+                active:scale-90
+              "
+              aria-label="إغلاق"
+            >
+              <X
+                className="
+                  w-5
+                  h-5
+                "
+              />
+            </button>
+
+            <div
+              className="
+                relative
+                mx-auto
+                w-56
+                h-48
+                flex
+                items-center
+                justify-center
+                [perspective:900px]
+              "
+            >
+              <div
+                className="
+                  absolute
+                  inset-6
+                  rounded-full
+                  bg-[#FFE082]/20
+                  blur-3xl
+                "
+              />
+
+              <div
+                className="
+                  relative
+                  text-[130px]
+                  leading-none
+                  drop-shadow-[0_18px_20px_rgba(0,0,0,.35)]
+                "
+              >
+                {openedShell
+                  .shell
+                  .reward ===
+                'empty'
+                  ? '🦪'
+                  : openedShell
+                        .shell
+                        .reward ===
+                      'pearl'
+                    ? '🦪'
+                    : '🦪'}
+              </div>
+
+              {openedShell
+                .shell
+                .reward !==
+                'empty' && (
+                <div
+                  className={`
+                    absolute
+                    bottom-11
+                    left-1/2
+                    -translate-x-1/2
+                    rounded-full
+                    bg-white
+                    shadow-[0_0_28px_rgba(255,248,207,.95)]
+
+                    ${
+                      openedShell
+                        .shell
+                        .reward ===
+                      'dana'
+                        ? 'w-14 h-14'
+                        : 'w-9 h-9'
+                    }
+                  `}
+                />
+              )}
+
+              {openedShell
+                .shell
+                .reward ===
+                'dana' && (
+                <Sparkles
+                  className="
+                    absolute
+                    top-6
+                    right-10
+                    w-9
+                    h-9
+                    text-[#FFE082]
+                  "
+                />
+              )}
+            </div>
+
+            <h3
+              className="
+                text-2xl
+                font-black
+                text-[#FFE082]
+              "
+            >
+              {
+                openedShell.title
+              }
+            </h3>
+
+            {openedShell.shell.reward === 'pearl' && (
+              <div
+                className="
+                  mt-4
+                  mx-auto
+                  w-fit
+                  rounded-full
+                  bg-[#0E6B56]
+                  border-2
+                  border-[#FFE082]
+                  px-6
+                  py-2
+                  text-2xl
+                  font-black
+                  text-white
+                  shadow-lg
+                "
+              >
+                +10 نقطة
+              </div>
+            )}
+
+            {openedShell.shell.reward === 'dana' && (
+              <div
+                className="
+                  mt-4
+                  mx-auto
+                  w-fit
+                  rounded-full
+                  bg-[#8A1538]
+                  border-2
+                  border-[#FFE082]
+                  px-7
+                  py-2.5
+                  text-3xl
+                  font-black
+                  text-[#FFE082]
+                  shadow-lg
+                "
+              >
+                +50 نقطة
+              </div>
+            )}
+
+            {openedShell.shell.reward === 'empty' && (
+              <div
+                className="
+                  mt-4
+                  text-base
+                  font-bold
+                  text-white/75
+                "
+              >
+                لا توجد نقاط
+              </div>
+            )}
+
+            <p
+              className="
+                mt-2
+                text-white/90
+                text-base
+                leading-7
+              "
+            >
+              {
+                openedShell.message
+              }
+            </p>
+
+            {openedShell
+              .shell
+              .reward ===
+              'dana' && (
+              <div
+                className="
+                  mt-4
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  text-[#FFE082]
+                  text-sm
+                "
+              >
+                <Rotate3D
+                  className="
+                    w-5
+                    h-5
+                  "
+                />
+
+                الدانة من أثمن ما كان يبحث عنه الغواص.
+              </div>
+            )}
+
+            <button
+              onClick={() =>
+                setOpenedShell(
+                  null
+                )
+              }
+              className="
+                mt-6
+                w-full
+                rounded-2xl
+                bg-[#8A1538]
+                border-2
+                border-[#FFE082]
+                py-3
+                text-[#FFE082]
+                font-black
+                active:scale-95
+              "
+            >
+              أكمل الغوص
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================
+          FINISH / TIME OUT
+      ====================================================== */}
+
+      {phase ===
+        'finished' && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[250]
+            bg-black/60
+            backdrop-blur-md
+            flex
+            items-center
+            justify-center
+            p-4
+          "
+        >
+          <div
+            className="
+              w-full
+              max-w-md
+              rounded-[30px]
+              border-2
+              border-[#E6C280]
+              bg-[#082d40]/95
+              p-6
+              text-center
+              shadow-2xl
+            "
+          >
+            <div
+              className="
+                mx-auto
+                w-16
+                h-16
+                rounded-full
+                bg-[#8A1538]
+                border
+                border-[#FFE082]
+                flex
+                items-center
+                justify-center
+              "
+            >
+              {hasFoundDana ? (
+                <Award
+                  className="
+                    w-8
+                    h-8
+                    text-[#FFE082]
+                  "
+                />
+              ) : (
+                <Clock3
+                  className="
+                    w-8
+                    h-8
+                    text-[#FFE082]
+                  "
+                />
+              )}
+            </div>
+
+            <h2
+              className="
+                mt-4
+                text-2xl
+                font-black
+                text-[#FFE082]
+              "
+            >
+              {hasFoundDana
+                ? 'أحسنت! وجدت الدانة'
+                : 'انتهى وقت الغوص'}
+            </h2>
+
+            <p
+              className="
+                mt-2
+                text-white/90
+              "
+            >
+              مجموع نقاطك:
+              {' '}
+              <span
+                className="
+                  text-[#FFE082]
+                  font-black
+                "
+              >
+                {score}
+              </span>
+            </p>
+
+            {!hasFoundDana && (
+              <button
+                onClick={
+                  restartDive
+                }
+                className="
+                  mt-5
+                  w-full
+                  rounded-2xl
+                  bg-[#8A1538]
+                  border-2
+                  border-[#FFE082]
+                  py-3
+                  text-[#FFE082]
+                  font-black
+                  active:scale-95
+                "
+              >
+                حاول مرة أخرى
+              </button>
+            )}
+
+            <button
+              onClick={
+                onReturnToVillage
+              }
+              className="
+                mt-3
+                w-full
+                rounded-2xl
+                bg-[#5b3b27]
+                border
+                border-[#E6C280]/60
+                py-3
+                text-white
+                font-bold
+                active:scale-95
+              "
+            >
+              العودة إلى القرية
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================
+          DANA SUCCESS ACTION
+      ====================================================== */}
+
+      {phase ===
+        'underwater' &&
+        hasFoundDana &&
+        !openedShell && (
+          <button
+            onClick={() =>
+              setPhase(
+                'finished'
+              )
+            }
+            className="
+              fixed
+              right-5
+              bottom-6
+              z-[120]
+              flex
+              items-center
+              gap-2
+              rounded-full
+              bg-[#8A1538]
+              border-2
+              border-[#FFE082]
+              px-5
+              py-3
+              text-[#FFE082]
+              font-black
+              shadow-xl
+              active:scale-95
+            "
+          >
+            <Award
+              className="
+                w-5
+                h-5
+              "
+            />
+
+            إنهاء الرحلة
+          </button>
+        )}
     </div>
   );
 }
