@@ -182,7 +182,7 @@ class SoundSystem {
     // Also prefetch ambient & narration sounds into browser cache
     const narrationList = [
       'jar', 'pot', 'dallah', 'basket', 'cardamom', 'saffron', 'cinnamon',
-      'palm', 'fabric', 'scale', 'box', 'lantern', 'falcon', 'glove', 'perch'
+      'clove', 'palm', 'fabric', 'scale', 'box', 'lantern', 'falcon', 'glove', 'perch'
     ];
 
     if ('caches' in window) {
@@ -403,6 +403,11 @@ class SoundSystem {
       this.stopAmbientSouq();
       return false;
     } else {
+      this.isEnabled = true;
+      this.init();
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
       this.startAmbientSouq();
       return true;
     }

@@ -368,14 +368,14 @@ export function SouqScene({
 
   /* ---------------- SOUQ AMBIENT AUDIO ---------------- */
 
-  const [isSouqAudioPlaying, setIsSouqAudioPlaying] = useState(!settings.isQuietMode);
+  const [isSouqAudioPlaying, setIsSouqAudioPlaying] = useState(settings.isSoundEnabled && !settings.isQuietMode);
 
   /* ---------------- CINEMATIC LIGHT SHAFTS (GOD RAYS) ---------------- */
   const [showLightShafts, setShowLightShafts] = useState(true);
 
   // تشغيل تلقائي متكرر لملف أصوات السوق القديم عند الدخول، وإيقافه عند الخروج
   useEffect(() => {
-    if (!settings.isQuietMode) {
+    if (!settings.isQuietMode && settings.isSoundEnabled) {
       soundManager.startAmbientSouq();
       setIsSouqAudioPlaying(true);
     } else {
@@ -403,7 +403,7 @@ export function SouqScene({
         }
       }
     };
-  }, [settings.isQuietMode]);
+  }, [settings.isQuietMode, settings.isSoundEnabled]);
 
   // تحديث مستوى الصوت فوراً عند تغييره في الإعدادات
   useEffect(() => {
@@ -521,6 +521,8 @@ export function SouqScene({
     };
   }, [selectedHotspot]);
 
+  const isAudioActive = (settings.isSoundEnabled || isSouqAudioPlaying) && !settings.isQuietMode;
+
   /* ============================================================
      GAME LOOP
   ============================================================ */
@@ -589,8 +591,7 @@ export function SouqScene({
         });
 
         if (
-          settings.isSoundEnabled &&
-          !settings.isQuietMode &&
+          isAudioActive &&
           time - lastFootstepAt > 360
         ) {
           soundManager.playFootstep();
@@ -608,8 +609,7 @@ export function SouqScene({
     return () => cancelAnimationFrame(frameId);
   }, [
     checkCollision,
-    settings.isSoundEnabled,
-    settings.isQuietMode,
+    isAudioActive,
     MOVE_SPEED,
     selectedHotspot,
   ]);
@@ -649,13 +649,13 @@ export function SouqScene({
   useEffect(() => {
     if (activeNearbyHotspot && activeNearbyHotspot.id !== lastChimeSpotRef.current) {
       lastChimeSpotRef.current = activeNearbyHotspot.id;
-      if (settings.isSoundEnabled && !settings.isQuietMode) {
+      if (isAudioActive) {
         soundManager.playProximityChime();
       }
     } else if (!activeNearbyHotspot) {
       lastChimeSpotRef.current = null;
     }
-  }, [activeNearbyHotspot, settings.isSoundEnabled, settings.isQuietMode]);
+  }, [activeNearbyHotspot, isAudioActive]);
 
   /* ============================================================
      NARRATION & SPEECH
@@ -718,7 +718,9 @@ export function SouqScene({
       }
 
       const synth = window.speechSynthesis;
-      const textToSpeak = `${item.name}. ${item.description}`;
+      const textToSpeak = item.id === 'dallah'
+        ? `${activeItemName}. ${activeItemDesc}`
+        : `${item.name}. ${item.description}`;
 
       try {
         synth.cancel();
@@ -762,16 +764,13 @@ export function SouqScene({
         }
       };
 
-      window.setTimeout(() => {
-        try {
-          synth.resume();
-          synth.speak(utterance);
-        } catch (error) {
-          console.error('Speech synthesis failed:', error);
-          setIsSpeaking(false);
-          setSpeechError('تعذر تشغيل الصوت في هذه المعاينة.');
-        }
-      }, 120);
+      try {
+        synth.speak(utterance);
+      } catch (error) {
+        console.error('Speech synthesis failed:', error);
+        setIsSpeaking(false);
+        setSpeechError('تعذر تشغيل الصوت في هذه المعاينة.');
+      }
     };
 
     audio.onended = () => {
@@ -805,6 +804,7 @@ export function SouqScene({
 
   const openHotspot = (hotspot: SouqHotspot) => {
     soundManager.playClick();
+    soundManager.playProximityChime();
     stopNarration();
 
     keysPressed.current = {};
@@ -818,6 +818,7 @@ export function SouqScene({
   };
 
   const closeHotspot = () => {
+    soundManager.playClick();
     stopNarration();
     setSelectedHotspot(null);
     setCurrentItemIndex(0);
@@ -830,6 +831,7 @@ export function SouqScene({
 
   const nextItem = () => {
     if (!selectedHotspot) return;
+    soundManager.playClick();
     stopNarration();
 
     setCurrentItemIndex((prev) =>
@@ -841,6 +843,7 @@ export function SouqScene({
 
   const previousItem = () => {
     if (!selectedHotspot) return;
+    soundManager.playClick();
     stopNarration();
 
     setCurrentItemIndex((prev) =>
@@ -1315,7 +1318,10 @@ export function SouqScene({
                     <div className="grid grid-cols-3 gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setDallahStyle('qatari_gold')}
+                        onClick={() => {
+                          soundManager.playClick();
+                          setDallahStyle('qatari_gold');
+                        }}
                         className={`py-2 px-1 text-xs rounded-xl font-black transition-all border ${
                           dallahStyle === 'qatari_gold'
                             ? 'bg-[#8A1538] border-[#FFE082] text-[#FFE082] shadow-md scale-[1.03]'
@@ -1326,7 +1332,10 @@ export function SouqScene({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDallahStyle('raslan_brass')}
+                        onClick={() => {
+                          soundManager.playClick();
+                          setDallahStyle('raslan_brass');
+                        }}
                         className={`py-2 px-1 text-xs rounded-xl font-black transition-all border ${
                           dallahStyle === 'raslan_brass'
                             ? 'bg-[#8A1538] border-[#FFE082] text-[#FFE082] shadow-md scale-[1.03]'
@@ -1337,7 +1346,10 @@ export function SouqScene({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDallahStyle('royal_silver')}
+                        onClick={() => {
+                          soundManager.playClick();
+                          setDallahStyle('royal_silver');
+                        }}
                         className={`py-2 px-1 text-xs rounded-xl font-black transition-all border ${
                           dallahStyle === 'royal_silver'
                             ? 'bg-[#8A1538] border-[#FFE082] text-[#FFE082] shadow-md scale-[1.03]'
@@ -1385,7 +1397,10 @@ export function SouqScene({
                 )}
 
                 <button
-                  onClick={reset3DView}
+                  onClick={() => {
+                    soundManager.playClick();
+                    reset3DView();
+                  }}
                   className="mt-3 w-full flex items-center justify-center gap-2 bg-[#5c3a28] border border-[#E6C280]/50 text-white rounded-xl py-2.5 font-bold active:scale-95"
                 >
                   <Rotate3D className="w-5 h-5" />
@@ -1414,6 +1429,7 @@ export function SouqScene({
                   <button
                     key={item.id}
                     onClick={() => {
+                      soundManager.playClick();
                       stopNarration();
                       setCurrentItemIndex(index);
                       reset3DView();
