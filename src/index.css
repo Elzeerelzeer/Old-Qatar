@@ -232,3 +232,275 @@ body.quiet-mode * {
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+/* =============================================================
+   OLD-QATAR — CENTRAL RESPONSIVE SYSTEM
+   -------------------------------------------------------------
+   This is the single place for project-wide screen scaling.
+   Change the variables below instead of editing every Scene file.
+   ============================================================= */
+
+:root {
+  --ql-ui-scale: 1;
+  --ql-base-font: 16px;
+  --ql-safe-top: max(0px, env(safe-area-inset-top));
+  --ql-safe-right: max(0px, env(safe-area-inset-right));
+  --ql-safe-bottom: max(0px, env(safe-area-inset-bottom));
+  --ql-safe-left: max(0px, env(safe-area-inset-left));
+  --ql-edge-gap: 14px;
+  --ql-touch-target: 42px;
+  --ql-dpad-size: 138px;
+  --ql-dpad-button: 44px;
+  --ql-panel-gap: 16px;
+  --ql-panel-padding: 20px;
+  --ql-modal-max-height: calc(100dvh - 20px);
+  --ql-card-radius: 24px;
+}
+
+html {
+  font-size: var(--ql-base-font);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+#root {
+  isolation: isolate;
+}
+
+/* Make old h-screen scenes use the real mobile viewport height. */
+[class~="h-screen"],
+#village-interactive-viewport,
+#souq-exploration-viewport,
+[id^="station-scene-"] {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+}
+
+/* Prevent fixed-size media from escaping its scene/panel. */
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+img,
+video {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Generic modal safety: old vh values are unreliable on mobile browsers. */
+#passport-booklet-container,
+#settings-modal-card,
+[class*="max-h-[90vh]"],
+[class*="max-h-[92vh]"],
+[class*="max-h-[94vh]"] {
+  max-height: var(--ql-modal-max-height) !important;
+}
+
+/* Central HUD spacing, including iPhone/Android cutouts. */
+#minimal-heritage-hud {
+  top: calc(var(--ql-safe-top) + var(--ql-edge-gap)) !important;
+  left: calc(var(--ql-safe-left) + var(--ql-edge-gap)) !important;
+  max-width: calc(100vw - var(--ql-safe-left) - var(--ql-safe-right) - (var(--ql-edge-gap) * 2));
+}
+
+/* Village D-pad is controlled globally from here. */
+#compact-touch-dpad {
+  width: var(--ql-dpad-size) !important;
+  height: var(--ql-dpad-size) !important;
+  left: calc(var(--ql-safe-left) + var(--ql-edge-gap)) !important;
+  bottom: calc(var(--ql-safe-bottom) + var(--ql-edge-gap)) !important;
+}
+
+#dpad-btn-up,
+#dpad-btn-down,
+#dpad-btn-left,
+#dpad-btn-right {
+  width: var(--ql-dpad-button) !important;
+  height: var(--ql-dpad-button) !important;
+}
+
+/* Common 138px directional pads used by several station scenes. */
+[class~="w-[138px]"][class~="h-[138px]"] {
+  width: var(--ql-dpad-size) !important;
+  height: var(--ql-dpad-size) !important;
+}
+
+[class~="w-11"][class~="h-11"] {
+  max-width: var(--ql-dpad-button);
+  max-height: var(--ql-dpad-button);
+}
+
+/* Keep legacy min-width controls inside narrow phones. */
+[class*="min-w-[300px]"],
+[class*="min-w-[290px]"],
+[class*="min-w-[280px]"],
+[class*="min-w-[270px]"],
+[class*="min-w-[250px]"],
+[class*="min-w-[240px]"],
+[class*="min-w-[220px]"] {
+  max-width: calc(100vw - 24px) !important;
+}
+
+/* Touch/form controls remain usable without changing game world coordinates. */
+input,
+select,
+textarea {
+  font-size: max(16px, 1rem);
+}
+
+/* Small phones */
+@media (max-width: 479px) {
+  :root {
+    --ql-ui-scale: 0.82;
+    --ql-base-font: 13px;
+    --ql-edge-gap: 8px;
+    --ql-touch-target: 40px;
+    --ql-dpad-size: 108px;
+    --ql-dpad-button: 34px;
+    --ql-panel-gap: 8px;
+    --ql-panel-padding: 10px;
+    --ql-modal-max-height: calc(100dvh - 10px);
+    --ql-card-radius: 18px;
+  }
+
+  #passport-booklet-container,
+  #settings-modal-card {
+    width: calc(100vw - 10px) !important;
+    border-radius: 18px !important;
+  }
+
+  /* Avoid huge fixed intro/selection minimum heights on short phones. */
+  [class*="min-h-[600px]"] {
+    min-height: 100dvh !important;
+  }
+
+  /* Cards/grids should be allowed to shrink instead of overflowing. */
+  .grid > *,
+  .flex > * {
+    min-width: 0;
+  }
+}
+
+/* Large phones / small tablets */
+@media (min-width: 480px) and (max-width: 767px) {
+  :root {
+    --ql-ui-scale: 0.9;
+    --ql-base-font: 14px;
+    --ql-edge-gap: 10px;
+    --ql-dpad-size: 118px;
+    --ql-dpad-button: 38px;
+    --ql-panel-gap: 10px;
+    --ql-panel-padding: 14px;
+  }
+}
+
+/* Tablets */
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --ql-ui-scale: 0.96;
+    --ql-base-font: 15px;
+    --ql-edge-gap: 12px;
+    --ql-dpad-size: 128px;
+    --ql-dpad-button: 41px;
+    --ql-panel-gap: 14px;
+    --ql-panel-padding: 18px;
+  }
+}
+
+/* Standard desktop / laptop */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  :root {
+    --ql-ui-scale: 1;
+    --ql-base-font: 16px;
+    --ql-edge-gap: 14px;
+    --ql-dpad-size: 138px;
+    --ql-dpad-button: 44px;
+  }
+}
+
+/* Large desktop / smart board */
+@media (min-width: 1600px) and (max-width: 2199px) {
+  :root {
+    --ql-ui-scale: 1.08;
+    --ql-base-font: 17px;
+    --ql-edge-gap: 18px;
+    --ql-touch-target: 48px;
+    --ql-dpad-size: 150px;
+    --ql-dpad-button: 48px;
+    --ql-panel-gap: 20px;
+    --ql-panel-padding: 24px;
+  }
+}
+
+/* 4K / very large interactive displays */
+@media (min-width: 2200px) {
+  :root {
+    --ql-ui-scale: 1.16;
+    --ql-base-font: 18px;
+    --ql-edge-gap: 22px;
+    --ql-touch-target: 54px;
+    --ql-dpad-size: 164px;
+    --ql-dpad-button: 52px;
+    --ql-panel-gap: 24px;
+    --ql-panel-padding: 28px;
+  }
+}
+
+/* Landscape phones: prioritize vertical room for gameplay. */
+@media (max-height: 520px) and (orientation: landscape) {
+  :root {
+    --ql-base-font: 12px;
+    --ql-edge-gap: 6px;
+    --ql-dpad-size: 96px;
+    --ql-dpad-button: 30px;
+    --ql-panel-gap: 6px;
+    --ql-panel-padding: 8px;
+    --ql-modal-max-height: calc(100dvh - 6px);
+  }
+
+  #minimal-heritage-hud {
+    transform: scale(0.9);
+    transform-origin: top left;
+  }
+}
+
+/* Coarse pointers (touchscreens / interactive boards). */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    min-height: var(--ql-touch-target);
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+}
+
+/* Respect accessibility preference even when Quiet Mode is not enabled. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
