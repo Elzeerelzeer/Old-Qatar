@@ -9,6 +9,7 @@ import {
 import { STATIONS_DATA } from '../data/stationsData';
 import { CharacterAvatar } from './CharacterAvatar';
 import { soundManager } from '../services/soundEffects';
+import { GoldenDustParticles } from './village/GoldenDustParticles';
 import { 
   DoorOpen, 
   ArrowUp, 
@@ -517,6 +518,15 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
             size={characterSize}
           />
         </div>
+
+        {/* ---------------------------------------------------- */}
+        {/* ATMOSPHERIC GOLDEN DUST PARTICLES (غبار ذهبي تراثي)  */}
+        {/* ---------------------------------------------------- */}
+        <GoldenDustParticles
+          isQuietMode={settings.isQuietMode}
+          playerPos={{ x: posX, y: posY }}
+          isPlayerMoving={isMoving}
+        />
 
         {/* ---------------------------------------------------- */}
         {/* FLOATING INTERACTION BUTTON: «ادخل»                   */}
