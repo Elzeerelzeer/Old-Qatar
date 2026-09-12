@@ -95,8 +95,8 @@
 /* Desktop / laptop */
 @media (min-width: 1200px) and (max-width: 1599px) {
   :root {
-    --ql-controls-scale: 1;
-    --ql-hud-scale: 1;
+    --ql-controls-scale: 2;
+    --ql-hud-scale: 2;
     --ql-dpad-size: 138px;
     --ql-dpad-button: 44px;
     --ql-touch-target: 44px;
