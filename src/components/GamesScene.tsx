@@ -143,98 +143,243 @@ function Frame({title,onClose,children}:{title:string;onClose:()=>void;children:
 }
 
 function Dahrooj({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
-  const [ringX,setRingX]=useState(8);
+  const [ringX,setRingX]=useState(10);
+  const [ringY,setRingY]=useState(58);
   const [passed,setPassed]=useState<number[]>([]);
+  const [finished,setFinished]=useState(false);
   const dragging=useRef(false);
 
+  const gates=[28,52,76];
+
   const move=(e:React.PointerEvent<HTMLDivElement>)=>{
-    if(!dragging.current)return;
+    if(!dragging.current||finished)return;
+
     const rect=e.currentTarget.getBoundingClientRect();
     const x=((e.clientX-rect.left)/rect.width)*100;
-    const next=Math.max(6,Math.min(90,x));
-    setRingX(next);
-    setPassed([28,52,76].filter(g=>next>=g));
+    const y=((e.clientY-rect.top)/rect.height)*100;
+
+    const nextX=Math.max(8,Math.min(90,x));
+    const nextY=Math.max(36,Math.min(72,y));
+
+    setRingX(nextX);
+    setRingY(nextY);
+
+    const newPassed=gates.filter(g=>nextX>=g);
+    setPassed(newPassed);
+
+    if(nextX>=88&&newPassed.length===3){
+      setFinished(true);
+    }
   };
 
-  const finished=passed.length===3;
-
   return <Frame title="الدحروي" onClose={onClose}>
-    <p className="mt-2 text-center">اسحب الحلقة عبر البوابات الثلاث حتى تصل إلى خط النهاية.</p>
+    <p className="mt-2 text-center text-white/90">
+      حرّك الحلقة بالعصا، مرّ عبر البوابات الثلاث، ثم أصل إلى خط النهاية.
+    </p>
 
     <div
       onPointerMove={move}
       onPointerUp={()=>dragging.current=false}
+      onPointerCancel={()=>dragging.current=false}
       onPointerLeave={()=>dragging.current=false}
-      className="mt-6 h-40 rounded-2xl bg-[#d7b27a] border-2 border-[#FFE082] relative overflow-hidden touch-none"
+      className="mt-6 h-56 rounded-3xl border-2 border-[#FFE082] relative overflow-hidden touch-none bg-[linear-gradient(180deg,#d7b27a_0%,#c69760_100%)] shadow-inner"
     >
-      {[28,52,76].map((g,i)=><div key={g} className="absolute top-3 bottom-3 w-1 bg-white/45" style={{left:`${g}%`}}>
-        <span className="absolute -top-1 -left-3 rounded-full bg-[#06283a] px-2 py-1 text-xs">{i+1}</span>
-      </div>)}
+      {/* sandy track */}
+      <div className="absolute left-[6%] right-[6%] top-1/2 h-20 -translate-y-1/2 rounded-full border-2 border-dashed border-[#7c4f2a]/45 bg-[#e1bd86]/55" />
 
+      {/* gates */}
+      {gates.map((g,i)=>{
+        const ok=passed.includes(g);
+        return <div key={g} className="absolute top-[24%] bottom-[24%] w-14 -translate-x-1/2" style={{left:`${g}%`}}>
+          <div className={`absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 ${ok?'bg-emerald-600/70':'bg-[#8A1538]/55'}`} />
+          <div className={`absolute top-0 left-0 right-0 h-2 rounded-full ${ok?'bg-emerald-500':'bg-[#8A1538]'}`} />
+          <span className={`absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-black ${ok?'bg-emerald-700 border-emerald-200 text-white':'bg-[#06283a] border-[#FFE082] text-[#FFE082]'}`}>
+            {ok?'✓':i+1}
+          </span>
+        </div>
+      })}
+
+      {/* finish */}
+      <div className="absolute right-[3%] top-[24%] bottom-[24%] w-10 flex flex-col justify-center items-center">
+        <div className="text-4xl">🏁</div>
+        <div className="mt-1 text-xs font-black text-[#5d371e]">النهاية</div>
+      </div>
+
+      {/* stick attached behind ring */}
+      <div
+        className="absolute z-20 h-3 rounded-full bg-[linear-gradient(90deg,#6b3b1f,#b87942,#6b3b1f)] shadow-md origin-right pointer-events-none"
+        style={{
+          width:'110px',
+          left:`calc(${ringX}% - 102px)`,
+          top:`calc(${ringY}% + 14px)`,
+          transform:'rotate(9deg)',
+        }}
+      />
+
+      {/* real-looking metal ring */}
       <button
+        type="button"
         onPointerDown={e=>{
           dragging.current=true;
           e.currentTarget.setPointerCapture(e.pointerId);
         }}
-        className="absolute top-1/2 text-6xl cursor-grab active:cursor-grabbing"
-        style={{left:`${ringX}%`,transform:'translate(-50%,-50%)'}}
+        className="absolute z-30 w-20 h-20 rounded-full border-[8px] border-[#76818a] bg-transparent shadow-[inset_0_0_0_3px_rgba(255,255,255,.55),0_8px_18px_rgba(0,0,0,.35)] cursor-grab active:cursor-grabbing"
+        style={{
+          left:`${ringX}%`,
+          top:`${ringY}%`,
+          transform:'translate(-50%,-50%)',
+        }}
+        aria-label="اسحب حلقة الدحروي"
       >
-        ⭕
+        <span className="absolute inset-2 rounded-full border border-white/35" />
       </button>
 
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-5xl">🏁</div>
+      {finished&&<div className="absolute inset-0 z-40 bg-emerald-950/25 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+        <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-6 py-3 text-xl font-black text-white shadow-xl">أحسنت! وصلت للنهاية ✓</div>
+      </div>}
     </div>
 
-    <div className="mt-4 text-center text-2xl font-black text-[#FFE082]">{passed.length}/3 بوابات</div>
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="rounded-2xl bg-black/25 border border-white/15 py-3 text-center">
+        <div className="text-sm text-white/70">البوابات</div>
+        <div className="text-2xl font-black text-[#FFE082]">{passed.length}/3</div>
+      </div>
+      <div className="rounded-2xl bg-black/25 border border-white/15 py-3 text-center">
+        <div className="text-sm text-white/70">الحالة</div>
+        <div className="text-lg font-black text-[#FFE082]">{finished?'تم الإنجاز':'استمر'}</div>
+      </div>
+    </div>
 
-    {finished&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
+    {finished&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">اعتماد الإنجاز ✓</button>}
   </Frame>;
 }
 function Teela({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
   const [hits,setHits]=useState(0);
   const [shots,setShots]=useState(0);
-  const [power,setPower]=useState(0);
-  const startY=useRef(0);
+  const [pull,setPull]=useState({x:0,y:0});
+  const [shooting,setShooting]=useState(false);
+  const [hitTargets,setHitTargets]=useState<number[]>([]);
+  const start=useRef({x:0,y:0});
   const dragging=useRef(false);
 
-  const shoot=()=>{
+  const targets=[
+    {id:0,left:'31%',top:'25%',tone:'from-emerald-200 via-emerald-500 to-emerald-900'},
+    {id:1,left:'50%',top:'18%',tone:'from-rose-200 via-rose-500 to-rose-900'},
+    {id:2,left:'69%',top:'25%',tone:'from-sky-200 via-sky-500 to-blue-900'},
+  ];
+
+  const power=Math.min(100,Math.round(Math.hypot(pull.x,pull.y)*1.15));
+
+  const release=()=>{
+    if(!dragging.current||shooting)return;
+    dragging.current=false;
+
     setShots(v=>v+1);
-    if(power>=45&&power<=90)setHits(v=>Math.min(3,v+1));
-    setPower(0);
+
+    const targetIndex=
+      pull.x>22 ? 0 :
+      pull.x<-22 ? 2 :
+      1;
+
+    const enoughPower=power>=38;
+
+    setShooting(true);
+
+    window.setTimeout(()=>{
+      if(enoughPower&&!hitTargets.includes(targetIndex)){
+        setHitTargets(prev=>[...prev,targetIndex]);
+        setHits(v=>Math.min(3,v+1));
+      }
+      setShooting(false);
+      setPull({x:0,y:0});
+    },420);
   };
 
+  const launchX=shooting ? -pull.x*1.7 : pull.x;
+  const launchY=shooting ? -145 : pull.y;
+
   return <Frame title="التيلة" onClose={onClose}>
-    <p className="mt-2 text-center">اسحب التيلة للخلف ثم اتركها لتصيب الهدف.</p>
+    <p className="mt-2 text-center text-white/90">
+      اسحب التيلة للخلف، صوِّب نحو إحدى التيل، ثم اتركها.
+    </p>
 
-    <div className="mt-6 h-56 rounded-2xl bg-[#c59a65] border-2 border-[#FFE082] relative overflow-hidden touch-none">
-      <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full border-4 border-[#8A1538] bg-[#FFE082]/20 flex items-center justify-center text-2xl font-black text-[#8A1538]">
-        الهدف
-      </div>
+    <div className="mt-6 h-[300px] rounded-3xl border-2 border-[#FFE082] relative overflow-hidden touch-none bg-[radial-gradient(circle_at_50%_30%,#e4bf86_0%,#c99961_55%,#b77e48_100%)]">
+      {/* target circle on sand */}
+      <div className="absolute left-1/2 top-[28%] -translate-x-1/2 -translate-y-1/2 w-72 h-32 rounded-[50%] border-[3px] border-[#7b4a2b]/70 bg-[#e7c692]/25" />
 
+      {/* target marbles */}
+      {targets.map(t=>{
+        const hit=hitTargets.includes(t.id);
+        return <div
+          key={t.id}
+          className={`absolute w-14 h-14 rounded-full border-2 border-white/80 bg-gradient-to-br ${t.tone} shadow-[inset_6px_6px_12px_rgba(255,255,255,.55),0_10px_16px_rgba(0,0,0,.28)] transition-all duration-300 ${hit?'opacity-20 scale-75 translate-y-6':'opacity-100 scale-100'}`}
+          style={{left:t.left,top:t.top,transform:'translate(-50%,-50%)'}}
+        >
+          <span className="absolute top-[12%] left-[18%] w-4 h-3 rounded-full bg-white/70 blur-[1px]" />
+        </div>
+      })}
+
+      {/* aiming line */}
+      {(dragging.current||Math.abs(pull.x)>2||pull.y>2)&&!shooting&&
+        <div
+          className="absolute left-1/2 bottom-[66px] w-[3px] bg-white/70 origin-bottom rounded-full pointer-events-none"
+          style={{
+            height:`${Math.max(30,Math.min(95,power))}px`,
+            transform:`translateX(-50%) rotate(${pull.x/5}deg)`,
+          }}
+        />
+      }
+
+      {/* shooter marble */}
       <button
+        type="button"
         onPointerDown={e=>{
+          if(shooting)return;
           dragging.current=true;
-          startY.current=e.clientY;
+          start.current={x:e.clientX,y:e.clientY};
           e.currentTarget.setPointerCapture(e.pointerId);
         }}
         onPointerMove={e=>{
-          if(!dragging.current)return;
-          setPower(Math.max(0,Math.min(100,e.clientY-startY.current)));
+          if(!dragging.current||shooting)return;
+          const dx=e.clientX-start.current.x;
+          const dy=e.clientY-start.current.y;
+          setPull({
+            x:Math.max(-65,Math.min(65,dx)),
+            y:Math.max(0,Math.min(78,dy)),
+          });
         }}
-        onPointerUp={()=>{
-          if(dragging.current){dragging.current=false;shoot();}
+        onPointerUp={release}
+        onPointerCancel={()=>{dragging.current=false;setPull({x:0,y:0});}}
+        className="absolute left-1/2 bottom-7 w-16 h-16 rounded-full border-[3px] border-white/85 bg-[radial-gradient(circle_at_30%_25%,#ffffff_0%,#93c5fd_18%,#2563eb_58%,#172554_100%)] shadow-[inset_8px_8px_14px_rgba(255,255,255,.6),0_12px_22px_rgba(0,0,0,.35)] cursor-grab active:cursor-grabbing transition-transform duration-[420ms] ease-out"
+        style={{
+          transform:`translate(calc(-50% + ${launchX}px), ${launchY}px)`,
         }}
-        onPointerCancel={()=>dragging.current=false}
-        className="absolute bottom-6 left-1/2 w-14 h-14 rounded-full border-2 border-white/80 bg-[radial-gradient(circle_at_30%_25%,#ffffff,#7dd3fc_35%,#2563eb_75%,#172554)] shadow-[0_10px_25px_rgba(0,0,0,.35)]"
-        style={{transform:`translate(-50%, ${Math.min(power,80)}px)`}}
-      />
+        aria-label="اسحب التيلة وصوب"
+      >
+        <span className="absolute top-[15%] left-[18%] w-5 h-4 rounded-full bg-white/75 blur-[1px]" />
+      </button>
 
-      <div className="absolute bottom-4 right-4 rounded-full bg-black/40 px-3 py-1 text-sm">القوة {power}%</div>
+      {/* visual pull strength only while aiming */}
+      {!shooting&&power>0&&<div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-black/35 border border-white/15 px-3 py-2">
+        <div className="w-24 h-2 rounded-full bg-white/15 overflow-hidden">
+          <div className="h-full rounded-full bg-[#FFE082]" style={{width:`${power}%`}} />
+        </div>
+        <span className="text-xs font-bold text-white/90">قوة السحب</span>
+      </div>}
     </div>
 
-    <div className="mt-4 text-center text-xl font-black text-[#FFE082]">إصابات: {hits}/3 • محاولات: {shots}</div>
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="rounded-2xl bg-black/25 border border-white/15 py-3 text-center">
+        <div className="text-sm text-white/70">الإصابات</div>
+        <div className="text-2xl font-black text-[#FFE082]">{hits}/3</div>
+      </div>
+      <div className="rounded-2xl bg-black/25 border border-white/15 py-3 text-center">
+        <div className="text-sm text-white/70">المحاولات</div>
+        <div className="text-2xl font-black text-[#FFE082]">{shots}</div>
+      </div>
+    </div>
 
-    {hits>=3&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black">تم الإنجاز ✓</button>}
+    {hits>=3&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">اعتماد الإنجاز ✓</button>}
   </Frame>;
 }
 function Saqla({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
