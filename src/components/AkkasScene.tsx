@@ -102,7 +102,11 @@ function drawCoverCrop(
   const maxShiftY = Math.max(0, sourceHeight - cropH);
 
   const normalizedX = clamp(0.5 - offsetX / 100, 0, 1);
-  const normalizedY = clamp(0.5 - offsetY / 100, 0, 1);
+
+  // The face is normally in the upper part of a selfie frame.
+  // Start the crop near the top instead of the vertical center,
+  // otherwise a chest/shirt can appear inside the face opening.
+  const normalizedY = clamp(0.04 - offsetY / 100, 0, 1);
 
   const sx = maxShiftX * normalizedX;
   const sy = maxShiftY * normalizedY;
@@ -423,9 +427,9 @@ export function AkkasScene({
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
-  const [faceZoom, setFaceZoom] = useState(1.15);
+  const [faceZoom, setFaceZoom] = useState(1.95);
   const [faceOffsetX, setFaceOffsetX] = useState(0);
-  const [faceOffsetY, setFaceOffsetY] = useState(-2);
+  const [faceOffsetY, setFaceOffsetY] = useState(0);
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -524,9 +528,11 @@ export function AkkasScene({
   };
 
   const resetFace = () => {
-    setFaceZoom(1.15);
+    // Head-first default: top-centred crop with enough zoom
+    // to keep the current shirt/body outside the face window.
+    setFaceZoom(1.95);
     setFaceOffsetX(0);
-    setFaceOffsetY(-2);
+    setFaceOffsetY(0);
   };
 
   const adjustFace = (dx: number, dy: number) => {
@@ -573,6 +579,10 @@ export function AkkasScene({
       const faceX = faceCx - faceW / 2;
       const faceY = faceCy - faceH / 2;
 
+      // Draw the outfit first. The face is drawn afterwards so
+      // clothing/head-dress shapes can never cover the visitor's face.
+      drawOutfitCanvas(ctx, currentLook.id, faceCx, faceCy, faceW, faceH);
+
       ctx.save();
       ctx.beginPath();
       ctx.ellipse(faceCx, faceCy, faceW / 2, faceH / 2, 0, 0, Math.PI * 2);
@@ -612,7 +622,12 @@ export function AkkasScene({
       }
       ctx.restore();
 
-      drawOutfitCanvas(ctx, currentLook.id, faceCx, faceCy, faceW, faceH);
+      // Clear visual edge around the real face.
+      ctx.beginPath();
+      ctx.ellipse(faceCx, faceCy, faceW / 2, faceH / 2, 0, 0, Math.PI * 2);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = currentTheme.accentColor;
+      ctx.stroke();
 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -664,7 +679,17 @@ export function AkkasScene({
     setStep('camera');
   };
 
-  const faceTransform = `${uploadedImageUrl ? '' : 'scaleX(-1) '}translate(${faceOffsetX}%, ${faceOffsetY}%) scale(${faceZoom})`;
+  // Preview crop is anchored to the TOP of the source image.
+  // This is the key fix for webcams where the old centered crop showed the shirt/chest.
+  const faceObjectPosition = `${clamp(50 - faceOffsetX, 8, 92)}% ${clamp(
+    3 - faceOffsetY,
+    0,
+    35,
+  )}%`;
+
+  const faceTransform = uploadedImageUrl
+    ? `scale(${faceZoom})`
+    : `scaleX(-1) scale(${faceZoom})`;
 
   return (
     <div className="relative w-full h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#28150c] text-white select-none" dir="rtl">
@@ -719,8 +744,15 @@ export function AkkasScene({
                 <img src={MASTER_IMAGE_PATH} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" draggable={false} />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/35" />
 
-                {/* FACE ONLY: current shirt/clothes can no longer fill the scene. */}
-                <div className="absolute z-10 left-1/2 top-[11%] -translate-x-1/2 w-[24%] h-[31%] rounded-[45%] overflow-hidden bg-black border-[3px] border-[#FFE082] shadow-2xl">
+                {/* Outfit sits BEHIND the real face. */}
+                <div className="absolute inset-0 z-10 pointer-events-none">
+                  <OutfitPreview look={currentLook.id} />
+                </div>
+
+                {/* REAL FACE WINDOW
+                    Important: this is rendered AFTER the outfit and with a higher z-index.
+                    The crop is top-anchored so the head appears instead of the shirt/chest. */}
+                <div className="absolute z-20 left-1/2 top-[9%] -translate-x-1/2 w-[27%] min-w-[145px] max-w-[245px] h-[35%] min-h-[160px] max-h-[245px] rounded-[46%] overflow-hidden bg-[#111] border-[3px] border-[#FFE082] shadow-[0_8px_24px_rgba(0,0,0,.55)]">
                   {!uploadedImageUrl ? (
                     <video
                       ref={videoRef}
@@ -728,7 +760,11 @@ export function AkkasScene({
                       muted
                       playsInline
                       className="absolute inset-0 w-full h-full object-cover"
-                      style={{ transform: faceTransform, transformOrigin: 'center' }}
+                      style={{
+                        objectPosition: faceObjectPosition,
+                        transform: faceTransform,
+                        transformOrigin: '50% 0%',
+                      }}
                     />
                   ) : (
                     <img
@@ -736,12 +772,17 @@ export function AkkasScene({
                       src={uploadedImageUrl}
                       alt="الصورة المختارة"
                       className="absolute inset-0 w-full h-full object-cover"
-                      style={{ transform: faceTransform, transformOrigin: 'center' }}
+                      style={{
+                        objectPosition: faceObjectPosition,
+                        transform: faceTransform,
+                        transformOrigin: '50% 0%',
+                      }}
                     />
                   )}
-                </div>
 
-                <OutfitPreview look={currentLook.id} />
+                  {/* Face centre guide only; never blocks the face. */}
+                  <div className="absolute inset-[8%] rounded-[46%] border border-dashed border-white/35 pointer-events-none" />
+                </div>
 
                 <div className="absolute z-30 top-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 border border-white/15 px-4 py-2 text-xs sm:text-sm font-black whitespace-nowrap">
                   {currentLook.title} • {currentTheme.title}
@@ -749,7 +790,7 @@ export function AkkasScene({
 
                 <div className="absolute z-30 bottom-3 left-1/2 -translate-x-1/2 max-w-[90%] rounded-full bg-black/70 border border-[#FFE082]/30 px-4 py-2 text-[11px] sm:text-xs text-center">
                   {isCameraReady || uploadedImageUrl
-                    ? 'اجعل الوجه فقط داخل الدائرة — اللبس سيغطي الجسم بالكامل'
+                    ? 'الوجه يجب أن يظهر داخل الإطار الذهبي — استخدم الأسهم إذا احتاج ضبطًا'
                     : 'جاري فتح الكاميرا…'}
                 </div>
               </div>
@@ -798,7 +839,7 @@ export function AkkasScene({
 
               <div className="mt-4 pt-4 border-t border-white/10">
                 <h3 className="text-base font-black text-[#FFE082]">ضبط الوجه</h3>
-                <p className="mt-1 text-[11px] text-white/60">استخدم الأسهم إذا كان الوجه أعلى أو أسفل من الفتحة.</p>
+                <p className="mt-1 text-[11px] text-white/60">الافتراضي يلتقط أعلى الصورة لإظهار الرأس. استخدم الأسهم لضبط الوجه بدقة.</p>
 
                 <div className="mt-3 grid grid-cols-3 gap-2 w-[180px] mx-auto">
                   <div />
@@ -813,10 +854,10 @@ export function AkkasScene({
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button onClick={() => setFaceZoom((value) => clamp(value - 0.08, 1, 2))} className="flex items-center justify-center gap-1 rounded-xl bg-black/25 border border-white/15 py-2 text-xs font-bold">
+                  <button onClick={() => setFaceZoom((value) => clamp(value - 0.1, 1.25, 2.8))} className="flex items-center justify-center gap-1 rounded-xl bg-black/25 border border-white/15 py-2 text-xs font-bold">
                     <Minus className="w-4 h-4" /> تصغير الوجه
                   </button>
-                  <button onClick={() => setFaceZoom((value) => clamp(value + 0.08, 1, 2))} className="flex items-center justify-center gap-1 rounded-xl bg-black/25 border border-white/15 py-2 text-xs font-bold">
+                  <button onClick={() => setFaceZoom((value) => clamp(value + 0.1, 1.25, 2.8))} className="flex items-center justify-center gap-1 rounded-xl bg-black/25 border border-white/15 py-2 text-xs font-bold">
                     <Plus className="w-4 h-4" /> تكبير الوجه
                   </button>
                 </div>
