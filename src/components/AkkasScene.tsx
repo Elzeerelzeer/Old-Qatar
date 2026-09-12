@@ -71,7 +71,7 @@ const SCENES: SceneOption[] = [
     imagePath: '/assets/souq-master-map.png.jpeg',
     slot: {
       left: 79,
-      top: 28,
+      top: 72,
       width: 16,
       height: 34,
       borderRadius: 16,
@@ -87,7 +87,7 @@ const SCENES: SceneOption[] = [
     imagePath: '/assets/pearl-sea-master-map.png',
     slot: {
       left: 82,
-      top: 29,
+      top: 72,
       width: 15,
       height: 34,
       borderRadius: 16,
@@ -103,7 +103,7 @@ const SCENES: SceneOption[] = [
     imagePath: '/assets/games-master-map.png',
     slot: {
       left: 82,
-      top: 28,
+      top: 72,
       width: 15,
       height: 34,
       borderRadius: 16,
@@ -119,7 +119,7 @@ const SCENES: SceneOption[] = [
     imagePath: '/assets/majlis-master-map.png',
     slot: {
       left: 81,
-      top: 28,
+      top: 72,
       width: 15,
       height: 34,
       borderRadius: 16,
@@ -135,7 +135,7 @@ const SCENES: SceneOption[] = [
     imagePath: '/assets/crafts-master-map.png',
     slot: {
       left: 80,
-      top: 28,
+      top: 72,
       width: 15,
       height: 34,
       borderRadius: 16,
@@ -151,7 +151,7 @@ const SCENES: SceneOption[] = [
     imagePath: '/assets/akkas-master-map.png',
     slot: {
       left: 79,
-      top: 28,
+      top: 72,
       width: 16,
       height: 34,
       borderRadius: 16,
@@ -343,8 +343,8 @@ export function AkkasScene({
 
       speak(
         gender === 'boy'
-          ? 'ضع الرأس والكتفين داخل الإطار أعلى اليمين ثم التقط الصورة.'
-          : 'ضعي الرأس والكتفين داخل الإطار أعلى اليمين ثم التقطي الصورة.'
+          ? 'ضع الرأس والكتفين داخل الإطار أسفل اليمين ثم التقط الصورة.'
+          : 'ضعي الرأس والكتفين داخل الإطار أسفل اليمين ثم التقطي الصورة.'
       );
     } catch {
       setCameraError('تعذر فتح الكاميرا. اسمح بالوصول أو اختر صورة من الجهاز.');
@@ -610,7 +610,7 @@ export function AkkasScene({
 
             <p className="mt-3 text-[clamp(13px,1.7vw,17px)] leading-relaxed text-white/90">
               اختر منظرًا من محطات قطر لوّل، وسيظهر {gender === 'boy' ? 'المنتسب' : 'المنتسبة'}
-              {' '}داخل إطار ثابت في أعلى اليمين.
+              {' '}داخل إطار ثابت في أسفل اليمين.
             </p>
 
             <div className="mt-5 rounded-2xl border border-emerald-300/35 bg-emerald-950/40 p-3 flex items-center justify-center gap-2 text-sm text-emerald-100">
@@ -637,7 +637,7 @@ export function AkkasScene({
                   <h2 className="text-[clamp(18px,2.4vw,26px)] font-black text-[#FFE082]">
                     {currentScene.title}
                   </h2>
-                  <p className="text-xs text-white/65">الإطار ثابت أعلى اليمين لإظهار الرأس والكتفين بوضوح</p>
+                  <p className="text-xs text-white/65">الإطار ثابت أسفل اليمين لإظهار الرأس والكتفين بوضوح</p>
                 </div>
 
                 <div className="rounded-full bg-emerald-950/55 border border-emerald-300/30 px-3 py-1.5 text-xs text-emerald-200">
@@ -739,7 +739,7 @@ export function AkkasScene({
 
             <aside className="rounded-[24px] border-2 border-[#E6C280] bg-[#2a170e]/95 p-4 shadow-2xl">
               <h3 className="text-lg font-black text-[#FFE082]">اختر الخلفية</h3>
-              <p className="mt-1 text-[11px] text-white/60">لكل خلفية إطار ثابت أعلى اليمين.</p>
+              <p className="mt-1 text-[11px] text-white/60">لكل خلفية إطار ثابت أسفل اليمين.</p>
 
               <div className="mt-3 grid grid-cols-2 xl:grid-cols-1 gap-2">
                 {SCENES.map((scene) => {
