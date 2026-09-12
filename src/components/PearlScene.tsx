@@ -1,6 +1,4 @@
-from pathlib import Path
-
-code = r'''import React, {
+import React, {
   useCallback,
   useEffect,
   useMemo,
@@ -2781,8 +2779,3 @@ export function PearlScene({
     </div>
   );
 }
-'''
-
-path = Path('/mnt/data/PearlScene_complete.tsx')
-path.write_text(code, encoding='utf-8')
-print(f"Created {path} with {len(code.splitlines())} lines")
