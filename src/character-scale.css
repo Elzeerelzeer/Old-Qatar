@@ -1,0 +1,68 @@
+/* =============================================================
+   OLD-QATAR — CENTRAL CHARACTER SIZE
+   -------------------------------------------------------------
+   Change ONLY these values to resize CharacterAvatar everywhere.
+
+   1.00 = original size
+   1.10 = +10%
+   1.20 = +20%
+   0.90 = -10%
+   ============================================================= */
+
+:root {
+  --ql-character-scale: 1.12;
+}
+
+/* Small phones */
+@media (max-width: 479px) {
+  :root {
+    --ql-character-scale: 1.08;
+  }
+}
+
+/* Large phones */
+@media (min-width: 480px) and (max-width: 767px) {
+  :root {
+    --ql-character-scale: 1.10;
+  }
+}
+
+/* Tablets */
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --ql-character-scale: 1.12;
+  }
+}
+
+/* Desktop / laptop */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  :root {
+    --ql-character-scale: 1.12;
+  }
+}
+
+/* Large screens / smart boards */
+@media (min-width: 1600px) and (max-width: 2199px) {
+  :root {
+    --ql-character-scale: 1.18;
+  }
+}
+
+/* 4K displays */
+@media (min-width: 2200px) {
+  :root {
+    --ql-character-scale: 1.24;
+  }
+}
+
+/*
+  CharacterAvatar renders either #char-boy or #char-girl inside its SVG.
+  zoom enlarges the complete avatar without breaking its left/right transform.
+*/
+:where(
+  div:has(> svg g#char-boy),
+  div:has(> svg g#char-girl)
+) {
+  zoom: var(--ql-character-scale);
+  transform-origin: bottom center;
+}
