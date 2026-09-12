@@ -319,20 +319,12 @@ video {
   max-width: calc(100vw - var(--ql-safe-left) - var(--ql-safe-right) - (var(--ql-edge-gap) * 2));
 }
 
-/* Village D-pad is controlled globally from here. */
+/* Village D-pad is controlled globally from control-scale.css / variables. */
 #compact-touch-dpad {
-  width: var(--ql-dpad-size) !important;
-  height: var(--ql-dpad-size) !important;
+  transform: scale(var(--ql-dpad-scale, 2));
+  transform-origin: bottom left;
   left: calc(var(--ql-safe-left) + var(--ql-edge-gap)) !important;
   bottom: calc(var(--ql-safe-bottom) + var(--ql-edge-gap)) !important;
-}
-
-#dpad-btn-up,
-#dpad-btn-down,
-#dpad-btn-left,
-#dpad-btn-right {
-  width: var(--ql-dpad-button) !important;
-  height: var(--ql-dpad-button) !important;
 }
 
 /* Common 138px directional pads used by several station scenes. */
