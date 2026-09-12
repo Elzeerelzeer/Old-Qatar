@@ -44,7 +44,7 @@ export default function App() {
     useState<StationId | null>(null);
 
   /* ============================================================
-     CINEMATIC TRANSITION
+     CINEMATIC FADE
   ============================================================ */
 
   const [isFading, setIsFading] =
@@ -106,14 +106,11 @@ export default function App() {
       gender: 'boy',
 
       journeyStartDate:
-        new Date().toLocaleDateString(
-          'ar-QA',
-          {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          }
-        ),
+        new Date().toLocaleDateString('ar-QA', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
     });
 
   /* ============================================================
@@ -144,9 +141,7 @@ export default function App() {
   useEffect(() => {
     try {
       const saved =
-        localStorage.getItem(
-          STORAGE_KEY
-        );
+        localStorage.getItem(STORAGE_KEY);
 
       if (!saved) return;
 
@@ -158,15 +153,11 @@ export default function App() {
       }
 
       if (parsed.studentName) {
-        setStudentName(
-          parsed.studentName
-        );
+        setStudentName(parsed.studentName);
       }
 
       if (parsed.passport) {
-        setPassportRecord(
-          parsed.passport
-        );
+        setPassportRecord(parsed.passport);
       }
 
       if (parsed.settings) {
@@ -174,8 +165,7 @@ export default function App() {
           ...prev,
           ...parsed.settings,
 
-          // Browser requires user interaction
-          // before enabling audio.
+          // Browser policy: audio starts disabled until user interaction.
           isSoundEnabled: false,
         }));
       }
@@ -195,13 +185,12 @@ export default function App() {
         JSON.stringify({
           gender,
           studentName,
-          passport:
-            passportRecord,
+          passport: passportRecord,
           settings,
         })
       );
     } catch {
-      // Ignore localStorage failure.
+      // Ignore localStorage failures.
     }
   }, [
     gender,
@@ -216,13 +205,9 @@ export default function App() {
 
   useEffect(() => {
     if (settings.isQuietMode) {
-      document.body.classList.add(
-        'quiet-mode'
-      );
+      document.body.classList.add('quiet-mode');
     } else {
-      document.body.classList.remove(
-        'quiet-mode'
-      );
+      document.body.classList.remove('quiet-mode');
     }
   }, [settings.isQuietMode]);
 
@@ -231,9 +216,7 @@ export default function App() {
   ============================================================ */
 
   useEffect(() => {
-    soundManager.setVolume(
-      settings.volume
-    );
+    soundManager.setVolume(settings.volume);
   }, [settings.volume]);
 
   /* ============================================================
@@ -250,9 +233,7 @@ export default function App() {
         isSoundEnabled: next,
       }));
 
-      soundManager.setEnabled(
-        next
-      );
+      soundManager.setEnabled(next);
 
       if (next) {
         soundManager.playSuccess();
@@ -260,7 +241,7 @@ export default function App() {
     }, [settings.isSoundEnabled]);
 
   /* ============================================================
-     UPDATE SETTINGS
+     SETTINGS UPDATE
   ============================================================ */
 
   const handleUpdateSettings = (
@@ -283,21 +264,13 @@ export default function App() {
     setGender(selectedGender);
     setStudentName(name);
 
-    setPassportRecord(
-      (prev) => ({
-        ...prev,
+    setPassportRecord((prev) => ({
+      ...prev,
+      gender: selectedGender,
+      studentName: name,
+    }));
 
-        gender:
-          selectedGender,
-
-        studentName:
-          name,
-      })
-    );
-
-    setCurrentScene(
-      'gate_opening'
-    );
+    setCurrentScene('gate_opening');
   };
 
   /* ============================================================
@@ -307,17 +280,14 @@ export default function App() {
   const handleStampStation = (
     stationId: StationId
   ) => {
-    setPassportRecord(
-      (prev) => ({
-        ...prev,
+    setPassportRecord((prev) => ({
+      ...prev,
 
-        collectedStamps: {
-          ...prev.collectedStamps,
-
-          [stationId]: true,
-        },
-      })
-    );
+      collectedStamps: {
+        ...prev.collectedStamps,
+        [stationId]: true,
+      },
+    }));
   };
 
   /* ============================================================
@@ -340,10 +310,9 @@ export default function App() {
       STATIONS_DATA[id];
 
     /*
-      Keep the village player positioned
-      at the station entrance when returning.
+      Keep the village player positioned at the station entrance
+      when returning from that station.
     */
-
     setPlayerVillagePos({
       x: station.doorX,
       y: station.doorY,
@@ -354,11 +323,7 @@ export default function App() {
 
     setTimeout(() => {
       setActiveStationId(id);
-
-      setCurrentScene(
-        'station_interior'
-      );
-
+      setCurrentScene('station_interior');
       setIsFading(false);
     }, 280);
   };
@@ -372,14 +337,8 @@ export default function App() {
       setIsFading(true);
 
       setTimeout(() => {
-        setCurrentScene(
-          'village'
-        );
-
-        setActiveStationId(
-          null
-        );
-
+        setCurrentScene('village');
+        setActiveStationId(null);
         setIsFading(false);
       }, 280);
     };
@@ -410,13 +369,9 @@ export default function App() {
         className={`
           fixed
           inset-0
-
           z-[100]
-
           bg-black
-
           pointer-events-none
-
           transition-opacity
           duration-300
           ease-in-out
@@ -436,19 +391,11 @@ export default function App() {
       {currentScene === 'intro' && (
         <IntroScene
           onStart={() =>
-            setCurrentScene(
-              'character_select'
-            )
+            setCurrentScene('character_select')
           }
-          isSoundEnabled={
-            settings.isSoundEnabled
-          }
-          onToggleSound={
-            handleToggleSound
-          }
-          isQuietMode={
-            settings.isQuietMode
-          }
+          isSoundEnabled={settings.isSoundEnabled}
+          onToggleSound={handleToggleSound}
+          isQuietMode={settings.isQuietMode}
           onToggleQuietMode={() =>
             handleUpdateSettings({
               isQuietMode:
@@ -462,16 +409,11 @@ export default function App() {
           SCENE 2 — CHARACTER SELECT
       ======================================================== */}
 
-      {currentScene ===
-        'character_select' && (
+      {currentScene === 'character_select' && (
         <CharacterSelect
-          onSelect={
-            handleCharacterSelect
-          }
+          onSelect={handleCharacterSelect}
           onBack={() =>
-            setCurrentScene(
-              'intro'
-            )
+            setCurrentScene('intro')
           }
         />
       )}
@@ -480,17 +422,12 @@ export default function App() {
           SCENE 3 — GATE OPENING
       ======================================================== */}
 
-      {currentScene ===
-        'gate_opening' && (
+      {currentScene === 'gate_opening' && (
         <GateOpeningScene
           gender={gender}
-          isQuietMode={
-            settings.isQuietMode
-          }
+          isQuietMode={settings.isQuietMode}
           onComplete={() =>
-            setCurrentScene(
-              'village'
-            )
+            setCurrentScene('village')
           }
         />
       )}
@@ -499,8 +436,7 @@ export default function App() {
           SCENE 4 — VILLAGE
       ======================================================== */}
 
-      {currentScene ===
-        'village' && (
+      {currentScene === 'village' && (
         <>
           <VillageScene
             gender={gender}
@@ -508,39 +444,23 @@ export default function App() {
             stampedStations={
               passportRecord.collectedStamps
             }
-            initialPos={
-              playerVillagePos
-            }
-            onEnterStation={
-              handleEnterStation
-            }
-            onResetPositionRef={(
-              fn
-            ) => {
-              resetPositionRef.current =
-                fn;
+            initialPos={playerVillagePos}
+            onEnterStation={handleEnterStation}
+            onResetPositionRef={(fn) => {
+              resetPositionRef.current = fn;
             }}
           />
 
           <MinimalHud
             onGoHome={() => {
-              setCurrentScene(
-                'intro'
-              );
-
-              setActiveStationId(
-                null
-              );
+              setCurrentScene('intro');
+              setActiveStationId(null);
             }}
             onOpenPassport={() =>
-              setIsPassportOpen(
-                true
-              )
+              setIsPassportOpen(true)
             }
             onOpenSettings={() =>
-              setIsSettingsOpen(
-                true
-              )
+              setIsSettingsOpen(true)
             }
             isSoundEnabled={
               settings.isSoundEnabled
@@ -559,16 +479,14 @@ export default function App() {
           SCENE 5 — STATION INTERIOR
       ======================================================== */}
 
-      {currentScene ===
-        'station_interior' &&
+      {currentScene === 'station_interior' &&
         activeStationId && (
           <>
             {/* ==============================
                 SOUQ LOWWAL
             ============================== */}
 
-            {activeStationId ===
-              'souq' && (
+            {activeStationId === 'souq' && (
               <SouqScene
                 gender={gender}
                 settings={settings}
@@ -582,13 +500,15 @@ export default function App() {
                 PEARL SEA
             ============================== */}
 
-            {activeStationId ===
-              'pearl' && (
+            {activeStationId === 'pearl' && (
               <PearlScene
                 gender={gender}
                 settings={settings}
                 onReturnToVillage={
                   handleReturnToVillage
+                }
+                onComplete={() =>
+                  handleStampStation('pearl')
                 }
               />
             )}
@@ -597,28 +517,22 @@ export default function App() {
                 OTHER STATIONS
             ============================== */}
 
-            {activeStationId !==
-              'souq' &&
-              activeStationId !==
-                'pearl' && (
+            {activeStationId !== 'souq' &&
+              activeStationId !== 'pearl' && (
                 <StationScene
                   station={
                     STATIONS_DATA[
                       activeStationId
                     ]
                   }
-                  gender={
-                    gender
-                  }
+                  gender={gender}
                   isStamped={
                     passportRecord
                       .collectedStamps[
                       activeStationId
                     ]
                   }
-                  onStampPassport={(
-                    id
-                  ) =>
+                  onStampPassport={(id) =>
                     handleStampStation(
                       id as StationId
                     )
@@ -637,13 +551,9 @@ export default function App() {
 
       {isPassportOpen && (
         <PassportModal
-          passport={
-            passportRecord
-          }
+          passport={passportRecord}
           onClose={() =>
-            setIsPassportOpen(
-              false
-            )
+            setIsPassportOpen(false)
           }
           onStampStation={
             handleStampStation
@@ -657,27 +567,18 @@ export default function App() {
 
       {isSettingsOpen && (
         <SettingsModal
-          settings={
-            settings
-          }
+          settings={settings}
           gender={gender}
           onUpdateSettings={
             handleUpdateSettings
           }
-          onChangeGender={(
-            newGender
-          ) => {
-            setGender(
-              newGender
-            );
+          onChangeGender={(newGender) => {
+            setGender(newGender);
 
-            setPassportRecord(
-              (prev) => ({
-                ...prev,
-                gender:
-                  newGender,
-              })
-            );
+            setPassportRecord((prev) => ({
+              ...prev,
+              gender: newGender,
+            }));
           }}
           onResetPosition={() => {
             setPlayerVillagePos({
@@ -693,9 +594,7 @@ export default function App() {
             }
           }}
           onClose={() =>
-            setIsSettingsOpen(
-              false
-            )
+            setIsSettingsOpen(false)
           }
         />
       )}
