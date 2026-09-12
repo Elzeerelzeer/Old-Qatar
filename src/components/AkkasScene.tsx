@@ -23,6 +23,14 @@ interface AkkasSceneProps {
 
 type Step = 'welcome' | 'camera' | 'preview' | 'success';
 type ThemeId = 'maroon' | 'sea' | 'majlis' | 'crafts';
+
+type SceneId =
+  | 'souq'
+  | 'pearl'
+  | 'games'
+  | 'majlis'
+  | 'crafts'
+  | 'studio';
 type LookId =
   | 'boy-thobe'
   | 'boy-bisht'
@@ -42,6 +50,13 @@ interface ThemeOption {
   title: string;
   frameColor: string;
   accentColor: string;
+}
+
+interface SceneOption {
+  id: SceneId;
+  title: string;
+  subtitle: string;
+  imagePath: string;
 }
 
 const MASTER_IMAGE_PATH = '/assets/akkas-master-map.png';
@@ -65,6 +80,45 @@ const THEMES: ThemeOption[] = [
   { id: 'sea', title: 'البحر واللؤلؤ', frameColor: '#0E5A73', accentColor: '#EED79E' },
   { id: 'majlis', title: 'المجلس', frameColor: '#4D2B1F', accentColor: '#F3D289' },
   { id: 'crafts', title: 'بيت الحرف', frameColor: '#6D4A2B', accentColor: '#F0D08A' },
+];
+
+const SCENES: SceneOption[] = [
+  {
+    id: 'souq',
+    title: 'سوق لوّل',
+    subtitle: 'الدكاكين والفخار والتجارة',
+    imagePath: '/assets/souq-master-map.png.jpeg',
+  },
+  {
+    id: 'pearl',
+    title: 'بحر اللؤلؤ',
+    subtitle: 'البحر والمحمل والغوص',
+    imagePath: '/assets/pearl-sea-master-map.png',
+  },
+  {
+    id: 'games',
+    title: 'فريج الألعاب',
+    subtitle: 'ألعاب الفريج الشعبية',
+    imagePath: '/assets/games-master-map.png',
+  },
+  {
+    id: 'majlis',
+    title: 'مجلس لوّل',
+    subtitle: 'الضيافة والقهوة والبخور',
+    imagePath: '/assets/majlis-master-map.png',
+  },
+  {
+    id: 'crafts',
+    title: 'بيت الحرف',
+    subtitle: 'السدو والخوص وصناعة المحمل',
+    imagePath: '/assets/crafts-master-map.png',
+  },
+  {
+    id: 'studio',
+    title: 'استوديو قطر لوّل',
+    subtitle: 'الاستوديو التراثي',
+    imagePath: '/assets/akkas-master-map.png',
+  },
 ];
 
 function clamp(value: number, min: number, max: number) {
@@ -112,6 +166,53 @@ function drawCoverCrop(
   const sy = maxShiftY * normalizedY;
 
   ctx.drawImage(source, sx, sy, cropW, cropH, x, y, width, height);
+}
+
+
+function loadCanvasImage(src: string) {
+  return new Promise<HTMLImageElement | null>((resolve) => {
+    const image = new Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+
+    image.src = src;
+  });
+}
+
+function drawBackgroundCover(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+) {
+  const sourceRatio = image.naturalWidth / image.naturalHeight;
+  const targetRatio = width / height;
+
+  let sx = 0;
+  let sy = 0;
+  let sw = image.naturalWidth;
+  let sh = image.naturalHeight;
+
+  if (sourceRatio > targetRatio) {
+    sw = image.naturalHeight * targetRatio;
+    sx = (image.naturalWidth - sw) / 2;
+  } else {
+    sh = image.naturalWidth / targetRatio;
+    sy = (image.naturalHeight - sh) / 2;
+  }
+
+  ctx.drawImage(
+    image,
+    sx,
+    sy,
+    sw,
+    sh,
+    0,
+    0,
+    width,
+    height,
+  );
 }
 
 function drawStudioBackground(
@@ -422,6 +523,7 @@ export function AkkasScene({
     gender === 'boy' ? 'boy-thobe' : 'girl-bukhnaq',
   );
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>('maroon');
+  const [selectedScene, setSelectedScene] = useState<SceneId>('souq');
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
@@ -440,6 +542,7 @@ export function AkkasScene({
   const looks = useMemo(() => (gender === 'boy' ? BOY_LOOKS : GIRL_LOOKS), [gender]);
   const currentLook = looks.find((item) => item.id === selectedLook) ?? looks[0];
   const currentTheme = THEMES.find((item) => item.id === selectedTheme) ?? THEMES[0];
+  const currentScene = SCENES.find((item) => item.id === selectedScene) ?? SCENES[0];
   const visitorLabel = gender === 'boy' ? 'المنتسب' : 'المنتسبة';
   const displayedName =
     studentName.trim() || (gender === 'boy' ? 'منتسب قطر لوّل' : 'منتسبة قطر لوّل');
@@ -570,7 +673,77 @@ export function AkkasScene({
 
       canvas.width = PHOTO_WIDTH;
       canvas.height = PHOTO_HEIGHT;
-      drawStudioBackground(ctx, currentTheme);
+      const sceneImage = await loadCanvasImage(currentScene.imagePath);
+
+      if (sceneImage) {
+        drawBackgroundCover(
+          ctx,
+          sceneImage,
+          PHOTO_WIDTH,
+          PHOTO_HEIGHT,
+        );
+
+        // Darken the background slightly so the visitor/outfit remains clear.
+        const sceneShade = ctx.createLinearGradient(
+          0,
+          0,
+          0,
+          PHOTO_HEIGHT,
+        );
+
+        sceneShade.addColorStop(
+          0,
+          'rgba(0,0,0,.06)',
+        );
+
+        sceneShade.addColorStop(
+          0.55,
+          'rgba(0,0,0,.12)',
+        );
+
+        sceneShade.addColorStop(
+          1,
+          'rgba(0,0,0,.28)',
+        );
+
+        ctx.fillStyle = sceneShade;
+        ctx.fillRect(
+          0,
+          0,
+          PHOTO_WIDTH,
+          PHOTO_HEIGHT,
+        );
+
+        ctx.strokeStyle =
+          currentTheme.accentColor;
+
+        ctx.lineWidth = 8;
+
+        ctx.strokeRect(
+          28,
+          28,
+          PHOTO_WIDTH - 56,
+          PHOTO_HEIGHT - 56,
+        );
+
+        ctx.strokeStyle =
+          currentTheme.frameColor;
+
+        ctx.lineWidth = 18;
+
+        ctx.strokeRect(
+          45,
+          45,
+          PHOTO_WIDTH - 90,
+          PHOTO_HEIGHT - 90,
+        );
+      } else {
+        // Fallback in case a station image has not been copied to /public/assets yet.
+        drawStudioBackground(
+          ctx,
+          currentTheme,
+        );
+      }
 
       const faceW = 255;
       const faceH = 315;
@@ -642,7 +815,11 @@ export function AkkasScene({
 
       ctx.fillStyle = currentTheme.accentColor;
       ctx.font = 'bold 23px Arial';
-      ctx.fillText(`${currentLook.title} • ${currentTheme.title}`, PHOTO_WIDTH / 2, 892);
+      ctx.fillText(
+        `${currentScene.title} • ${currentLook.title}`,
+        PHOTO_WIDTH / 2,
+        892,
+      );
 
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob(resolve, 'image/png', 0.95),
@@ -715,7 +892,7 @@ export function AkkasScene({
               {gender === 'boy' ? 'جاهز لصورتك التراثية؟' : 'جاهزة لصورتك التراثية؟'}
             </h1>
             <p className="mt-3 text-sm sm:text-base text-white/90 leading-relaxed">
-              هذه النسخة تعرض <strong>الوجه فقط</strong> داخل فتحة اللبس، لذلك لن يظهر القميص أو الملابس الحالية في الصورة النهائية.
+              اختر اللبس التراثي ثم اختر <strong>منظرًا من محطات قطر لوّل</strong> مثل السوق أو البحر أو المجلس أو بيت الحرف لتخرج الصورة مرتبطة بالنشاط.
             </p>
             <div className="mt-4 rounded-2xl border border-emerald-300/35 bg-emerald-950/40 p-3 flex items-center justify-center gap-2 text-xs sm:text-sm text-emerald-100">
               <ShieldCheck className="w-5 h-5 text-emerald-300" />
@@ -741,7 +918,16 @@ export function AkkasScene({
               </div>
 
               <div className="relative mx-auto w-full max-w-[820px] aspect-[5/4] max-h-[61dvh] overflow-hidden rounded-[24px] border-[3px] bg-[#8a5d39]" style={{ borderColor: currentTheme.accentColor }}>
-                <img src={MASTER_IMAGE_PATH} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" draggable={false} />
+                <img
+                  src={currentScene.imagePath}
+                  alt={currentScene.title}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                  draggable={false}
+                  onError={(event) => {
+                    event.currentTarget.src = MASTER_IMAGE_PATH;
+                  }}
+                />
+
                 <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/35" />
 
                 {/* Outfit sits BEHIND the real face. */}
@@ -785,12 +971,12 @@ export function AkkasScene({
                 </div>
 
                 <div className="absolute z-30 top-3 left-1/2 -translate-x-1/2 rounded-full bg-black/65 border border-white/15 px-4 py-2 text-xs sm:text-sm font-black whitespace-nowrap">
-                  {currentLook.title} • {currentTheme.title}
+                  {currentScene.title} • {currentLook.title}
                 </div>
 
                 <div className="absolute z-30 bottom-3 left-1/2 -translate-x-1/2 max-w-[90%] rounded-full bg-black/70 border border-[#FFE082]/30 px-4 py-2 text-[11px] sm:text-xs text-center">
                   {isCameraReady || uploadedImageUrl
-                    ? 'الوجه يجب أن يظهر داخل الإطار الذهبي — استخدم الأسهم إذا احتاج ضبطًا'
+                    ? `الوجه داخل الإطار • الخلفية: ${currentScene.title}`
                     : 'جاري فتح الكاميرا…'}
                 </div>
               </div>
@@ -838,6 +1024,66 @@ export function AkkasScene({
               </div>
 
               <div className="mt-4 pt-4 border-t border-white/10">
+                <h3 className="text-base font-black text-[#FFE082]">
+                  منظر التصوير
+                </h3>
+
+                <p className="mt-1 text-[11px] text-white/60">
+                  اختر منظرًا من محطات قطر لوّل ليظهر خلف المنتسب أو المنتسبة في الصورة.
+                </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {SCENES.map((scene) => {
+                    const selected =
+                      selectedScene === scene.id;
+
+                    return (
+                      <button
+                        key={scene.id}
+                        onClick={() =>
+                          setSelectedScene(scene.id)
+                        }
+                        className={`relative overflow-hidden rounded-2xl border-2 min-h-[90px] text-right transition-all ${
+                          selected
+                            ? 'border-[#FFE082] ring-2 ring-[#8A1538] bg-white/10'
+                            : 'border-white/15 bg-black/20'
+                        }`}
+                      >
+                        <img
+                          src={scene.imagePath}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-cover opacity-55"
+                          draggable={false}
+                          onError={(event) => {
+                            event.currentTarget.src =
+                              MASTER_IMAGE_PATH;
+                          }}
+                        />
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10" />
+
+                        <div className="relative z-10 h-full p-2.5 flex flex-col justify-end">
+                          <div className="text-xs sm:text-sm font-black text-[#FFE082]">
+                            {scene.title}
+                          </div>
+
+                          <div className="mt-0.5 text-[9px] sm:text-[10px] text-white/80 leading-tight">
+                            {scene.subtitle}
+                          </div>
+
+                          {selected && (
+                            <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#8A1538] border border-[#FFE082] flex items-center justify-center text-[#FFE082]">
+                              ✓
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-white/10">
                 <h3 className="text-base font-black text-[#FFE082]">ضبط الوجه</h3>
                 <p className="mt-1 text-[11px] text-white/60">الافتراضي يلتقط أعلى الصورة لإظهار الرأس. استخدم الأسهم لضبط الوجه بدقة.</p>
 
@@ -864,7 +1110,7 @@ export function AkkasScene({
               </div>
 
               <div className="mt-4 pt-4 border-t border-white/10">
-                <h3 className="text-base font-black text-[#FFE082]">إطار الصورة</h3>
+                <h3 className="text-base font-black text-[#FFE082]">لون إطار الصورة</h3>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   {THEMES.map((theme) => (
                     <button
