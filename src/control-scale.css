@@ -97,7 +97,7 @@
   :root {
     --ql-controls-scale: 2;
     --ql-hud-scale: 2;
-    --ql-dpad-size: 138px;
+    --ql-dpad-size: 200px;
     --ql-dpad-button: 44px;
     --ql-touch-target: 44px;
   }
