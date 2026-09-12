@@ -26,6 +26,7 @@ import { PearlScene } from './components/PearlScene';
 import { GamesScene } from './components/GamesScene';
 import { MajlisScene } from './components/MajlisScene';
 import { CraftsScene } from './components/CraftsScene';
+import { AkkasScene } from './components/AkkasScene';
 
 import { PassportModal } from './components/PassportModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -355,7 +356,8 @@ export default function App() {
       className="
         relative
         w-full
-        h-screen
+        h-[100dvh]
+        min-h-[100dvh]
         overflow-hidden
         select-none
         bg-[#1a0e08]
@@ -568,6 +570,24 @@ export default function App() {
             )}
 
             {/* ==============================
+                AKKAS / QATAR LOWWAL STUDIO
+            ============================== */}
+
+            {activeStationId === 'akkas' && (
+              <AkkasScene
+                gender={gender}
+                settings={settings}
+                studentName={studentName}
+                onReturnToVillage={
+                  handleReturnToVillage
+                }
+                onComplete={() =>
+                  handleStampStation('akkas')
+                }
+              />
+            )}
+
+            {/* ==============================
                 OTHER STATIONS
             ============================== */}
 
@@ -575,7 +595,8 @@ export default function App() {
               activeStationId !== 'pearl' &&
               activeStationId !== 'games' &&
               activeStationId !== 'majlis' &&
-              activeStationId !== 'crafts' && (
+              activeStationId !== 'crafts' &&
+              activeStationId !== 'akkas' && (
                 <StationScene
                   station={
                     STATIONS_DATA[
