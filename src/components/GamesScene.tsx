@@ -298,10 +298,91 @@ function DPad({onStart,onEnd}:{onStart:(d:Direction)=>void;onEnd:()=>void}) {
 }
 
 function Frame({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}) {
-  return <div className="fixed inset-0 z-[250] bg-black/70 backdrop-blur-md flex items-center justify-center p-4"><div className="relative w-full max-w-2xl rounded-[30px] border-2 border-[#FFE082] bg-[#06283a]/95 p-6 text-white shadow-2xl">
-    <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/30 border border-white/20 flex items-center justify-center"><X className="w-5 h-5"/></button>
-    <h2 className="text-center text-3xl font-black text-[#FFE082]">{title}</h2>{children}
-  </div></div>;
+  return (
+    <div
+      className="
+        fixed
+        inset-0
+        z-[250]
+        bg-black/70
+        backdrop-blur-md
+        flex
+        items-center
+        justify-center
+        p-2
+        sm:p-4
+        overflow-hidden
+      "
+      dir="rtl"
+    >
+      <div
+        className="
+          relative
+          w-full
+          max-w-2xl
+          max-h-[calc(100dvh-1rem)]
+          sm:max-h-[calc(100dvh-2rem)]
+          overflow-y-auto
+          overscroll-contain
+          rounded-[24px]
+          sm:rounded-[30px]
+          border-2
+          border-[#FFE082]
+          bg-[#06283a]/95
+          p-4
+          sm:p-6
+          pb-24
+          text-white
+          shadow-2xl
+          [scrollbar-width:thin]
+        "
+      >
+        <button
+          onClick={onClose}
+          className="
+            sticky
+            top-0
+            float-left
+            z-[40]
+            w-10
+            h-10
+            rounded-full
+            bg-[#061f2c]/95
+            border
+            border-white/25
+            flex
+            items-center
+            justify-center
+            shadow-lg
+          "
+          aria-label="إغلاق"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h2
+          className="
+            sticky
+            top-0
+            z-[30]
+            bg-[#06283a]/96
+            py-2
+            text-center
+            text-2xl
+            sm:text-3xl
+            font-black
+            text-[#FFE082]
+          "
+        >
+          {title}
+        </h2>
+
+        <div className="clear-both">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Dahrooj({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
@@ -477,7 +558,7 @@ function Dahrooj({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
       </div>
     </div>
 
-    {finished&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">
+    {finished&&<button onClick={onWin} className="sticky bottom-2 z-[50] mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.45)] active:scale-95">
       اعتماد الإنجاز ✓
     </button>}
   </Frame>;
@@ -608,7 +689,7 @@ function Teela({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
       </div>
     </div>
 
-    {hits>=3&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">اعتماد الإنجاز ✓</button>}
+    {hits>=3&&<button onClick={onWin} className="sticky bottom-2 z-[50] mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.45)] active:scale-95">اعتماد الإنجاز ✓</button>}
   </Frame>;
 }
 function Saqla({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
@@ -783,7 +864,7 @@ function Saqla({onClose,onWin}:{onClose:()=>void;onWin:()=>void}) {
       </div>
     </div>
 
-    {stage==='done'&&<button onClick={onWin} className="mt-5 w-full rounded-2xl bg-emerald-700 border-2 border-[#FFE082] py-3 font-black text-white active:scale-95">
+    {stage==='done'&&<button onClick={onWin} className="sticky bottom-2 z-[50] mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-[0_10px_30px_rgba(0,0,0,.45)] active:scale-95">
       اعتماد الإنجاز ✓
     </button>}
   </Frame>;
