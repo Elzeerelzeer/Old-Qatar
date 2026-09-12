@@ -24,6 +24,7 @@ import { StationScene } from './components/StationScene';
 import { SouqScene } from './components/SouqScene';
 import { PearlScene } from './components/PearlScene';
 import { GamesScene } from './components/GamesScene';
+import { MajlisScene } from './components/MajlisScene';
 
 import { PassportModal } from './components/PassportModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -532,12 +533,30 @@ export default function App() {
             )}
 
             {/* ==============================
+                MAJLIS LOWWAL
+            ============================== */}
+
+            {activeStationId === 'majlis' && (
+              <MajlisScene
+                gender={gender}
+                settings={settings}
+                onReturnToVillage={
+                  handleReturnToVillage
+                }
+                onComplete={() =>
+                  handleStampStation('majlis')
+                }
+              />
+            )}
+
+            {/* ==============================
                 OTHER STATIONS
             ============================== */}
 
             {activeStationId !== 'souq' &&
               activeStationId !== 'pearl' &&
-              activeStationId !== 'games' && (
+              activeStationId !== 'games' &&
+              activeStationId !== 'majlis' && (
                 <StationScene
                   station={
                     STATIONS_DATA[
