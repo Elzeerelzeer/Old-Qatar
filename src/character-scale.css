@@ -37,7 +37,7 @@
 /* Desktop / laptop */
 @media (min-width: 1200px) and (max-width: 1599px) {
   :root {
-    --ql-character-scale: 1.12;
+    --ql-character-scale: 1.48;
   }
 }
 
