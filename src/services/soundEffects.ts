@@ -17,6 +17,9 @@ class SoundSystem {
   private ambientSeaAudio: HTMLAudioElement | null = null;
   private isAmbientSeaPlaying: boolean = false;
 
+  private ambientVillageAudio: HTMLAudioElement | null = null;
+  private isAmbientVillagePlaying: boolean = false;
+
   private ambientSouqAudio: HTMLAudioElement | null = null;
   private isAmbientSouqPlaying: boolean = false;
   private autoplayUnlockAttached: boolean = false;
@@ -49,6 +52,9 @@ class SoundSystem {
       }
       if (this.isAmbientSeaPlaying && this.ambientSeaAudio) {
         this.ambientSeaAudio.play().catch(() => {});
+      }
+      if (this.isAmbientVillagePlaying && this.ambientVillageAudio) {
+        this.ambientVillageAudio.play().catch(() => {});
       }
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
@@ -93,11 +99,21 @@ class SoundSystem {
       if (this.isAmbientSeaPlaying && this.ambientSeaAudio) {
         this.ambientSeaAudio.play().catch(() => {});
       }
+      if (this.isAmbientVillagePlaying && this.ambientVillageAudio) {
+        this.ambientVillageAudio.play().catch(() => {});
+      }
     } else {
       this.stopAmbientSea();
       if (this.ambientSouqAudio) {
         try {
           this.ambientSouqAudio.pause();
+        } catch {
+          // ignore
+        }
+      }
+      if (this.ambientVillageAudio) {
+        try {
+          this.ambientVillageAudio.pause();
         } catch {
           // ignore
         }
@@ -119,6 +135,9 @@ class SoundSystem {
     }
     if (this.ambientSouqAudio) {
       this.ambientSouqAudio.volume = Math.max(0, Math.min(1, this.volume * 0.38));
+    }
+    if (this.ambientVillageAudio) {
+      this.ambientVillageAudio.volume = Math.max(0, Math.min(1, this.volume * 0.30));
     }
   }
 
@@ -170,6 +189,7 @@ class SoundSystem {
       try {
         const cache = await caches.open('qatar-lowwal-audio-v1');
         const urlsToCache = [
+          '/sounds/village_ambient_music.wav',
           '/sounds/souq_ambience.wav',
           ...narrationList.map((id) => `/sounds/narration/${id}.wav`),
         ];
@@ -390,6 +410,61 @@ class SoundSystem {
 
   public isSouqAmbientActive(): boolean {
     return this.isAmbientSouqPlaying;
+  }
+
+  // 3c. الموسيقى التراثية الهادئة لقرية قطر لوّل (Traditional gentle ambient village music loop)
+  public startAmbientVillageMusic() {
+    this.isAmbientVillagePlaying = true;
+    if (!this.isEnabled) {
+      return;
+    }
+    this.init();
+
+    if (!this.ambientVillageAudio && typeof Audio !== 'undefined') {
+      try {
+        this.ambientVillageAudio = new Audio('/sounds/village_ambient_music.wav');
+        this.ambientVillageAudio.loop = true;
+        this.ambientVillageAudio.preload = 'auto';
+      } catch (err) {
+        console.warn('Could not initialize Village Music audio element', err);
+      }
+    }
+
+    if (this.ambientVillageAudio) {
+      this.ambientVillageAudio.volume = Math.max(0, Math.min(1, this.volume * 0.30));
+      this.ambientVillageAudio.loop = true;
+      this.ambientVillageAudio.play().catch(() => {
+        this.attachAutoplayUnlock();
+      });
+    }
+  }
+
+  public stopAmbientVillageMusic() {
+    this.isAmbientVillagePlaying = false;
+    if (this.ambientVillageAudio) {
+      try {
+        this.ambientVillageAudio.pause();
+        this.ambientVillageAudio.currentTime = 0;
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  public startVillageMusic() {
+    this.startAmbientVillageMusic();
+  }
+
+  public stopVillageMusic() {
+    this.stopAmbientVillageMusic();
+  }
+
+  public isVillageAmbientActive(): boolean {
+    return this.isAmbientVillagePlaying;
+  }
+
+  public isVillageMusicPlaying(): boolean {
+    return this.isAmbientVillagePlaying && this.isEnabled;
   }
 
   // 4. صوت النجاح / الختم / الوصول (Celebration / stamp / chime)

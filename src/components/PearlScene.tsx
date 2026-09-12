@@ -1275,7 +1275,7 @@ export function PearlScene({
         )}
 
         {/* ====================================================
-            PEARL PULSE / SHELL HOTSPOTS
+            SHELL HOTSPOTS – EXTRA CLEAR / NO FLASHING
         ==================================================== */}
 
         {phase ===
@@ -1287,16 +1287,25 @@ export function PearlScene({
                   shell.id
                 );
 
-              const isNearest =
-                nearestShell
-                  ?.shell.id ===
-                shell.id;
-
-              if (
-                opened
-              ) {
+              if (opened) {
                 return null;
               }
+
+              const distance =
+                Math.hypot(
+                  playerPos.x -
+                    shell.x,
+
+                  playerPos.y -
+                    shell.y
+                );
+
+              const isClose =
+                distance <=
+                shell.radius;
+
+              const isNearby =
+                distance <= 20;
 
               return (
                 <div
@@ -1318,48 +1327,89 @@ export function PearlScene({
                       `${shell.y}%`,
                   }}
                 >
-                  {isNearest &&
-                    pulseStrength >
-                      0.18 && (
-                      <>
-                        <div
-                          className="
-                            absolute
-                            left-1/2
-                            top-1/2
-                            -translate-x-1/2
-                            -translate-y-1/2
-                            rounded-full
-                            bg-[#FFD86A]/25
-                            blur-xl
-                            animate-pulse
-                          "
-                          style={{
-                            width:
-                              `${70 + pulseStrength * 80}px`,
+                  {/* Always-visible shell marker */}
+                  <div
+                    className={`
+                      relative
+                      flex
+                      items-center
+                      justify-center
+                      rounded-full
+                      border-2
+                      shadow-[0_6px_18px_rgba(0,0,0,0.45)]
+                      transition-all
+                      duration-200
 
-                            height:
-                              `${70 + pulseStrength * 80}px`,
-                          }}
-                        />
+                      ${
+                        isClose
+                          ? 'w-20 h-20 bg-[#8A1538]/95 border-[#FFE082]'
+                          : isNearby
+                            ? 'w-16 h-16 bg-[#16394A]/95 border-[#FFE082]/90'
+                            : 'w-12 h-12 bg-[#0A2A3A]/90 border-white/55'
+                      }
+                    `}
+                  >
+                    <span
+                      className={`
+                        leading-none
+                        drop-shadow-[0_3px_4px_rgba(0,0,0,0.55)]
 
-                        <div
-                          className="
-                            absolute
-                            left-1/2
-                            top-1/2
-                            -translate-x-1/2
-                            -translate-y-1/2
-                            w-7
-                            h-7
-                            rounded-full
-                            border-2
-                            border-[#FFE082]/75
-                            animate-ping
-                          "
-                        />
-                      </>
-                    )}
+                        ${
+                          isClose
+                            ? 'text-5xl'
+                            : isNearby
+                              ? 'text-4xl'
+                              : 'text-3xl'
+                        }
+                      `}
+                    >
+                      🦪
+                    </span>
+                  </div>
+
+                  {/* Static clear halo only when nearby */}
+                  {isNearby && (
+                    <div
+                      className="
+                        absolute
+                        left-1/2
+                        top-1/2
+                        -translate-x-1/2
+                        -translate-y-1/2
+                        -z-10
+                        w-28
+                        h-28
+                        rounded-full
+                        bg-[#FFE082]/14
+                        shadow-[0_0_28px_rgba(255,224,130,0.30)]
+                      "
+                    />
+                  )}
+
+                  {/* Clear text label only when close */}
+                  {isClose && (
+                    <div
+                      className="
+                        absolute
+                        top-[88px]
+                        left-1/2
+                        -translate-x-1/2
+                        whitespace-nowrap
+                        rounded-full
+                        bg-black/80
+                        border
+                        border-[#FFE082]/70
+                        px-3
+                        py-1.5
+                        text-sm
+                        font-black
+                        text-[#FFE082]
+                        shadow-lg
+                      "
+                    >
+                      محارة
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -1485,8 +1535,7 @@ export function PearlScene({
                       border
                       border-white/55
                       bg-cyan-100/10
-                      animate-pulse
-
+  
                       ${
                         lastHorizontalDirection ===
                         'right'
@@ -1956,10 +2005,11 @@ export function PearlScene({
                 bg-black/45
                 border
                 border-[#FFE082]/40
-                px-4
-                py-2
+                px-5
+                py-3
                 text-[#FFE082]
                 backdrop-blur-md
+                shadow-[0_8px_22px_rgba(0,0,0,0.38)]
               "
             >
               <Gem
@@ -1971,7 +2021,9 @@ export function PearlScene({
 
               <span
                 className="
+                  text-2xl
                   font-black
+                  leading-none
                 "
               >
                 {score}
@@ -1987,76 +2039,6 @@ export function PearlScene({
             </div>
           </div>
 
-          {/* PEARL PULSE GUIDE */}
-
-          {nearestShell &&
-            pulseStrength >
-              0.12 && (
-              <div
-                className="
-                  fixed
-                  left-1/2
-                  top-5
-                  -translate-x-1/2
-                  z-50
-                  pointer-events-none
-                "
-              >
-                <div
-                  className="
-                    flex
-                    items-center
-                    gap-2
-                    rounded-full
-                    bg-[#5a381a]/80
-                    border
-                    border-[#FFE082]/60
-                    px-4
-                    py-2
-                    text-[#FFE082]
-                    backdrop-blur-md
-                    shadow-xl
-                  "
-                  style={{
-                    transform:
-                      `scale(${0.94 + pulseStrength * 0.10})`,
-                  }}
-                >
-                  <Sparkles
-                    className="
-                      w-4
-                      h-4
-                      animate-pulse
-                    "
-                  />
-
-                  <span
-                    className="
-                      text-sm
-                      font-black
-                    "
-                  >
-                    نبض اللؤلؤ
-                  </span>
-
-                  <span
-                    className="
-                      text-xs
-                      text-white/80
-                    "
-                  >
-                    {pulseStrength >
-                    0.72
-                      ? 'قريب جدًا'
-                      : pulseStrength >
-                          0.45
-                        ? 'اقترب أكثر'
-                        : 'اتبع الوهج'}
-                  </span>
-                </div>
-              </div>
-            )}
-
           {/* OPEN SHELL ACTION */}
 
           {nearShell && (
@@ -2069,33 +2051,36 @@ export function PearlScene({
               className="
                 fixed
                 left-1/2
-                bottom-7
+                bottom-8
                 -translate-x-1/2
                 z-[120]
                 flex
                 items-center
-                gap-2
-                rounded-full
+                gap-3
+                rounded-2xl
                 bg-[#8A1538]
                 border-2
                 border-[#FFE082]
-                px-6
-                py-3
+                px-7
+                py-3.5
                 text-[#FFE082]
+                text-lg
                 font-black
-                shadow-[0_10px_30px_rgba(0,0,0,.45)]
+                shadow-[0_10px_30px_rgba(0,0,0,0.5)]
                 active:scale-95
-                animate-pulse
+                transition-transform
               "
             >
               <Shell
                 className="
-                  w-5
-                  h-5
+                  w-6
+                  h-6
                 "
               />
 
-              افتح المحارة
+              <span>
+                افتح المحارة
+              </span>
             </button>
           )}
 
@@ -2455,7 +2440,6 @@ export function PearlScene({
                   text-[130px]
                   leading-none
                   drop-shadow-[0_18px_20px_rgba(0,0,0,.35)]
-                  animate-[pulse_1.8s_ease-in-out_infinite]
                 "
               >
                 {openedShell
@@ -2509,7 +2493,6 @@ export function PearlScene({
                     w-9
                     h-9
                     text-[#FFE082]
-                    animate-pulse
                   "
                 />
               )}
@@ -2526,6 +2509,63 @@ export function PearlScene({
                 openedShell.title
               }
             </h3>
+
+            {openedShell.shell.reward === 'pearl' && (
+              <div
+                className="
+                  mt-4
+                  mx-auto
+                  w-fit
+                  rounded-full
+                  bg-[#0E6B56]
+                  border-2
+                  border-[#FFE082]
+                  px-6
+                  py-2
+                  text-2xl
+                  font-black
+                  text-white
+                  shadow-lg
+                "
+              >
+                +10 نقطة
+              </div>
+            )}
+
+            {openedShell.shell.reward === 'dana' && (
+              <div
+                className="
+                  mt-4
+                  mx-auto
+                  w-fit
+                  rounded-full
+                  bg-[#8A1538]
+                  border-2
+                  border-[#FFE082]
+                  px-7
+                  py-2.5
+                  text-3xl
+                  font-black
+                  text-[#FFE082]
+                  shadow-lg
+                "
+              >
+                +50 نقطة
+              </div>
+            )}
+
+            {openedShell.shell.reward === 'empty' && (
+              <div
+                className="
+                  mt-4
+                  text-base
+                  font-bold
+                  text-white/75
+                "
+              >
+                لا توجد نقاط
+              </div>
+            )}
 
             <p
               className="

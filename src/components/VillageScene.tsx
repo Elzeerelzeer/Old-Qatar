@@ -161,12 +161,17 @@ export const VillageScene: React.FC<VillageSceneProps> = ({
     }
   }, [onResetPositionRef, resetToGate]);
 
-  // Ambient sea sounds
+  // Ambient traditional village music & sea atmosphere
   useEffect(() => {
     if (settings.isSoundEnabled) {
+      soundManager.startAmbientVillageMusic();
       soundManager.startAmbientSea();
+    } else {
+      soundManager.stopAmbientVillageMusic();
+      soundManager.stopAmbientSea();
     }
     return () => {
+      soundManager.stopAmbientVillageMusic();
       soundManager.stopAmbientSea();
     };
   }, [settings.isSoundEnabled]);
