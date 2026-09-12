@@ -1342,10 +1342,10 @@ export function PearlScene({
 
                       ${
                         isClose
-                          ? 'w-20 h-20 bg-[#8A1538]/95 border-[#FFE082]'
+                          ? 'w-24 h-24 bg-[#8A1538] border-[3px] border-[#FFE082] shadow-[0_0_0_5px_rgba(255,224,130,0.18),0_8px_24px_rgba(0,0,0,0.50)]'
                           : isNearby
-                            ? 'w-16 h-16 bg-[#16394A]/95 border-[#FFE082]/90'
-                            : 'w-12 h-12 bg-[#0A2A3A]/90 border-white/55'
+                            ? 'w-20 h-20 bg-[#12394C] border-[3px] border-[#FFE082] shadow-[0_0_0_4px_rgba(255,224,130,0.14),0_7px_20px_rgba(0,0,0,0.45)]'
+                            : 'w-16 h-16 bg-[#082B3D]/96 border-2 border-[#F5E6BF] shadow-[0_6px_18px_rgba(0,0,0,0.45)]'
                       }
                     `}
                   >
@@ -1356,10 +1356,10 @@ export function PearlScene({
 
                         ${
                           isClose
-                            ? 'text-5xl'
+                            ? 'text-6xl'
                             : isNearby
-                              ? 'text-4xl'
-                              : 'text-3xl'
+                              ? 'text-5xl'
+                              : 'text-4xl'
                         }
                       `}
                     >
@@ -1377,11 +1377,11 @@ export function PearlScene({
                         -translate-x-1/2
                         -translate-y-1/2
                         -z-10
-                        w-28
-                        h-28
+                        w-36
+                        h-36
                         rounded-full
-                        bg-[#FFE082]/14
-                        shadow-[0_0_28px_rgba(255,224,130,0.30)]
+                        bg-[#FFE082]/18
+                        shadow-[0_0_38px_rgba(255,224,130,0.38)]
                       "
                     />
                   )}
@@ -1391,7 +1391,7 @@ export function PearlScene({
                     <div
                       className="
                         absolute
-                        top-[88px]
+                        top-[108px]
                         left-1/2
                         -translate-x-1/2
                         whitespace-nowrap
@@ -2010,6 +2010,8 @@ export function PearlScene({
                 text-[#FFE082]
                 backdrop-blur-md
                 shadow-[0_8px_22px_rgba(0,0,0,0.38)]
+                min-w-[132px]
+                justify-center
               "
             >
               <Gem
@@ -2021,7 +2023,7 @@ export function PearlScene({
 
               <span
                 className="
-                  text-2xl
+                  text-3xl
                   font-black
                   leading-none
                 "
@@ -2031,10 +2033,38 @@ export function PearlScene({
 
               <span
                 className="
-                  text-xs
+                  text-sm
+                  font-bold
                 "
               >
-                نقطة
+                النقاط
+              </span>
+            </div>
+
+            <div
+              className="
+                flex
+                items-center
+                gap-2
+                rounded-full
+                bg-black/50
+                border-2
+                border-[#E6C280]/55
+                px-5
+                py-3
+                text-white
+                backdrop-blur-md
+                shadow-[0_8px_22px_rgba(0,0,0,0.38)]
+              "
+            >
+              <Shell className="w-5 h-5 text-[#FFE082]" />
+
+              <span className="text-xl font-black text-[#FFE082]">
+                {openedShellIds.length}
+              </span>
+
+              <span className="text-sm font-bold text-white/90">
+                / {SHELLS.length} محارات
               </span>
             </div>
           </div>
@@ -2059,14 +2089,16 @@ export function PearlScene({
                 gap-3
                 rounded-2xl
                 bg-[#8A1538]
-                border-2
+                border-[3px]
                 border-[#FFE082]
-                px-7
-                py-3.5
+                min-w-[300px]
+                justify-center
+                px-8
+                py-4
                 text-[#FFE082]
-                text-lg
+                text-xl
                 font-black
-                shadow-[0_10px_30px_rgba(0,0,0,0.5)]
+                shadow-[0_12px_34px_rgba(0,0,0,0.58)]
                 active:scale-95
                 transition-transform
               "
@@ -2520,9 +2552,10 @@ export function PearlScene({
                   bg-[#0E6B56]
                   border-2
                   border-[#FFE082]
-                  px-6
-                  py-2
-                  text-2xl
+                  min-w-[190px]
+                  px-8
+                  py-3
+                  text-4xl
                   font-black
                   text-white
                   shadow-lg
@@ -2542,9 +2575,10 @@ export function PearlScene({
                   bg-[#8A1538]
                   border-2
                   border-[#FFE082]
-                  px-7
-                  py-2.5
-                  text-3xl
+                  min-w-[210px]
+                  px-9
+                  py-3.5
+                  text-5xl
                   font-black
                   text-[#FFE082]
                   shadow-lg
@@ -2558,9 +2592,17 @@ export function PearlScene({
               <div
                 className="
                   mt-4
-                  text-base
-                  font-bold
-                  text-white/75
+                  mx-auto
+                  w-fit
+                  rounded-full
+                  bg-white/10
+                  border-2
+                  border-white/30
+                  px-6
+                  py-2.5
+                  text-xl
+                  font-black
+                  text-white
                 "
               >
                 لا توجد نقاط
