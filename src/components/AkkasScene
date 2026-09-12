@@ -1,6 +1,4 @@
-from pathlib import Path
-
-code = r'''import React, {
+import React, {
   useEffect,
   useMemo,
   useRef,
@@ -36,11 +34,7 @@ interface AkkasSceneProps {
   onComplete?: () => void;
 }
 
-type Step =
-  | 'welcome'
-  | 'camera'
-  | 'preview'
-  | 'success';
+type Step = 'welcome' | 'camera' | 'preview' | 'success';
 
 type SceneId =
   | 'souq'
@@ -64,155 +58,131 @@ interface SceneOption {
   subtitle: string;
   imagePath: string;
   slot: PhotoSlot;
+  defaultZoom: number;
+  defaultOffsetX: number;
+  defaultOffsetY: number;
 }
 
-/*
-  IMPORTANT:
-  The visitor photo position is fixed for each activity background.
-  Values are percentages relative to the scene image.
-  If you later want to fine-tune one scene, edit only its slot values below.
-*/
 const SCENES: SceneOption[] = [
   {
     id: 'souq',
     title: 'سوق لوّل',
     subtitle: 'الدكاكين والفخار والتجارة',
-    imagePath:
-      '/assets/souq-master-map.png.jpeg',
+    imagePath: '/assets/souq-master-map.png.jpeg',
     slot: {
-      left: 68,
-      top: 54,
-      width: 22,
-      height: 54,
-      borderRadius: 18,
+      left: 79,
+      top: 28,
+      width: 16,
+      height: 34,
+      borderRadius: 16,
     },
+    defaultZoom: 1.02,
+    defaultOffsetX: 0,
+    defaultOffsetY: 18,
   },
   {
     id: 'pearl',
     title: 'بحر اللؤلؤ',
     subtitle: 'البحر والمحمل والغوص',
-    imagePath:
-      '/assets/pearl-sea-master-map.png',
+    imagePath: '/assets/pearl-sea-master-map.png',
     slot: {
-      left: 76,
-      top: 52,
-      width: 21,
-      height: 52,
-      borderRadius: 18,
+      left: 82,
+      top: 29,
+      width: 15,
+      height: 34,
+      borderRadius: 16,
     },
+    defaultZoom: 1.0,
+    defaultOffsetX: 0,
+    defaultOffsetY: 22,
   },
   {
     id: 'games',
     title: 'فريج الألعاب',
     subtitle: 'ألعاب الفريج الشعبية',
-    imagePath:
-      '/assets/games-master-map.png',
+    imagePath: '/assets/games-master-map.png',
     slot: {
-      left: 18,
-      top: 54,
-      width: 21,
-      height: 52,
-      borderRadius: 18,
+      left: 82,
+      top: 28,
+      width: 15,
+      height: 34,
+      borderRadius: 16,
     },
+    defaultZoom: 1.02,
+    defaultOffsetX: 0,
+    defaultOffsetY: 18,
   },
   {
     id: 'majlis',
     title: 'مجلس لوّل',
     subtitle: 'القهوة والضيافة والبخور',
-    imagePath:
-      '/assets/majlis-master-map.png',
+    imagePath: '/assets/majlis-master-map.png',
     slot: {
-      left: 16,
-      top: 51,
-      width: 20,
-      height: 50,
-      borderRadius: 18,
+      left: 81,
+      top: 28,
+      width: 15,
+      height: 34,
+      borderRadius: 16,
     },
+    defaultZoom: 1.02,
+    defaultOffsetX: 0,
+    defaultOffsetY: 18,
   },
   {
     id: 'crafts',
     title: 'بيت الحرف',
     subtitle: 'السدو والخوص وصناعة المحمل',
-    imagePath:
-      '/assets/crafts-master-map.png',
+    imagePath: '/assets/crafts-master-map.png',
     slot: {
-      left: 50,
-      top: 55,
-      width: 20,
-      height: 51,
-      borderRadius: 18,
+      left: 80,
+      top: 28,
+      width: 15,
+      height: 34,
+      borderRadius: 16,
     },
+    defaultZoom: 1.02,
+    defaultOffsetX: 0,
+    defaultOffsetY: 18,
   },
   {
     id: 'studio',
     title: 'استوديو قطر لوّل',
     subtitle: 'صورة تذكارية داخل الاستوديو',
-    imagePath:
-      '/assets/akkas-master-map.png',
+    imagePath: '/assets/akkas-master-map.png',
     slot: {
-      left: 51,
-      top: 53,
-      width: 24,
-      height: 55,
-      borderRadius: 18,
+      left: 79,
+      top: 28,
+      width: 16,
+      height: 34,
+      borderRadius: 16,
     },
+    defaultZoom: 1.02,
+    defaultOffsetX: 0,
+    defaultOffsetY: 18,
   },
 ];
 
 const PHOTO_WIDTH = 1400;
 const PHOTO_HEIGHT = 900;
 
-function clamp(
-  value: number,
-  min: number,
-  max: number
-) {
-  return Math.min(
-    max,
-    Math.max(
-      min,
-      value
-    )
-  );
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
-function loadImage(
-  src: string
-) {
-  return new Promise<
-    HTMLImageElement | null
-  >(
-    resolve => {
-      const image =
-        new Image();
-
-      image.onload =
-        () =>
-          resolve(
-            image
-          );
-
-      image.onerror =
-        () =>
-          resolve(
-            null
-          );
-
-      image.src =
-        src;
-    }
-  );
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement | null>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = src;
+  });
 }
 
 function drawCover(
-  ctx:
-    CanvasRenderingContext2D,
-  source:
-    CanvasImageSource,
-  sourceWidth:
-    number,
-  sourceHeight:
-    number,
+  ctx: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  sourceWidth: number,
+  sourceHeight: number,
   x: number,
   y: number,
   width: number,
@@ -221,77 +191,27 @@ function drawCover(
   offsetX = 0,
   offsetY = 0
 ) {
-  const scaledWidth =
-    sourceWidth /
-    zoom;
+  const scaledWidth = sourceWidth / zoom;
+  const scaledHeight = sourceHeight / zoom;
+  const targetRatio = width / height;
 
-  const scaledHeight =
-    sourceHeight /
-    zoom;
+  let cropWidth = scaledWidth;
+  let cropHeight = scaledHeight;
 
-  const targetRatio =
-    width /
-    height;
-
-  let cropWidth =
-    scaledWidth;
-
-  let cropHeight =
-    scaledHeight;
-
-  if (
-    cropWidth /
-      cropHeight >
-    targetRatio
-  ) {
-    cropWidth =
-      cropHeight *
-      targetRatio;
+  if (cropWidth / cropHeight > targetRatio) {
+    cropWidth = cropHeight * targetRatio;
   } else {
-    cropHeight =
-      cropWidth /
-      targetRatio;
+    cropHeight = cropWidth / targetRatio;
   }
 
-  const maxX =
-    Math.max(
-      0,
-      sourceWidth -
-        cropWidth
-    );
+  const maxX = Math.max(0, sourceWidth - cropWidth);
+  const maxY = Math.max(0, sourceHeight - cropHeight);
 
-  const maxY =
-    Math.max(
-      0,
-      sourceHeight -
-        cropHeight
-    );
+  const normalizedX = clamp(0.5 - offsetX / 100, 0, 1);
+  const normalizedY = clamp(0.35 - offsetY / 100, 0, 1);
 
-  const normalizedX =
-    clamp(
-      0.5 -
-        offsetX /
-          100,
-      0,
-      1
-    );
-
-  const normalizedY =
-    clamp(
-      0.35 -
-        offsetY /
-          100,
-      0,
-      1
-    );
-
-  const sx =
-    maxX *
-    normalizedX;
-
-  const sy =
-    maxY *
-    normalizedY;
+  const sx = maxX * normalizedX;
+  const sy = maxY * normalizedY;
 
   ctx.drawImage(
     source,
@@ -307,65 +227,26 @@ function drawCover(
 }
 
 function drawSceneCover(
-  ctx:
-    CanvasRenderingContext2D,
-  image:
-    HTMLImageElement
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement
 ) {
-  const sourceRatio =
-    image.naturalWidth /
-    image.naturalHeight;
-
-  const targetRatio =
-    PHOTO_WIDTH /
-    PHOTO_HEIGHT;
+  const sourceRatio = image.naturalWidth / image.naturalHeight;
+  const targetRatio = PHOTO_WIDTH / PHOTO_HEIGHT;
 
   let sx = 0;
   let sy = 0;
-  let sw =
-    image.naturalWidth;
+  let sw = image.naturalWidth;
+  let sh = image.naturalHeight;
 
-  let sh =
-    image.naturalHeight;
-
-  if (
-    sourceRatio >
-    targetRatio
-  ) {
-    sw =
-      image.naturalHeight *
-      targetRatio;
-
-    sx =
-      (
-        image.naturalWidth -
-        sw
-      ) /
-      2;
+  if (sourceRatio > targetRatio) {
+    sw = image.naturalHeight * targetRatio;
+    sx = (image.naturalWidth - sw) / 2;
   } else {
-    sh =
-      image.naturalWidth /
-      targetRatio;
-
-    sy =
-      (
-        image.naturalHeight -
-        sh
-      ) /
-      2;
+    sh = image.naturalWidth / targetRatio;
+    sy = (image.naturalHeight - sh) / 2;
   }
 
-  ctx.drawImage(
-    image,
-    sx,
-    sy,
-    sw,
-    sh,
-    0,
-    0,
-    PHOTO_WIDTH,
-    PHOTO_HEIGHT
-  );
+  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
 }
 
 export function AkkasScene({
@@ -375,1020 +256,371 @@ export function AkkasScene({
   onReturnToVillage,
   onComplete,
 }: AkkasSceneProps) {
-  const [
-    step,
-    setStep,
-  ] =
-    useState<Step>(
-      'welcome'
-    );
+  const [step, setStep] = useState<Step>('welcome');
+  const [selectedScene, setSelectedScene] = useState<SceneId>('souq');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
+  const [imageZoom, setImageZoom] = useState(1.02);
+  const [imageOffsetX, setImageOffsetX] = useState(0);
+  const [imageOffsetY, setImageOffsetY] = useState(18);
+  const [isComposing, setIsComposing] = useState(false);
 
-  const [
-    selectedScene,
-    setSelectedScene,
-  ] =
-    useState<SceneId>(
-      'souq'
-    );
+  const streamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const uploadedImageRef = useRef<HTMLImageElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const completedRef = useRef(false);
 
-  const [
-    cameraError,
-    setCameraError,
-  ] =
-    useState<string | null>(
-      null
-    );
+  const currentScene = useMemo(
+    () => SCENES.find((item) => item.id === selectedScene) ?? SCENES[0],
+    [selectedScene]
+  );
 
-  const [
-    isCameraReady,
-    setIsCameraReady,
-  ] =
-    useState(false);
-
-  const [
-    uploadedUrl,
-    setUploadedUrl,
-  ] =
-    useState<string | null>(
-      null
-    );
-
-  const [
-    capturedUrl,
-    setCapturedUrl,
-  ] =
-    useState<string | null>(
-      null
-    );
-
-  /*
-    These controls only move/zoom the visitor INSIDE the predefined photo slot.
-    The slot itself stays fixed for every activity background.
-  */
-  const [
-    imageZoom,
-    setImageZoom,
-  ] =
-    useState(1.15);
-
-  const [
-    imageOffsetX,
-    setImageOffsetX,
-  ] =
-    useState(0);
-
-  const [
-    imageOffsetY,
-    setImageOffsetY,
-  ] =
-    useState(0);
-
-  const [
-    isComposing,
-    setIsComposing,
-  ] =
-    useState(false);
-
-  const streamRef =
-    useRef<MediaStream | null>(
-      null
-    );
-
-  const videoRef =
-    useRef<HTMLVideoElement | null>(
-      null
-    );
-
-  const uploadedImageRef =
-    useRef<HTMLImageElement | null>(
-      null
-    );
-
-  const canvasRef =
-    useRef<HTMLCanvasElement | null>(
-      null
-    );
-
-  const completedRef =
-    useRef(false);
-
-  const currentScene =
-    useMemo(
-      () =>
-        SCENES.find(
-          item =>
-            item.id ===
-            selectedScene
-        ) ??
-        SCENES[0],
-      [selectedScene]
-    );
-
-  const visitorLabel =
-    gender === 'boy'
-      ? 'المنتسب'
-      : 'المنتسبة';
-
+  const visitorLabel = gender === 'boy' ? 'المنتسب' : 'المنتسبة';
   const visitorName =
     studentName.trim() ||
-    (
-      gender === 'boy'
-        ? 'منتسب قطر لوّل'
-        : 'منتسبة قطر لوّل'
-    );
+    (gender === 'boy' ? 'منتسب قطر لوّل' : 'منتسبة قطر لوّل');
 
-  const stopCamera =
-    () => {
-      streamRef.current
-        ?.getTracks()
-        .forEach(
-          track =>
-            track.stop()
-        );
+  const applySceneDefaults = (scene: SceneOption) => {
+    setImageZoom(scene.defaultZoom);
+    setImageOffsetX(scene.defaultOffsetX);
+    setImageOffsetY(scene.defaultOffsetY);
+  };
 
-      streamRef.current =
-        null;
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setIsCameraReady(false);
+  };
 
-      setIsCameraReady(
-        false
-      );
-    };
-
-  const speak = (
-    text: string
-  ) => {
+  const speak = (text: string) => {
     if (
       !settings.isSoundEnabled ||
-      typeof window ===
-        'undefined' ||
-      !(
-        'speechSynthesis' in
-        window
-      )
+      typeof window === 'undefined' ||
+      !('speechSynthesis' in window)
     ) {
       return;
     }
 
-    const utterance =
-      new SpeechSynthesisUtterance(
-        text
-      );
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ar-QA';
+    utterance.rate = 0.9;
+    utterance.volume = Math.max(0.2, Math.min(1, settings.volume ?? 0.6));
 
-    utterance.lang =
-      'ar-QA';
-
-    utterance.rate =
-      0.9;
-
-    utterance.volume =
-      Math.max(
-        0.2,
-        Math.min(
-          1,
-          settings.volume ??
-            0.6
-        )
-      );
-
-    window
-      .speechSynthesis
-      .cancel();
-
-    window
-      .speechSynthesis
-      .speak(
-        utterance
-      );
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
   };
 
-  const startCamera =
-    async () => {
-      setCameraError(
-        null
-      );
+  const startCamera = async () => {
+    setCameraError(null);
+    stopCamera();
 
-      stopCamera();
-
-      if (
-        !navigator
-          .mediaDevices
-          ?.getUserMedia
-      ) {
-        setCameraError(
-          'الكاميرا غير متاحة. يمكنك اختيار صورة من الجهاز.'
-        );
-
-        return;
-      }
-
-      try {
-        const stream =
-          await navigator
-            .mediaDevices
-            .getUserMedia({
-              video: {
-                facingMode:
-                  'user',
-                width: {
-                  ideal: 1280,
-                },
-                height: {
-                  ideal: 960,
-                },
-              },
-              audio: false,
-            });
-
-        streamRef.current =
-          stream;
-
-        if (
-          videoRef.current
-        ) {
-          videoRef.current.srcObject =
-            stream;
-
-          await videoRef.current
-            .play()
-            .catch(
-              () =>
-                undefined
-            );
-        }
-
-        setIsCameraReady(
-          true
-        );
-
-        speak(
-          gender === 'boy'
-            ? 'اختر منظر النشاط ثم ضع نفسك داخل مكان الصورة المحدد.'
-            : 'اختاري منظر النشاط ثم ضعي نفسك داخل مكان الصورة المحدد.'
-        );
-      } catch {
-        setCameraError(
-          'تعذر فتح الكاميرا. اسمح بالوصول أو اختر صورة من الجهاز.'
-        );
-      }
-    };
-
-  useEffect(() => {
-    if (
-      step ===
-      'camera'
-    ) {
-      const timer =
-        window.setTimeout(
-          () => {
-            startCamera();
-          },
-          100
-        );
-
-      return () =>
-        window.clearTimeout(
-          timer
-        );
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('الكاميرا غير متاحة. يمكنك اختيار صورة من الجهاز.');
+      return;
     }
 
-    return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 960 },
+        },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => undefined);
+      }
+
+      setIsCameraReady(true);
+
+      speak(
+        gender === 'boy'
+          ? 'ضع الرأس والكتفين داخل الإطار أعلى اليمين ثم التقط الصورة.'
+          : 'ضعي الرأس والكتفين داخل الإطار أعلى اليمين ثم التقطي الصورة.'
+      );
+    } catch {
+      setCameraError('تعذر فتح الكاميرا. اسمح بالوصول أو اختر صورة من الجهاز.');
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'camera') {
+      const timer = window.setTimeout(() => {
+        startCamera();
+      }, 100);
+
+      return () => window.clearTimeout(timer);
+    }
   }, [step]);
+
+  useEffect(() => {
+    applySceneDefaults(currentScene);
+  }, [currentScene.id]);
 
   useEffect(() => {
     return () => {
       stopCamera();
 
-      if (
-        uploadedUrl
-      ) {
-        URL.revokeObjectURL(
-          uploadedUrl
-        );
+      if (uploadedUrl) {
+        URL.revokeObjectURL(uploadedUrl);
       }
 
-      if (
-        capturedUrl
-      ) {
-        URL.revokeObjectURL(
-          capturedUrl
-        );
+      if (capturedUrl) {
+        URL.revokeObjectURL(capturedUrl);
       }
     };
   }, []);
 
-  const handleUpload = (
-    event:
-      React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file =
-      event.target.files?.[0];
+  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    if (!file) {
-      return;
+    if (uploadedUrl) {
+      URL.revokeObjectURL(uploadedUrl);
     }
 
-    if (
-      uploadedUrl
-    ) {
-      URL.revokeObjectURL(
-        uploadedUrl
-      );
-    }
-
-    const url =
-      URL.createObjectURL(
-        file
-      );
-
-    setUploadedUrl(
-      url
-    );
-
+    const url = URL.createObjectURL(file);
+    setUploadedUrl(url);
     stopCamera();
-
-    setCameraError(
-      null
-    );
+    setCameraError(null);
   };
 
-  const resetImage =
-    () => {
-      setImageZoom(
-        1.15
-      );
+  const resetImage = () => {
+    applySceneDefaults(currentScene);
+  };
 
-      setImageOffsetX(
-        0
-      );
+  const composePhoto = async () => {
+    if (isComposing) return;
 
-      setImageOffsetY(
-        0
-      );
-    };
+    setIsComposing(true);
 
-  const composePhoto =
-    async () => {
-      if (
-        isComposing
-      ) {
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      canvas.width = PHOTO_WIDTH;
+      canvas.height = PHOTO_HEIGHT;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const sceneImage = await loadImage(currentScene.imagePath);
+      if (!sceneImage) {
+        setCameraError('تعذر تحميل خلفية النشاط.');
         return;
       }
 
-      setIsComposing(
-        true
-      );
+      drawSceneCover(ctx, sceneImage);
 
-      try {
-        const canvas =
-          canvasRef.current;
+      const slot = currentScene.slot;
+      const slotWidth = PHOTO_WIDTH * (slot.width / 100);
+      const slotHeight = PHOTO_HEIGHT * (slot.height / 100);
+      const slotX = PHOTO_WIDTH * (slot.left / 100) - slotWidth / 2;
+      const slotY = PHOTO_HEIGHT * (slot.top / 100) - slotHeight / 2;
 
-        if (!canvas) {
-          return;
-        }
+      let source: HTMLVideoElement | HTMLImageElement | null = null;
+      let sourceWidth = 0;
+      let sourceHeight = 0;
 
-        canvas.width =
-          PHOTO_WIDTH;
+      if (uploadedUrl && uploadedImageRef.current) {
+        source = uploadedImageRef.current;
+        sourceWidth = uploadedImageRef.current.naturalWidth;
+        sourceHeight = uploadedImageRef.current.naturalHeight;
+      } else if (videoRef.current && videoRef.current.readyState >= 2) {
+        source = videoRef.current;
+        sourceWidth = videoRef.current.videoWidth;
+        sourceHeight = videoRef.current.videoHeight;
+      }
 
-        canvas.height =
-          PHOTO_HEIGHT;
+      if (!source || !sourceWidth || !sourceHeight) {
+        setCameraError('الصورة لم تجهز بعد.');
+        return;
+      }
 
-        const ctx =
-          canvas.getContext(
-            '2d'
-          );
+      ctx.save();
 
-        if (!ctx) {
-          return;
-        }
+      const radius = Math.min(slotWidth, slotHeight) * (slot.borderRadius / 100);
+      ctx.beginPath();
+      ctx.roundRect(slotX, slotY, slotWidth, slotHeight, radius);
+      ctx.clip();
 
-        const sceneImage =
-          await loadImage(
-            currentScene.imagePath
-          );
+      if (!uploadedUrl && source === videoRef.current) {
+        ctx.translate(slotX + slotWidth, slotY);
+        ctx.scale(-1, 1);
 
-        if (!sceneImage) {
-          setCameraError(
-            'تعذر تحميل خلفية النشاط.'
-          );
-
-          return;
-        }
-
-        drawSceneCover(
+        drawCover(
           ctx,
-          sceneImage
-        );
-
-        const slot =
-          currentScene.slot;
-
-        const slotWidth =
-          PHOTO_WIDTH *
-          (
-            slot.width /
-            100
-          );
-
-        const slotHeight =
-          PHOTO_HEIGHT *
-          (
-            slot.height /
-            100
-          );
-
-        const slotX =
-          PHOTO_WIDTH *
-            (
-              slot.left /
-              100
-            ) -
-          slotWidth /
-            2;
-
-        const slotY =
-          PHOTO_HEIGHT *
-            (
-              slot.top /
-              100
-            ) -
-          slotHeight /
-            2;
-
-        let source:
-          | HTMLVideoElement
-          | HTMLImageElement
-          | null = null;
-
-        let sourceWidth =
-          0;
-
-        let sourceHeight =
-          0;
-
-        if (
-          uploadedUrl &&
-          uploadedImageRef.current
-        ) {
-          source =
-            uploadedImageRef.current;
-
-          sourceWidth =
-            uploadedImageRef.current
-              .naturalWidth;
-
-          sourceHeight =
-            uploadedImageRef.current
-              .naturalHeight;
-        } else if (
-          videoRef.current &&
-          videoRef.current
-            .readyState >= 2
-        ) {
-          source =
-            videoRef.current;
-
-          sourceWidth =
-            videoRef.current
-              .videoWidth;
-
-          sourceHeight =
-            videoRef.current
-              .videoHeight;
-        }
-
-        if (
-          !source ||
-          !sourceWidth ||
-          !sourceHeight
-        ) {
-          setCameraError(
-            'الصورة لم تجهز بعد.'
-          );
-
-          return;
-        }
-
-        ctx.save();
-
-        const radius =
-          Math.min(
-            slotWidth,
-            slotHeight
-          ) *
-          (
-            slot.borderRadius /
-            100
-          );
-
-        ctx.beginPath();
-
-        ctx.roundRect(
-          slotX,
-          slotY,
-          slotWidth,
-          slotHeight,
-          radius
-        );
-
-        ctx.clip();
-
-        if (
-          !uploadedUrl &&
-          source ===
-            videoRef.current
-        ) {
-          ctx.translate(
-            slotX +
-              slotWidth,
-            slotY
-          );
-
-          ctx.scale(
-            -1,
-            1
-          );
-
-          drawCover(
-            ctx,
-            source,
-            sourceWidth,
-            sourceHeight,
-            0,
-            0,
-            slotWidth,
-            slotHeight,
-            imageZoom,
-            imageOffsetX,
-            imageOffsetY
-          );
-        } else {
-          drawCover(
-            ctx,
-            source,
-            sourceWidth,
-            sourceHeight,
-            slotX,
-            slotY,
-            slotWidth,
-            slotHeight,
-            imageZoom,
-            imageOffsetX,
-            imageOffsetY
-          );
-        }
-
-        const shade =
-          ctx.createLinearGradient(
-            0,
-            slotY,
-            0,
-            slotY +
-              slotHeight
-          );
-
-        shade.addColorStop(
+          source,
+          sourceWidth,
+          sourceHeight,
           0,
-          'rgba(0,0,0,0)'
-        );
-
-        shade.addColorStop(
-          1,
-          'rgba(0,0,0,.16)'
-        );
-
-        ctx.fillStyle =
-          shade;
-
-        ctx.fillRect(
-          slotX,
-          slotY,
+          0,
           slotWidth,
-          slotHeight
+          slotHeight,
+          imageZoom,
+          imageOffsetX,
+          imageOffsetY
         );
-
-        ctx.restore();
-
-        ctx.strokeStyle =
-          '#FFE082';
-
-        ctx.lineWidth =
-          8;
-
-        ctx.beginPath();
-
-        ctx.roundRect(
+      } else {
+        drawCover(
+          ctx,
+          source,
+          sourceWidth,
+          sourceHeight,
           slotX,
           slotY,
           slotWidth,
           slotHeight,
-          radius
-        );
-
-        ctx.stroke();
-
-        ctx.strokeStyle =
-          '#8A1538';
-
-        ctx.lineWidth =
-          3;
-
-        ctx.beginPath();
-
-        ctx.roundRect(
-          slotX + 8,
-          slotY + 8,
-          slotWidth - 16,
-          slotHeight - 16,
-          Math.max(
-            8,
-            radius - 4
-          )
-        );
-
-        ctx.stroke();
-
-        ctx.textAlign =
-          'center';
-
-        ctx.textBaseline =
-          'middle';
-
-        ctx.direction =
-          'rtl';
-
-        const titleY =
-          52;
-
-        ctx.fillStyle =
-          'rgba(32,17,10,.82)';
-
-        ctx.fillRect(
-          PHOTO_WIDTH /
-            2 -
-            260,
-          18,
-          520,
-          70
-        );
-
-        ctx.fillStyle =
-          '#FFE082';
-
-        ctx.font =
-          'bold 34px Arial, sans-serif';
-
-        ctx.fillText(
-          currentScene.title,
-          PHOTO_WIDTH /
-            2,
-          titleY
-        );
-
-        ctx.fillStyle =
-          'rgba(20,10,6,.72)';
-
-        ctx.fillRect(
-          slotX,
-          slotY +
-            slotHeight -
-            54,
-          slotWidth,
-          54
-        );
-
-        ctx.fillStyle =
-          '#ffffff';
-
-        ctx.font =
-          'bold 25px Arial, sans-serif';
-
-        ctx.fillText(
-          visitorName,
-          slotX +
-            slotWidth /
-              2,
-          slotY +
-            slotHeight -
-            27
-        );
-
-        ctx.fillStyle =
-          'rgba(20,10,6,.75)';
-
-        ctx.fillRect(
-          PHOTO_WIDTH /
-            2 -
-            320,
-          PHOTO_HEIGHT -
-            64,
-          640,
-          42
-        );
-
-        ctx.fillStyle =
-          '#FFE082';
-
-        ctx.font =
-          'bold 22px Arial, sans-serif';
-
-        ctx.fillText(
-          'استوديو قطر لوّل • صورة من قلب النشاط',
-          PHOTO_WIDTH /
-            2,
-          PHOTO_HEIGHT -
-            43
-        );
-
-        const blob:
-          Blob | null =
-          await new Promise(
-            resolve =>
-              canvas.toBlob(
-                resolve,
-                'image/png',
-                0.95
-              )
-          );
-
-        if (!blob) {
-          return;
-        }
-
-        if (
-          capturedUrl
-        ) {
-          URL.revokeObjectURL(
-            capturedUrl
-          );
-        }
-
-        const url =
-          URL.createObjectURL(
-            blob
-          );
-
-        setCapturedUrl(
-          url
-        );
-
-        setStep(
-          'preview'
-        );
-      } finally {
-        setIsComposing(
-          false
+          imageZoom,
+          imageOffsetX,
+          imageOffsetY
         );
       }
-    };
 
-  const downloadPhoto =
-    () => {
-      if (
-        !capturedUrl
-      ) {
-        return;
+      const shade = ctx.createLinearGradient(0, slotY, 0, slotY + slotHeight);
+      shade.addColorStop(0, 'rgba(0,0,0,0)');
+      shade.addColorStop(1, 'rgba(0,0,0,.16)');
+      ctx.fillStyle = shade;
+      ctx.fillRect(slotX, slotY, slotWidth, slotHeight);
+      ctx.restore();
+
+      ctx.strokeStyle = '#FFE082';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.roundRect(slotX, slotY, slotWidth, slotHeight, radius);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#8A1538';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(
+        slotX + 8,
+        slotY + 8,
+        slotWidth - 16,
+        slotHeight - 16,
+        Math.max(8, radius - 4)
+      );
+      ctx.stroke();
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.direction = 'rtl';
+
+      ctx.fillStyle = 'rgba(32,17,10,.82)';
+      ctx.fillRect(PHOTO_WIDTH / 2 - 260, 18, 520, 70);
+      ctx.fillStyle = '#FFE082';
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillText(currentScene.title, PHOTO_WIDTH / 2, 52);
+
+      ctx.fillStyle = 'rgba(20,10,6,.72)';
+      ctx.fillRect(slotX, slotY + slotHeight - 54, slotWidth, 54);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 25px Arial, sans-serif';
+      ctx.fillText(visitorName, slotX + slotWidth / 2, slotY + slotHeight - 27);
+
+      ctx.fillStyle = 'rgba(20,10,6,.75)';
+      ctx.fillRect(PHOTO_WIDTH / 2 - 320, PHOTO_HEIGHT - 64, 640, 42);
+      ctx.fillStyle = '#FFE082';
+      ctx.font = 'bold 22px Arial, sans-serif';
+      ctx.fillText('استوديو قطر لوّل • صورة من قلب النشاط', PHOTO_WIDTH / 2, PHOTO_HEIGHT - 43);
+
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/png', 0.95)
+      );
+
+      if (!blob) return;
+
+      if (capturedUrl) {
+        URL.revokeObjectURL(capturedUrl);
       }
 
-      const link =
-        document.createElement(
-          'a'
-        );
+      const url = URL.createObjectURL(blob);
+      setCapturedUrl(url);
+      setStep('preview');
+    } finally {
+      setIsComposing(false);
+    }
+  };
 
-      link.href =
-        capturedUrl;
+  const downloadPhoto = () => {
+    if (!capturedUrl) return;
 
-      link.download =
-        `qatar-lowwal-${currentScene.id}-${Date.now()}.png`;
+    const link = document.createElement('a');
+    link.href = capturedUrl;
+    link.download = `qatar-lowwal-${currentScene.id}-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 
-      document.body.appendChild(
-        link
-      );
+    if (!completedRef.current) {
+      completedRef.current = true;
+      onComplete?.();
+    }
 
-      link.click();
+    setStep('success');
+    speak('ممتاز. تم حفظ الصورة وحصلت على ختم الاستوديو.');
+  };
 
-      link.remove();
-
-      if (
-        !completedRef.current
-      ) {
-        completedRef.current =
-          true;
-
-        onComplete?.();
-      }
-
-      setStep(
-        'success'
-      );
-
-      speak(
-        'ممتاز. تم حفظ الصورة وحصلت على ختم الاستوديو.'
-      );
-    };
-
-  const photoTransform =
-    `${uploadedUrl ? '' : 'scaleX(-1) '}` +
-    `translate(${imageOffsetX}%, ${imageOffsetY}%) ` +
-    `scale(${imageZoom})`;
-
-  const slot =
-    currentScene.slot;
+  const photoTransform = `${uploadedUrl ? '' : 'scaleX(-1) '}translate(${imageOffsetX}%, ${imageOffsetY}%) scale(${imageZoom})`;
+  const slot = currentScene.slot;
 
   return (
     <div
-      className="
-        relative
-        w-full
-        h-[100dvh]
-        min-h-[100dvh]
-        overflow-hidden
-        bg-[#2b170e]
-        text-white
-        select-none
-      "
+      className="relative w-full h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#2b170e] text-white select-none"
       dir="rtl"
     >
       <img
         src="/assets/akkas-master-map.png"
         alt=""
-        className="
-          absolute
-          inset-0
-          w-full
-          h-full
-          object-cover
-          pointer-events-none
-        "
-        draggable={
-          false
-        }
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        draggable={false}
       />
 
-      <div
-        className="
-          absolute
-          inset-0
-          bg-black/35
-          pointer-events-none
-        "
-      />
+      <div className="absolute inset-0 bg-black/35 pointer-events-none" />
 
       <button
-        onClick={
-          onReturnToVillage
-        }
-        className="
-          fixed
-          top-[max(.65rem,env(safe-area-inset-top))]
-          left-[max(.65rem,env(safe-area-inset-left))]
-          z-50
-          rounded-full
-          bg-[#8A1538]
-          border-2
-          border-[#FFE082]
-          px-[clamp(12px,2.4vw,20px)]
-          py-[clamp(7px,1.2vw,10px)]
-          text-[clamp(12px,1.4vw,16px)]
-          font-black
-          shadow-xl
-        "
+        onClick={onReturnToVillage}
+        className="fixed top-[max(.65rem,env(safe-area-inset-top))] left-[max(.65rem,env(safe-area-inset-left))] z-50 rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-[clamp(12px,2.4vw,20px)] py-[clamp(7px,1.2vw,10px)] text-[clamp(12px,1.4vw,16px)] font-black shadow-xl"
       >
         العودة إلى القرية
       </button>
 
       <div
-        className="
-          fixed
-          top-[max(.65rem,env(safe-area-inset-top))]
-          right-[max(.65rem,env(safe-area-inset-right))]
-          z-50
-          rounded-full
-          bg-[#3c2415]/92
-          border
-          border-[#E6C280]
-          px-[clamp(12px,2.4vw,20px)]
-          py-[clamp(7px,1.2vw,10px)]
-          text-[#FFE082]
-          font-black
-          shadow-xl
-        "
+        className="fixed top-[max(.65rem,env(safe-area-inset-top))] right-[max(.65rem,env(safe-area-inset-right))] z-50 rounded-full bg-[#3c2415]/92 border border-[#E6C280] px-[clamp(12px,2.4vw,20px)] py-[clamp(7px,1.2vw,10px)] text-[#FFE082] font-black shadow-xl"
       >
         استوديو قطر لوّل
       </div>
 
-      {step ===
-        'welcome' && (
-        <div
-          className="
-            relative
-            z-20
-            h-full
-            flex
-            items-center
-            justify-center
-            p-4
-          "
-        >
-          <div
-            className="
-              w-[min(94vw,680px)]
-              rounded-[28px]
-              border-2
-              border-[#FFE082]
-              bg-[#27140c]/94
-              p-[clamp(18px,4vw,34px)]
-              text-center
-              shadow-2xl
-              backdrop-blur-md
-            "
-          >
-            <Camera
-              className="
-                mx-auto
-                w-16
-                h-16
-                text-[#FFE082]
-              "
-            />
+      {step === 'welcome' && (
+        <div className="relative z-20 h-full flex items-center justify-center p-4">
+          <div className="w-[min(94vw,680px)] rounded-[28px] border-2 border-[#FFE082] bg-[#27140c]/94 p-[clamp(18px,4vw,34px)] text-center shadow-2xl backdrop-blur-md">
+            <Camera className="mx-auto w-16 h-16 text-[#FFE082]" />
 
-            <h1
-              className="
-                mt-4
-                text-[clamp(24px,4vw,40px)]
-                font-black
-                text-[#FFE082]
-              "
-            >
+            <h1 className="mt-4 text-[clamp(24px,4vw,40px)] font-black text-[#FFE082]">
               صورة من قلب النشاط
             </h1>
 
-            <p
-              className="
-                mt-3
-                text-[clamp(13px,1.7vw,17px)]
-                leading-relaxed
-                text-white/90
-              "
-            >
-              اختر منظرًا من
-              محطات قطر لوّل،
-              وسيظهر
-              {
-                gender ===
-                  'boy'
-                  ? ' المنتسب '
-                  : ' المنتسبة '
-              }
-              في مكان محدد
-              مسبقًا داخل الخلفية.
+            <p className="mt-3 text-[clamp(13px,1.7vw,17px)] leading-relaxed text-white/90">
+              اختر منظرًا من محطات قطر لوّل، وسيظهر {gender === 'boy' ? 'المنتسب' : 'المنتسبة'}
+              {' '}داخل إطار ثابت في أعلى اليمين.
             </p>
 
-            <div
-              className="
-                mt-5
-                rounded-2xl
-                border
-                border-emerald-300/35
-                bg-emerald-950/40
-                p-3
-                flex
-                items-center
-                justify-center
-                gap-2
-                text-sm
-                text-emerald-100
-              "
-            >
-              <ShieldCheck
-                className="
-                  w-5
-                  h-5
-                  text-emerald-300
-                "
-              />
-
-              لا يتم رفع الصورة
-              إلى الإنترنت.
+            <div className="mt-5 rounded-2xl border border-emerald-300/35 bg-emerald-950/40 p-3 flex items-center justify-center gap-2 text-sm text-emerald-100">
+              <ShieldCheck className="w-5 h-5 text-emerald-300" />
+              لا يتم رفع الصورة إلى الإنترنت.
             </div>
 
             <button
-              onClick={() =>
-                setStep(
-                  'camera'
-                )
-              }
-              className="
-                mt-6
-                w-full
-                rounded-2xl
-                bg-[#8A1538]
-                border-2
-                border-[#FFE082]
-                py-4
-                text-lg
-                font-black
-                shadow-xl
-              "
+              onClick={() => setStep('camera')}
+              className="mt-6 w-full rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] py-4 text-lg font-black shadow-xl"
             >
               ابدأ
             </button>
@@ -1396,898 +628,250 @@ export function AkkasScene({
         </div>
       )}
 
-      {step ===
-        'camera' && (
-        <div
-          className="
-            relative
-            z-20
-            h-full
-            pt-[clamp(68px,9vw,86px)]
-            pb-[max(.75rem,env(safe-area-inset-bottom))]
-            px-2
-            sm:px-4
-            overflow-y-auto
-          "
-        >
-          <div
-            className="
-              w-full
-              max-w-7xl
-              mx-auto
-              grid
-              grid-cols-1
-              xl:grid-cols-[1fr_320px]
-              gap-4
-            "
-          >
-            <section
-              className="
-                rounded-[24px]
-                border-2
-                border-[#FFE082]
-                bg-[#1d1009]/94
-                p-2.5
-                sm:p-4
-                shadow-2xl
-              "
-            >
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                  mb-3
-                "
-              >
+      {step === 'camera' && (
+        <div className="relative z-20 h-full pt-[clamp(68px,9vw,86px)] pb-[max(.75rem,env(safe-area-inset-bottom))] px-2 sm:px-4 overflow-y-auto">
+          <div className="w-full max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+            <section className="rounded-[24px] border-2 border-[#FFE082] bg-[#1d1009]/94 p-2.5 sm:p-4 shadow-2xl">
+              <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <h2
-                    className="
-                      text-[clamp(18px,2.4vw,26px)]
-                      font-black
-                      text-[#FFE082]
-                    "
-                  >
-                    {
-                      currentScene.title
-                    }
+                  <h2 className="text-[clamp(18px,2.4vw,26px)] font-black text-[#FFE082]">
+                    {currentScene.title}
                   </h2>
-
-                  <p
-                    className="
-                      text-xs
-                      text-white/65
-                    "
-                  >
-                    مكان الصورة
-                    محدد تلقائيًا
-                    لهذه الخلفية
-                  </p>
+                  <p className="text-xs text-white/65">الإطار ثابت أعلى اليمين لإظهار الرأس والكتفين بوضوح</p>
                 </div>
 
-                <div
-                  className="
-                    rounded-full
-                    bg-emerald-950/55
-                    border
-                    border-emerald-300/30
-                    px-3
-                    py-1.5
-                    text-xs
-                    text-emerald-200
-                  "
-                >
+                <div className="rounded-full bg-emerald-950/55 border border-emerald-300/30 px-3 py-1.5 text-xs text-emerald-200">
                   محلي وآمن
                 </div>
               </div>
 
-              <div
-                className="
-                  relative
-                  w-full
-                  aspect-[14/9]
-                  max-h-[70dvh]
-                  overflow-hidden
-                  rounded-[22px]
-                  bg-black
-                  border
-                  border-white/15
-                "
-              >
+              <div className="relative w-full aspect-[14/9] max-h-[70dvh] overflow-hidden rounded-[22px] bg-black border border-white/15">
                 <img
-                  src={
-                    currentScene.imagePath
-                  }
-                  alt={
-                    currentScene.title
-                  }
-                  className="
-                    absolute
-                    inset-0
-                    w-full
-                    h-full
-                    object-cover
-                    object-center
-                  "
-                  draggable={
-                    false
-                  }
+                  src={currentScene.imagePath}
+                  alt={currentScene.title}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                  draggable={false}
                 />
 
                 <div
-                  className="
-                    absolute
-                    bg-black
-                    border-[3px]
-                    border-[#FFE082]
-                    overflow-hidden
-                    shadow-[0_15px_35px_rgba(0,0,0,.55)]
-                  "
+                  className="absolute bg-black border-[3px] border-[#FFE082] overflow-hidden shadow-[0_15px_35px_rgba(0,0,0,.55)]"
                   style={{
-                    left:
-                      `${slot.left}%`,
-                    top:
-                      `${slot.top}%`,
-                    width:
-                      `${slot.width}%`,
-                    height:
-                      `${slot.height}%`,
-                    transform:
-                      'translate(-50%,-50%)',
-                    borderRadius:
-                      `${slot.borderRadius}%`,
+                    left: `${slot.left}%`,
+                    top: `${slot.top}%`,
+                    width: `${slot.width}%`,
+                    height: `${slot.height}%`,
+                    transform: 'translate(-50%,-50%)',
+                    borderRadius: `${slot.borderRadius}%`,
                   }}
                 >
                   {!uploadedUrl ? (
                     <video
-                      ref={
-                        videoRef
-                      }
+                      ref={videoRef}
                       autoPlay
                       muted
                       playsInline
-                      className="
-                        absolute
-                        inset-0
-                        w-full
-                        h-full
-                        object-cover
-                        object-center
-                      "
+                      className="absolute inset-0 w-full h-full object-cover object-top"
                       style={{
-                        transform:
-                          photoTransform,
-                        transformOrigin:
-                          'center',
+                        transform: photoTransform,
+                        transformOrigin: 'center top',
                       }}
                     />
                   ) : (
                     <img
-                      ref={
-                        uploadedImageRef
-                      }
-                      src={
-                        uploadedUrl
-                      }
+                      ref={uploadedImageRef}
+                      src={uploadedUrl}
                       alt="صورة الزائر"
-                      className="
-                        absolute
-                        inset-0
-                        w-full
-                        h-full
-                        object-cover
-                        object-center
-                      "
+                      className="absolute inset-0 w-full h-full object-cover object-top"
                       style={{
-                        transform:
-                          photoTransform,
-                        transformOrigin:
-                          'center',
+                        transform: photoTransform,
+                        transformOrigin: 'center top',
                       }}
                     />
                   )}
 
-                  <div
-                    className="
-                      absolute
-                      inset-2
-                      rounded-[inherit]
-                      border
-                      border-dashed
-                      border-white/45
-                      pointer-events-none
-                    "
-                  />
+                  <div className="absolute inset-2 rounded-[inherit] border border-dashed border-white/45 pointer-events-none" />
 
-                  <div
-                    className="
-                      absolute
-                      bottom-0
-                      inset-x-0
-                      bg-black/60
-                      py-1.5
-                      text-center
-                      text-[10px]
-                      sm:text-xs
-                      font-bold
-                      pointer-events-none
-                    "
-                  >
-                    {
-                      visitorLabel
-                    }
+                  <div className="absolute top-0 inset-x-0 bg-black/55 py-1 text-center text-[10px] sm:text-xs font-bold pointer-events-none">
+                    ضع الرأس هنا
+                  </div>
+
+                  <div className="absolute bottom-0 inset-x-0 bg-black/60 py-1.5 text-center text-[10px] sm:text-xs font-bold pointer-events-none">
+                    {visitorLabel}
                   </div>
                 </div>
 
-                {!isCameraReady &&
-                  !uploadedUrl &&
-                  !cameraError && (
-                    <div
-                      className="
-                        absolute
-                        left-1/2
-                        bottom-4
-                        -translate-x-1/2
-                        rounded-full
-                        bg-black/70
-                        border
-                        border-white/20
-                        px-4
-                        py-2
-                        text-xs
-                        font-bold
-                      "
-                    >
-                      جاري فتح
-                      الكاميرا…
-                    </div>
-                  )}
+                {!isCameraReady && !uploadedUrl && !cameraError && (
+                  <div className="absolute left-1/2 bottom-4 -translate-x-1/2 rounded-full bg-black/70 border border-white/20 px-4 py-2 text-xs font-bold">
+                    جاري فتح الكاميرا…
+                  </div>
+                )}
               </div>
 
               {cameraError && (
-                <div
-                  className="
-                    mt-3
-                    rounded-xl
-                    border
-                    border-amber-300/40
-                    bg-amber-950/55
-                    p-3
-                    text-sm
-                    text-amber-100
-                  "
-                >
-                  {
-                    cameraError
-                  }
+                <div className="mt-3 rounded-xl border border-amber-300/40 bg-amber-950/55 p-3 text-sm text-amber-100">
+                  {cameraError}
                 </div>
               )}
 
-              <div
-                className="
-                  mt-3
-                  grid
-                  grid-cols-2
-                  gap-2.5
-                "
-              >
-                <label
-                  className="
-                    flex
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-2xl
-                    border-2
-                    border-[#E6C280]
-                    bg-[#3b2517]
-                    py-3
-                    text-sm
-                    sm:text-base
-                    font-black
-                    text-[#FFE082]
-                    cursor-pointer
-                  "
-                >
-                  <ImagePlus
-                    className="
-                      w-5
-                      h-5
-                    "
-                  />
-
+              <div className="mt-3 grid grid-cols-2 gap-2.5">
+                <label className="flex items-center justify-center gap-2 rounded-2xl border-2 border-[#E6C280] bg-[#3b2517] py-3 text-sm sm:text-base font-black text-[#FFE082] cursor-pointer">
+                  <ImagePlus className="w-5 h-5" />
                   اختيار صورة
-
                   <input
                     type="file"
                     accept="image/*"
                     capture="user"
-                    onChange={
-                      handleUpload
-                    }
+                    onChange={handleUpload}
                     className="hidden"
                   />
                 </label>
 
                 <button
-                  onClick={
-                    composePhoto
-                  }
-                  disabled={
-                    isComposing ||
-                    (
-                      !isCameraReady &&
-                      !uploadedUrl
-                    )
-                  }
-                  className="
-                    flex
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-2xl
-                    bg-[#8A1538]
-                    border-2
-                    border-[#FFE082]
-                    py-3
-                    text-sm
-                    sm:text-base
-                    font-black
-                    shadow-xl
-                    disabled:opacity-40
-                  "
+                  onClick={composePhoto}
+                  disabled={isComposing || (!isCameraReady && !uploadedUrl)}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] py-3 text-sm sm:text-base font-black shadow-xl disabled:opacity-40"
                 >
-                  <Camera
-                    className="
-                      w-5
-                      h-5
-                    "
-                  />
-
+                  <Camera className="w-5 h-5" />
                   التقط الصورة
                 </button>
               </div>
             </section>
 
-            <aside
-              className="
-                rounded-[24px]
-                border-2
-                border-[#E6C280]
-                bg-[#2a170e]/95
-                p-4
-                shadow-2xl
-              "
-            >
-              <h3
-                className="
-                  text-lg
-                  font-black
-                  text-[#FFE082]
-                "
-              >
-                اختر الخلفية
-              </h3>
+            <aside className="rounded-[24px] border-2 border-[#E6C280] bg-[#2a170e]/95 p-4 shadow-2xl">
+              <h3 className="text-lg font-black text-[#FFE082]">اختر الخلفية</h3>
+              <p className="mt-1 text-[11px] text-white/60">لكل خلفية إطار ثابت أعلى اليمين.</p>
 
-              <p
-                className="
-                  mt-1
-                  text-[11px]
-                  text-white/60
-                "
-              >
-                لكل خلفية مكان
-                صورة ثابت ومحدد.
-              </p>
+              <div className="mt-3 grid grid-cols-2 xl:grid-cols-1 gap-2">
+                {SCENES.map((scene) => {
+                  const selected = scene.id === selectedScene;
+                  return (
+                    <button
+                      key={scene.id}
+                      onClick={() => setSelectedScene(scene.id)}
+                      className={`relative overflow-hidden min-h-[82px] rounded-2xl border-2 text-right ${
+                        selected ? 'border-[#FFE082] ring-2 ring-[#8A1538]' : 'border-white/15'
+                      }`}
+                    >
+                      <img
+                        src={scene.imagePath}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover opacity-55"
+                        draggable={false}
+                      />
 
-              <div
-                className="
-                  mt-3
-                  grid
-                  grid-cols-2
-                  xl:grid-cols-1
-                  gap-2
-                "
-              >
-                {SCENES.map(
-                  scene => {
-                    const selected =
-                      scene.id ===
-                      selectedScene;
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent" />
 
-                    return (
-                      <button
-                        key={
-                          scene.id
-                        }
-                        onClick={() => {
-                          setSelectedScene(
-                            scene.id
-                          );
-
-                          resetImage();
-                        }}
-                        className={`
-                          relative
-                          overflow-hidden
-                          min-h-[82px]
-                          rounded-2xl
-                          border-2
-                          text-right
-
-                          ${
-                            selected
-                              ? 'border-[#FFE082] ring-2 ring-[#8A1538]'
-                              : 'border-white/15'
-                          }
-                        `}
-                      >
-                        <img
-                          src={
-                            scene.imagePath
-                          }
-                          alt=""
-                          className="
-                            absolute
-                            inset-0
-                            w-full
-                            h-full
-                            object-cover
-                            opacity-55
-                          "
-                          draggable={
-                            false
-                          }
-                        />
-
-                        <div
-                          className="
-                            absolute
-                            inset-0
-                            bg-gradient-to-t
-                            from-black/95
-                            via-black/35
-                            to-transparent
-                          "
-                        />
-
-                        <div
-                          className="
-                            relative
-                            z-10
-                            min-h-[82px]
-                            p-2.5
-                            flex
-                            flex-col
-                            justify-end
-                          "
-                        >
-                          <span
-                            className="
-                              text-xs
-                              sm:text-sm
-                              font-black
-                              text-[#FFE082]
-                            "
-                          >
-                            {
-                              scene.title
-                            }
-                          </span>
-
-                          <span
-                            className="
-                              text-[9px]
-                              sm:text-[10px]
-                              text-white/75
-                            "
-                          >
-                            {
-                              scene.subtitle
-                            }
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  }
-                )}
+                      <div className="relative z-10 min-h-[82px] p-2.5 flex flex-col justify-end">
+                        <span className="text-xs sm:text-sm font-black text-[#FFE082]">
+                          {scene.title}
+                        </span>
+                        <span className="text-[9px] sm:text-[10px] text-white/75">
+                          {scene.subtitle}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div
-                className="
-                  mt-5
-                  pt-4
-                  border-t
-                  border-white/10
-                "
-              >
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                  "
-                >
-                  <h3
-                    className="
-                      text-base
-                      font-black
-                      text-[#FFE082]
-                    "
-                  >
-                    ضبط الصورة
-                  </h3>
-
+              <div className="mt-5 pt-4 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-black text-[#FFE082]">ضبط الصورة</h3>
                   <button
-                    onClick={
-                      resetImage
-                    }
-                    className="
-                      flex
-                      items-center
-                      gap-1
-                      rounded-full
-                      border
-                      border-white/20
-                      px-2.5
-                      py-1
-                      text-[10px]
-                      text-white/75
-                    "
+                    onClick={resetImage}
+                    className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-1 text-[10px] text-white/75"
                   >
-                    <RotateCcw
-                      className="
-                        w-3
-                        h-3
-                      "
-                    />
-
+                    <RotateCcw className="w-3 h-3" />
                     إعادة
                   </button>
                 </div>
 
-                <div
-                  className="
-                    mt-3
-                    grid
-                    grid-cols-3
-                    gap-2
-                    max-w-[190px]
-                    mx-auto
-                  "
-                >
-                  <div />
+                <div className="mt-2 text-[11px] text-white/70 leading-relaxed">
+                  إذا لم يظهر الرأس، اضغط <span className="text-[#FFE082] font-bold">أسفل</span> مرة أو مرتين حتى ينزل
+                  محتوى الصورة داخل الإطار.
+                </div>
 
-                  <ControlButton
-                    onClick={() =>
-                      setImageOffsetY(
-                        value =>
-                          clamp(
-                            value -
-                              4,
-                            -30,
-                            30
-                          )
-                      )
-                    }
-                  >
+                <div className="mt-3 grid grid-cols-3 gap-2 max-w-[190px] mx-auto">
+                  <div />
+                  <ControlButton onClick={() => setImageOffsetY((value) => clamp(value - 4, -30, 35))}>
                     <MoveUp />
                   </ControlButton>
-
                   <div />
 
-                  <ControlButton
-                    onClick={() =>
-                      setImageOffsetX(
-                        value =>
-                          clamp(
-                            value -
-                              4,
-                            -30,
-                            30
-                          )
-                      )
-                    }
-                  >
+                  <ControlButton onClick={() => setImageOffsetX((value) => clamp(value - 4, -30, 30))}>
                     <MoveLeft />
                   </ControlButton>
-
-                  <ControlButton
-                    onClick={() =>
-                      setImageOffsetY(
-                        value =>
-                          clamp(
-                            value +
-                              4,
-                            -30,
-                            30
-                          )
-                      )
-                    }
-                  >
+                  <ControlButton onClick={() => setImageOffsetY((value) => clamp(value + 4, -30, 35))}>
                     <MoveDown />
                   </ControlButton>
-
-                  <ControlButton
-                    onClick={() =>
-                      setImageOffsetX(
-                        value =>
-                          clamp(
-                            value +
-                              4,
-                            -30,
-                            30
-                          )
-                      )
-                    }
-                  >
+                  <ControlButton onClick={() => setImageOffsetX((value) => clamp(value + 4, -30, 30))}>
                     <MoveRight />
                   </ControlButton>
                 </div>
 
-                <div
-                  className="
-                    mt-3
-                    grid
-                    grid-cols-2
-                    gap-2
-                  "
-                >
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
-                    onClick={() =>
-                      setImageZoom(
-                        value =>
-                          clamp(
-                            value -
-                              0.08,
-                            1,
-                            2
-                          )
-                      )
-                    }
-                    className="
-                      flex
-                      items-center
-                      justify-center
-                      gap-1
-                      rounded-xl
-                      border
-                      border-white/20
-                      bg-black/20
-                      py-2.5
-                    "
+                    onClick={() => setImageZoom((value) => clamp(value - 0.08, 0.88, 2))}
+                    className="flex items-center justify-center gap-1 rounded-xl border border-white/20 bg-black/20 py-2.5"
                   >
-                    <Minus
-                      className="
-                        w-4
-                        h-4
-                      "
-                    />
-
+                    <Minus className="w-4 h-4" />
                     تصغير
                   </button>
 
                   <button
-                    onClick={() =>
-                      setImageZoom(
-                        value =>
-                          clamp(
-                            value +
-                              0.08,
-                            1,
-                            2
-                          )
-                      )
-                    }
-                    className="
-                      flex
-                      items-center
-                      justify-center
-                      gap-1
-                      rounded-xl
-                      border
-                      border-white/20
-                      bg-black/20
-                      py-2.5
-                    "
+                    onClick={() => setImageZoom((value) => clamp(value + 0.08, 0.88, 2))}
+                    className="flex items-center justify-center gap-1 rounded-xl border border-white/20 bg-black/20 py-2.5"
                   >
-                    <Plus
-                      className="
-                        w-4
-                        h-4
-                      "
-                    />
-
+                    <Plus className="w-4 h-4" />
                     تكبير
                   </button>
                 </div>
               </div>
 
-              <div
-                className="
-                  mt-5
-                  rounded-2xl
-                  border
-                  border-emerald-300/30
-                  bg-emerald-950/35
-                  p-3
-                  text-[10px]
-                  sm:text-xs
-                  leading-relaxed
-                  text-emerald-100
-                "
-              >
-                لا يوجد لباس
-                مضاف أو تغيير
-                للملابس. يتم وضع
-                صورة المنتسب أو
-                المنتسبة فقط في
-                المكان المحدد
-                للخلفية.
+              <div className="mt-5 rounded-2xl border border-emerald-300/30 bg-emerald-950/35 p-3 text-[10px] sm:text-xs leading-relaxed text-emerald-100">
+                لا يوجد لباس مضاف أو تغيير للملابس. يتم وضع صورة المنتسب أو المنتسبة فقط داخل الإطار الثابت.
               </div>
             </aside>
           </div>
         </div>
       )}
 
-      {step ===
-        'preview' &&
-        capturedUrl && (
-        <div
-          className="
-            fixed
-            inset-0
-            z-[200]
-            bg-black/80
-            backdrop-blur-md
-            flex
-            items-center
-            justify-center
-            p-2
-            sm:p-5
-          "
-        >
-          <div
-            className="
-              w-[min(96vw,980px)]
-              max-h-[calc(100dvh-1rem)]
-              overflow-y-auto
-              rounded-[28px]
-              border-2
-              border-[#FFE082]
-              bg-[#24140d]
-              p-3
-              sm:p-5
-              shadow-2xl
-            "
-          >
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-                gap-3
-                mb-3
-              "
-            >
+      {step === 'preview' && capturedUrl && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5">
+          <div className="w-[min(96vw,980px)] max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-[28px] border-2 border-[#FFE082] bg-[#24140d] p-3 sm:p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <h2
-                  className="
-                    text-xl
-                    sm:text-2xl
-                    font-black
-                    text-[#FFE082]
-                  "
-                >
-                  الصورة جاهزة
-                </h2>
-
-                <p
-                  className="
-                    text-xs
-                    text-white/65
-                  "
-                >
-                  {
-                    currentScene.title
-                  }
-                </p>
+                <h2 className="text-xl sm:text-2xl font-black text-[#FFE082]">الصورة جاهزة</h2>
+                <p className="text-xs text-white/65">{currentScene.title}</p>
               </div>
 
               <button
-                onClick={() =>
-                  setStep(
-                    'camera'
-                  )
-                }
-                className="
-                  w-10
-                  h-10
-                  rounded-full
-                  bg-black/25
-                  border
-                  border-white/20
-                  flex
-                  items-center
-                  justify-center
-                "
+                onClick={() => setStep('camera')}
+                className="w-10 h-10 rounded-full bg-black/25 border border-white/20 flex items-center justify-center"
               >
-                <X
-                  className="
-                    w-5
-                    h-5
-                  "
-                />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <img
-              src={
-                capturedUrl
-              }
+              src={capturedUrl}
               alt="الصورة التذكارية"
-              className="
-                w-full
-                max-h-[68dvh]
-                object-contain
-                rounded-2xl
-                bg-black
-              "
+              className="w-full max-h-[68dvh] object-contain rounded-2xl bg-black"
             />
 
-            <div
-              className="
-                mt-4
-                grid
-                grid-cols-2
-                gap-3
-              "
-            >
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <button
-                onClick={() =>
-                  setStep(
-                    'camera'
-                  )
-                }
-                className="
-                  rounded-2xl
-                  border-2
-                  border-[#E6C280]
-                  bg-[#3c271a]
-                  py-3
-                  font-black
-                  text-[#FFE082]
-                "
+                onClick={() => setStep('camera')}
+                className="rounded-2xl border-2 border-[#E6C280] bg-[#3c271a] py-3 font-black text-[#FFE082]"
               >
                 إعادة التصوير
               </button>
 
               <button
-                onClick={
-                  downloadPhoto
-                }
-                className="
-                  flex
-                  items-center
-                  justify-center
-                  gap-2
-                  rounded-2xl
-                  border-2
-                  border-[#FFE082]
-                  bg-[#8A1538]
-                  py-3
-                  font-black
-                  shadow-xl
-                "
+                onClick={downloadPhoto}
+                className="flex items-center justify-center gap-2 rounded-2xl border-2 border-[#FFE082] bg-[#8A1538] py-3 font-black shadow-xl"
               >
-                <Download
-                  className="
-                    w-5
-                    h-5
-                  "
-                />
-
+                <Download className="w-5 h-5" />
                 حفظ الصورة
               </button>
             </div>
@@ -2295,89 +879,20 @@ export function AkkasScene({
         </div>
       )}
 
-      {step ===
-        'success' && (
-        <div
-          className="
-            fixed
-            inset-0
-            z-[300]
-            bg-black/75
-            backdrop-blur-md
-            flex
-            items-center
-            justify-center
-            p-4
-          "
-        >
-          <div
-            className="
-              w-full
-              max-w-md
-              rounded-[30px]
-              border-2
-              border-[#FFE082]
-              bg-[#2b170f]/97
-              p-6
-              text-center
-              shadow-2xl
-            "
-          >
-            <CheckCircle2
-              className="
-                mx-auto
-                w-16
-                h-16
-                text-emerald-300
-              "
-            />
+      {step === 'success' && (
+        <div className="fixed inset-0 z-[300] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-[30px] border-2 border-[#FFE082] bg-[#2b170f]/97 p-6 text-center shadow-2xl">
+            <CheckCircle2 className="mx-auto w-16 h-16 text-emerald-300" />
 
-            <h2
-              className="
-                mt-3
-                text-3xl
-                font-black
-                text-[#FFE082]
-              "
-            >
-              تمت المهمة
-            </h2>
+            <h2 className="mt-3 text-3xl font-black text-[#FFE082]">تمت المهمة</h2>
 
-            <p
-              className="
-                mt-2
-                text-base
-                leading-relaxed
-                text-white/90
-              "
-            >
-              تم حفظ الصورة
-              وحصل
-              {
-                gender ===
-                  'boy'
-                  ? ' المنتسب '
-                  : 'ت المنتسبة '
-              }
-              على ختم
-              استوديو قطر لوّل.
+            <p className="mt-2 text-base leading-relaxed text-white/90">
+              تم حفظ الصورة وحصل {gender === 'boy' ? 'المنتسب' : 'ت المنتسبة'} على ختم استوديو قطر لوّل.
             </p>
 
             <button
-              onClick={
-                onReturnToVillage
-              }
-              className="
-                mt-6
-                w-full
-                rounded-2xl
-                bg-[#8A1538]
-                border-2
-                border-[#FFE082]
-                py-3.5
-                font-black
-                text-[#FFE082]
-              "
+              onClick={onReturnToVillage}
+              className="mt-6 w-full rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] py-3.5 font-black text-[#FFE082]"
             >
               العودة إلى القرية
             </button>
@@ -2385,12 +900,7 @@ export function AkkasScene({
         </div>
       )}
 
-      <canvas
-        ref={
-          canvasRef
-        }
-        className="hidden"
-      />
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }
@@ -2400,38 +910,14 @@ function ControlButton({
   children,
 }: {
   onClick: () => void;
-  children:
-    React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <button
-      onClick={
-        onClick
-      }
-      className="
-        h-11
-        rounded-xl
-        border
-        border-[#E6C280]/45
-        bg-black/25
-        flex
-        items-center
-        justify-center
-        text-[#FFE082]
-        active:scale-90
-        [&>svg]:w-5
-        [&>svg]:h-5
-      "
+      onClick={onClick}
+      className="h-11 rounded-xl border border-[#E6C280]/45 bg-black/25 flex items-center justify-center text-[#FFE082] active:scale-90 [&>svg]:w-5 [&>svg]:h-5"
     >
-      {
-        children
-      }
+      {children}
     </button>
   );
 }
-'''
-
-path = Path("/mnt/data/AkkasScene_no_outfits_fixed_slots.tsx")
-path.write_text(code, encoding="utf-8")
-print(path)
-print("Lines:", len(code.splitlines()))
