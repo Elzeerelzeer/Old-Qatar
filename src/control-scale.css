@@ -1,0 +1,137 @@
+/* =============================================================
+   OLD-QATAR — CENTRAL CONTROL SIZE
+   -------------------------------------------------------------
+   عدّل هذا الملف فقط لتكبير/تصغير أدوات التحكم في المشروع.
+
+   أهم القيم:
+   --ql-controls-scale  : مقياس عام لأدوات التحكم
+   --ql-hud-scale       : شريط التحكم العلوي
+   --ql-dpad-size       : حجم لوحة الاتجاهات
+   --ql-dpad-button     : حجم أزرار الأسهم داخل اللوحة
+   --ql-touch-target    : أقل مساحة لمس مناسبة
+   ============================================================= */
+
+:root {
+  --ql-controls-scale: 1;
+  --ql-hud-scale: 1;
+  --ql-dpad-size: 138px;
+  --ql-dpad-button: 44px;
+  --ql-touch-target: 44px;
+}
+
+/* HUD */
+#minimal-heritage-hud {
+  transform: scale(var(--ql-hud-scale));
+  transform-origin: top left;
+}
+
+/* Village / shared D-pad */
+#compact-touch-dpad {
+  width: var(--ql-dpad-size) !important;
+  height: var(--ql-dpad-size) !important;
+}
+
+#dpad-btn-up,
+#dpad-btn-down,
+#dpad-btn-left,
+#dpad-btn-right {
+  width: var(--ql-dpad-button) !important;
+  height: var(--ql-dpad-button) !important;
+}
+
+/* Other station D-pads that still use the legacy 138px Tailwind size */
+[class~="w-[138px]"][class~="h-[138px]"] {
+  width: var(--ql-dpad-size) !important;
+  height: var(--ql-dpad-size) !important;
+}
+
+/* Common directional/action buttons */
+[class~="w-11"][class~="h-11"] {
+  width: var(--ql-dpad-button) !important;
+  height: var(--ql-dpad-button) !important;
+}
+
+/* Touch accessibility */
+@media (pointer: coarse) {
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+/* Small phones */
+@media (max-width: 479px) {
+  :root {
+    --ql-controls-scale: 0.90;
+    --ql-hud-scale: 0.92;
+    --ql-dpad-size: 108px;
+    --ql-dpad-button: 34px;
+    --ql-touch-target: 40px;
+  }
+}
+
+/* Large phones */
+@media (min-width: 480px) and (max-width: 767px) {
+  :root {
+    --ql-controls-scale: 0.95;
+    --ql-hud-scale: 0.96;
+    --ql-dpad-size: 118px;
+    --ql-dpad-button: 38px;
+    --ql-touch-target: 42px;
+  }
+}
+
+/* Tablets */
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --ql-controls-scale: 1;
+    --ql-hud-scale: 1;
+    --ql-dpad-size: 128px;
+    --ql-dpad-button: 41px;
+    --ql-touch-target: 44px;
+  }
+}
+
+/* Desktop / laptop */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  :root {
+    --ql-controls-scale: 1;
+    --ql-hud-scale: 1;
+    --ql-dpad-size: 138px;
+    --ql-dpad-button: 44px;
+    --ql-touch-target: 44px;
+  }
+}
+
+/* Smart board / large display */
+@media (min-width: 1600px) and (max-width: 2199px) {
+  :root {
+    --ql-controls-scale: 1.12;
+    --ql-hud-scale: 1.08;
+    --ql-dpad-size: 154px;
+    --ql-dpad-button: 50px;
+    --ql-touch-target: 50px;
+  }
+}
+
+/* 4K / very large interactive display */
+@media (min-width: 2200px) {
+  :root {
+    --ql-controls-scale: 1.20;
+    --ql-hud-scale: 1.14;
+    --ql-dpad-size: 170px;
+    --ql-dpad-button: 56px;
+    --ql-touch-target: 56px;
+  }
+}
+
+/* Landscape phone: keep controls compact vertically */
+@media (max-height: 520px) and (orientation: landscape) {
+  :root {
+    --ql-controls-scale: 0.84;
+    --ql-hud-scale: 0.86;
+    --ql-dpad-size: 96px;
+    --ql-dpad-button: 30px;
+    --ql-touch-target: 38px;
+  }
+}
