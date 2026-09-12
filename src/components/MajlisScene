@@ -314,55 +314,65 @@ function CoffeeTask({
   onWin: () => void;
 }) {
   const guests = [
-    { id: 0, label: 'الضيف الأول', x: 76, y: 43 },
-    { id: 1, label: 'الضيف الثاني', x: 80, y: 60 },
-    { id: 2, label: 'الضيف الثالث', x: 74, y: 77 },
+    { id: 0, label: 'الضيف الأول', x: 39, y: 57 },
+    { id: 1, label: 'الضيف الثاني', x: 50, y: 54 },
+    { id: 2, label: 'الضيف الثالث', x: 61, y: 57 },
   ];
 
+  const dallah = { x: 50, y: 67 };
+  const cupHome = { x: 43, y: 68 };
+
   const [servedGuests, setServedGuests] = useState<number[]>([]);
+  const [cupPos, setCupPos] = useState(cupHome);
   const [cupFilled, setCupFilled] = useState(false);
-  const [cupPos, setCupPos] = useState({ x: 35, y: 72 });
   const [pouring, setPouring] = useState(false);
+  const [stepMessage, setStepMessage] = useState('اسحب الفنجان إلى الدلة لملئه بالقهوة');
   const draggingCup = useRef(false);
 
   const currentGuest =
-    guests.find(g => !servedGuests.includes(g.id)) || null;
+    guests.find(guest => !servedGuests.includes(guest.id)) || null;
 
   const resetCup = () => {
-    setCupPos({ x: 35, y: 72 });
+    setCupPos(cupHome);
     setCupFilled(false);
     setPouring(false);
+    setStepMessage('اسحب الفنجان إلى الدلة لملئه بالقهوة');
   };
 
-  const pourCoffee = () => {
-    if (cupFilled || servedGuests.length >= guests.length) return;
-
-    setPouring(true);
-
-    window.setTimeout(() => {
-      setCupFilled(true);
-      setPouring(false);
-    }, 650);
-  };
-
-  const moveCup = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingCup.current || !cupFilled || !currentGuest) return;
+  const handleMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingCup.current || !currentGuest) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * 100;
-    const py = ((e.clientY - rect.top) / rect.height) * 100;
-
-    const x = Math.max(8, Math.min(92, px));
-    const y = Math.max(18, Math.min(86, py));
+    const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(10, Math.min(90, ((e.clientY - rect.top) / rect.height) * 100));
 
     setCupPos({ x, y });
 
-    const distance = Math.hypot(
+    // Step 1: bring empty cup close to the dallah spout.
+    if (!cupFilled) {
+      const distanceToDallah = Math.hypot(x - dallah.x, y - dallah.y);
+
+      if (distanceToDallah < 7 && !pouring) {
+        setPouring(true);
+        setStepMessage('يتم صب القهوة...');
+
+        window.setTimeout(() => {
+          setCupFilled(true);
+          setPouring(false);
+          setStepMessage(`قدّم الفنجان إلى ${currentGuest.label}`);
+        }, 650);
+      }
+
+      return;
+    }
+
+    // Step 2: take the filled cup to the current guest.
+    const distanceToGuest = Math.hypot(
       x - currentGuest.x,
       y - currentGuest.y
     );
 
-    if (distance < 9) {
+    if (distanceToGuest < 7.5) {
       draggingCup.current = false;
 
       setServedGuests(prev => [
@@ -370,9 +380,11 @@ function CoffeeTask({
         currentGuest.id,
       ]);
 
+      setStepMessage(`تم تقديم القهوة إلى ${currentGuest.label}`);
+
       window.setTimeout(() => {
         resetCup();
-      }, 350);
+      }, 700);
     }
   };
 
@@ -381,25 +393,38 @@ function CoffeeTask({
   return (
     <ModalFrame title="تقديم الضيافة" onClose={onClose}>
       <p className="mt-2 text-center text-white/90">
-        صبّ قليلًا من القهوة في الفنجان، ثم قدّمه للضيف المحدد.
+        قدّم القهوة كما في المجلس: املأ الفنجان من الدلة، ثم قدّمه للضيف.
       </p>
 
-      <div className="mt-4 flex items-center justify-center gap-2 text-sm">
-        <span className="rounded-full border border-[#FFE082]/40 bg-black/20 px-4 py-2">
-          1. صب القهوة
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm">
+        <span className={`rounded-full border px-4 py-2 ${
+          !cupFilled
+            ? 'border-[#FFE082] bg-[#FFE082]/10 text-[#FFE082]'
+            : 'border-white/15 bg-black/20 text-white/65'
+        }`}>
+          1. املأ الفنجان
         </span>
+
         <span className="text-[#FFE082]">←</span>
-        <span className="rounded-full border border-[#FFE082]/40 bg-black/20 px-4 py-2">
-          2. قدّم الفنجان
+
+        <span className={`rounded-full border px-4 py-2 ${
+          cupFilled
+            ? 'border-[#FFE082] bg-[#FFE082]/10 text-[#FFE082]'
+            : 'border-white/15 bg-black/20 text-white/65'
+        }`}>
+          2. قدّمه للضيف
         </span>
       </div>
 
       <div
-        onPointerMove={moveCup}
+        onPointerMove={handleMove}
         onPointerUp={() => {
           draggingCup.current = false;
         }}
         onPointerCancel={() => {
+          draggingCup.current = false;
+        }}
+        onPointerLeave={() => {
           draggingCup.current = false;
         }}
         className="
@@ -411,60 +436,70 @@ function CoffeeTask({
           border-[#FFE082]
           overflow-hidden
           touch-none
-          bg-[radial-gradient(circle_at_48%_42%,#b98652_0%,#875331_55%,#54301f_100%)]
+          bg-black/15
+          shadow-inner
         "
       >
-        {/* Carpet */}
-        <div className="absolute inset-x-[6%] bottom-[6%] h-[54%] rounded-[45%] border-2 border-[#c89f67]/55 bg-[#6f2f2d]/30" />
+        {/* Use the actual Majlis background as the interaction surface */}
+        <img
+          src={MASTER_IMAGE_PATH}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
 
-        {/* Low serving table */}
-        <div className="absolute left-[8%] bottom-[12%] w-[45%] h-[27%] rounded-[50%] border-2 border-[#c99c61] bg-[#5b321f] shadow-[0_16px_30px_rgba(0,0,0,.35)]">
-          <div className="absolute inset-[7%] rounded-[50%] border border-[#dfb879]/40" />
-        </div>
+        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
-        {/* Realistic Dallah */}
-        <div className="absolute left-[13%] bottom-[20%] w-28 h-36">
-          <div className="absolute bottom-0 left-[30%] w-16 h-20 rounded-[44%_44%_36%_36%] border-2 border-[#f0d195] bg-[linear-gradient(145deg,#f7dfa7,#b9843f_52%,#6f451f)] shadow-[inset_7px_5px_12px_rgba(255,255,255,.4),0_10px_18px_rgba(0,0,0,.3)]" />
-          <div className="absolute left-[43%] top-[18%] w-7 h-20 rounded-t-full bg-[linear-gradient(90deg,#c99a55,#f4d796,#8f612d)]" />
-          <div className="absolute left-[50%] top-[7%] w-5 h-7 rounded-full bg-[#d9ae64] border border-[#ffe9b2]" />
-          <div className="absolute left-[5%] top-[40%] w-16 h-4 rounded-full bg-[linear-gradient(90deg,#6f451f,#d9aa63)] -rotate-[18deg] origin-right" />
-          <div className="absolute right-[0%] top-[41%] w-12 h-16 rounded-r-[70%] border-r-4 border-[#d9aa63]" />
-        </div>
+        {/* Dallah interaction hotspot aligned to the real dallah on the table */}
+        <div
+          className={`
+            absolute
+            -translate-x-1/2
+            -translate-y-1/2
+            rounded-full
+            border-2
+            transition-all
+            pointer-events-none
+            ${
+              !cupFilled
+                ? 'w-24 h-24 border-[#FFE082] bg-[#FFE082]/8 shadow-[0_0_22px_rgba(255,224,130,.32)]'
+                : 'w-16 h-16 border-white/20 bg-transparent'
+            }
+          `}
+          style={{
+            left: `${dallah.x}%`,
+            top: `${dallah.y}%`,
+          }}
+        />
 
-        {/* Pour stream */}
-        {pouring && (
-          <div className="absolute left-[29%] bottom-[25%] z-20 h-16 w-[3px] rotate-[18deg] origin-top rounded-full bg-[#6d3c1d] shadow-[0_0_8px_rgba(255,217,154,.28)]" />
-        )}
-
-        {/* Pour button */}
-        {!cupFilled && !finished && (
-          <button
-            onClick={pourCoffee}
-            disabled={pouring}
+        {!cupFilled && (
+          <div
             className="
               absolute
-              left-[9%]
-              top-[8%]
-              z-30
+              -translate-x-1/2
               rounded-full
-              border-2
-              border-[#FFE082]
-              bg-[#8A1538]
-              px-5
-              py-2.5
-              text-sm
+              border
+              border-[#FFE082]/70
+              bg-[#3f2417]/92
+              px-4
+              py-1.5
+              text-xs
               font-black
               text-[#FFE082]
               shadow-xl
-              active:scale-95
+              pointer-events-none
             "
+            style={{
+              left: `${dallah.x}%`,
+              top: `calc(${dallah.y}% - 70px)`,
+            }}
           >
-            {pouring ? 'يتم الصب...' : 'صب القهوة'}
-          </button>
+            الدلة
+          </div>
         )}
 
-        {/* Guests */}
-        {guests.map((guest, index) => {
+        {/* Real guests in the background — only subtle target rings are added */}
+        {guests.map(guest => {
           const served = servedGuests.includes(guest.id);
           const active = currentGuest?.id === guest.id;
 
@@ -473,11 +508,9 @@ function CoffeeTask({
               key={guest.id}
               className="
                 absolute
-                z-10
-                w-[110px]
-                h-[92px]
                 -translate-x-1/2
                 -translate-y-1/2
+                pointer-events-none
               "
               style={{
                 left: `${guest.x}%`,
@@ -486,71 +519,76 @@ function CoffeeTask({
             >
               <div
                 className={`
-                  absolute
-                  inset-0
-                  rounded-[50%_50%_42%_42%]
-                  border-2
-                  bg-[#eee5d5]
-                  shadow-lg
+                  rounded-full
                   transition-all
                   ${
                     served
-                      ? 'border-emerald-300 opacity-70'
-                      : active
-                        ? 'border-[#FFE082] shadow-[0_0_22px_rgba(255,224,130,.45)]'
-                        : 'border-white/45 opacity-75'
+                      ? 'w-16 h-16 border-2 border-emerald-300 bg-emerald-300/8'
+                      : active && cupFilled
+                        ? 'w-24 h-24 border-[3px] border-[#FFE082] bg-[#FFE082]/8 shadow-[0_0_26px_rgba(255,224,130,.35)]'
+                        : 'w-0 h-0'
                   }
                 `}
-              >
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-[#d7b38b]" />
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[11px] font-black text-[#5d321d] whitespace-nowrap">
-                  {served ? 'تمت الضيافة ✓' : guest.label}
-                </div>
-              </div>
+              />
 
-              {active && !served && (
-                <div className="absolute -left-7 top-1/2 -translate-y-1/2 text-4xl">
-                  🤲
+              {served && (
+                <div className="absolute left-1/2 top-[38px] -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-900/90 border border-emerald-300 px-3 py-1 text-[11px] font-black text-white">
+                  تمت الضيافة ✓
                 </div>
               )}
             </div>
           );
         })}
 
-        {/* Finjan */}
+        {/* Coffee stream shown over the real dallah while filling */}
+        {pouring && (
+          <div
+            className="
+              absolute
+              z-30
+              h-16
+              w-[3px]
+              rounded-full
+              bg-[#5f3118]
+              shadow-[0_0_8px_rgba(255,220,170,.28)]
+              pointer-events-none
+            "
+            style={{
+              left: `calc(${dallah.x}% - 24px)`,
+              top: `calc(${dallah.y}% - 56px)`,
+              transform: 'rotate(18deg)',
+            }}
+          />
+        )}
+
+        {/* Finjan — draggable, small and proportional to scene */}
         {!finished && (
           <button
             onPointerDown={(e) => {
-              if (!cupFilled) return;
               draggingCup.current = true;
               e.currentTarget.setPointerCapture(e.pointerId);
             }}
-            className={`
+            className="
               absolute
-              z-30
-              w-16
-              h-16
+              z-40
+              w-12
+              h-12
               -translate-x-1/2
               -translate-y-1/2
               rounded-full
-              border-2
-              shadow-xl
-              transition-shadow
-              ${
-                cupFilled
-                  ? 'cursor-grab active:cursor-grabbing border-[#FFE082] bg-[#f2e7d1]'
-                  : 'border-white/35 bg-[#eadfc9]/80'
-              }
-            `}
+              cursor-grab
+              active:cursor-grabbing
+              drop-shadow-[0_8px_10px_rgba(0,0,0,.45)]
+            "
             style={{
               left: `${cupPos.x}%`,
               top: `${cupPos.y}%`,
             }}
             aria-label="فنجان القهوة"
           >
-            <span className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 w-10 h-9 rounded-[10%_10%_48%_48%] border-2 border-[#d6b77b] bg-[#f7eedf]">
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-8 rounded-[10%_10%_48%_48%] border-2 border-[#d9bd85] bg-[#f7eedf] shadow-[inset_3px_2px_5px_rgba(255,255,255,.8),0_4px_8px_rgba(0,0,0,.25)]">
               {cupFilled && (
-                <span className="absolute left-1/2 top-1 -translate-x-1/2 w-7 h-3 rounded-[50%] bg-[#6f3a1d]" />
+                <span className="absolute left-1/2 top-1 -translate-x-1/2 w-6 h-2.5 rounded-[50%] bg-[#6f3a1d]" />
               )}
             </span>
           </button>
@@ -558,15 +596,13 @@ function CoffeeTask({
 
         {/* Current instruction */}
         {!finished && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 rounded-full border border-white/15 bg-black/35 px-5 py-2 text-sm font-bold text-white/95 whitespace-nowrap">
-            {!cupFilled
-              ? 'اضغط «صب القهوة» أولًا'
-              : `قدّم الفنجان إلى ${currentGuest?.label}`}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-full border border-white/15 bg-black/55 px-5 py-2 text-sm font-bold text-white whitespace-nowrap">
+            {stepMessage}
           </div>
         )}
 
         {finished && (
-          <div className="absolute inset-0 z-50 bg-emerald-950/25 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="absolute inset-0 z-50 bg-emerald-950/20 backdrop-blur-[1px] flex items-center justify-center">
             <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-7 py-3 text-xl font-black text-white shadow-xl">
               تمت الضيافة للضيوف ✓
             </div>
@@ -576,19 +612,19 @@ function CoffeeTask({
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
-          <div className="text-xs text-white/65">تمت الضيافة</div>
+          <div className="text-xs text-white/65">الضيوف</div>
           <div className="mt-1 text-2xl font-black text-[#FFE082]">
             {servedGuests.length}/3
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
-          <div className="text-xs text-white/65">حالة الفنجان</div>
+          <div className="text-xs text-white/65">الفنجان</div>
           <div className="mt-1 text-lg font-black text-[#FFE082]">
             {finished
               ? 'مكتمل'
               : cupFilled
-                ? 'جاهز للتقديم'
+                ? 'مملوء'
                 : 'فارغ'}
           </div>
         </div>
@@ -614,26 +650,28 @@ function IncenseTask({
   onWin: () => void;
 }) {
   const guests = [
-    { id: 0, label: 'الضيف الأول', x: 24, y: 48 },
-    { id: 1, label: 'الضيف الثاني', x: 50, y: 42 },
-    { id: 2, label: 'الضيف الثالث', x: 76, y: 48 },
+    { id: 0, label: 'الضيف الأول', x: 39, y: 57 },
+    { id: 1, label: 'الضيف الثاني', x: 50, y: 54 },
+    { id: 2, label: 'الضيف الثالث', x: 61, y: 57 },
   ];
 
-  const [burnerPos, setBurnerPos] = useState({ x: 18, y: 76 });
+  const burnerHome = { x: 72, y: 72 };
+
+  const [burnerPos, setBurnerPos] = useState(burnerHome);
   const [perfumedGuests, setPerfumedGuests] = useState<number[]>([]);
+  const [activeGuestId, setActiveGuestId] = useState<number | null>(null);
   const dragging = useRef(false);
 
   const moveBurner = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current || perfumedGuests.length >= guests.length) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * 100;
-    const py = ((e.clientY - rect.top) / rect.height) * 100;
-
-    const x = Math.max(8, Math.min(92, px));
-    const y = Math.max(24, Math.min(84, py));
+    const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(18, Math.min(88, ((e.clientY - rect.top) / rect.height) * 100));
 
     setBurnerPos({ x, y });
+
+    let nearest: { id: number; distance: number } | null = null;
 
     for (const guest of guests) {
       if (perfumedGuests.includes(guest.id)) continue;
@@ -643,14 +681,34 @@ function IncenseTask({
         y - guest.y
       );
 
-      if (distance < 12) {
-        setPerfumedGuests(prev =>
-          prev.includes(guest.id)
-            ? prev
-            : [...prev, guest.id]
-        );
-        break;
+      if (!nearest || distance < nearest.distance) {
+        nearest = {
+          id: guest.id,
+          distance,
+        };
       }
+    }
+
+    setActiveGuestId(
+      nearest && nearest.distance < 15
+        ? nearest.id
+        : null
+    );
+
+    if (nearest && nearest.distance < 8) {
+      dragging.current = false;
+
+      setPerfumedGuests(prev =>
+        prev.includes(nearest!.id)
+          ? prev
+          : [...prev, nearest!.id]
+      );
+
+      setActiveGuestId(null);
+
+      window.setTimeout(() => {
+        setBurnerPos(burnerHome);
+      }, 450);
     }
   };
 
@@ -659,7 +717,7 @@ function IncenseTask({
   return (
     <ModalFrame title="تبخير المجلس" onClose={onClose}>
       <p className="mt-2 text-center text-white/90">
-        احمل المبخرة ومرّرها بالقرب من الضيوف واحدًا تلو الآخر.
+        احمل المبخرة وقرّبها من كل ضيف، كما تُقدّم الطيب في المجلس.
       </p>
 
       <div
@@ -668,6 +726,9 @@ function IncenseTask({
           dragging.current = false;
         }}
         onPointerCancel={() => {
+          dragging.current = false;
+        }}
+        onPointerLeave={() => {
           dragging.current = false;
         }}
         className="
@@ -679,26 +740,31 @@ function IncenseTask({
           border-[#FFE082]
           overflow-hidden
           touch-none
-          bg-[radial-gradient(circle_at_50%_38%,#9b633d_0%,#6e4329_58%,#43271b_100%)]
+          bg-black/15
         "
       >
-        {/* Majlis seating */}
-        <div className="absolute left-[7%] right-[7%] top-[28%] h-[36%] rounded-[38px] border border-[#c49867]/40 bg-[#6f2f2d]/28" />
+        <img
+          src={MASTER_IMAGE_PATH}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
 
-        {/* Guests */}
+        <div className="absolute inset-0 bg-black/8 pointer-events-none" />
+
+        {/* Guest targets aligned to the real guests in the Majlis background */}
         {guests.map(guest => {
           const done = perfumedGuests.includes(guest.id);
+          const active = activeGuestId === guest.id;
 
           return (
             <div
               key={guest.id}
               className="
                 absolute
-                z-10
-                w-[120px]
-                h-[118px]
                 -translate-x-1/2
                 -translate-y-1/2
+                pointer-events-none
               "
               style={{
                 left: `${guest.x}%`,
@@ -707,42 +773,40 @@ function IncenseTask({
             >
               <div
                 className={`
-                  absolute
-                  inset-0
-                  rounded-[48%_48%_38%_38%]
-                  border-2
-                  bg-[#eee5d5]
-                  shadow-lg
+                  rounded-full
                   transition-all
                   ${
                     done
-                      ? 'border-emerald-300 opacity-75'
-                      : 'border-white/45'
+                      ? 'w-20 h-20 border-2 border-emerald-300 bg-emerald-300/7'
+                      : active
+                        ? 'w-28 h-28 border-[3px] border-[#FFE082] bg-[#FFE082]/6 shadow-[0_0_28px_rgba(255,224,130,.32)]'
+                        : 'w-0 h-0'
                   }
                 `}
-              >
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full bg-[#d7b38b]" />
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] font-black text-[#5d321d] whitespace-nowrap">
-                  {done ? 'تم التبخير ✓' : guest.label}
+              />
+
+              {done && (
+                <div className="absolute left-1/2 top-[42px] -translate-x-1/2 rounded-full border border-emerald-300 bg-emerald-900/90 px-3 py-1 text-[11px] font-black text-white whitespace-nowrap">
+                  تم التبخير ✓
                 </div>
-              </div>
+              )}
 
               {done && (
                 <>
-                  <div className="absolute left-1/2 -translate-x-1/2 -top-10 w-12 h-20 rounded-full bg-white/12 blur-xl" />
-                  <div className="absolute left-[40%] -top-3 w-8 h-14 rounded-full bg-white/10 blur-lg" />
+                  <div className="absolute left-1/2 -translate-x-1/2 -top-10 w-14 h-24 rounded-full bg-white/12 blur-xl" />
+                  <div className="absolute left-[40%] -top-3 w-8 h-16 rounded-full bg-white/10 blur-lg" />
                 </>
               )}
             </div>
           );
         })}
 
-        {/* Smoke plume following burner */}
+        {/* Smoke follows the real mabkhara */}
         <div
           className="absolute z-20 pointer-events-none"
           style={{
             left: `${burnerPos.x}%`,
-            top: `calc(${burnerPos.y}% - 94px)`,
+            top: `calc(${burnerPos.y}% - 92px)`,
             transform: 'translateX(-50%)',
           }}
         >
@@ -751,7 +815,7 @@ function IncenseTask({
           <div className="absolute -left-3 bottom-16 w-10 h-16 rounded-full bg-white/8 blur-xl" />
         </div>
 
-        {/* Realistic brass mabkhara */}
+        {/* Draggable mabkhara — proportional and detailed */}
         <button
           onPointerDown={(e) => {
             if (finished) return;
@@ -761,12 +825,13 @@ function IncenseTask({
           className="
             absolute
             z-30
-            w-[92px]
-            h-[112px]
+            w-[78px]
+            h-[98px]
             -translate-x-1/2
             -translate-y-1/2
             cursor-grab
             active:cursor-grabbing
+            drop-shadow-[0_10px_16px_rgba(0,0,0,.4)]
           "
           style={{
             left: `${burnerPos.x}%`,
@@ -774,20 +839,20 @@ function IncenseTask({
           }}
           aria-label="المبخرة"
         >
-          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 w-16 h-12 rounded-[10px_10px_18px_18px] border-2 border-[#f0d195] bg-[linear-gradient(145deg,#f3d99a,#b37a32_55%,#694019)] shadow-[inset_5px_5px_8px_rgba(255,255,255,.35),0_10px_20px_rgba(0,0,0,.35)]" />
-          <div className="absolute left-1/2 bottom-9 -translate-x-1/2 w-12 h-12 rotate-45 border-2 border-[#f0d195] bg-[linear-gradient(145deg,#e5c47c,#956326)] shadow-md" />
-          <div className="absolute left-1/2 bottom-[68px] -translate-x-1/2 w-9 h-9 rotate-45 border-2 border-[#f0d195] bg-[#9f6d2e]" />
-          <div className="absolute left-1/2 bottom-[86px] -translate-x-1/2 w-4 h-4 rounded-full bg-[#5f351e] shadow-[0_0_12px_rgba(255,159,67,.55)]" />
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 w-14 h-11 rounded-[9px_9px_18px_18px] border-2 border-[#f0d195] bg-[linear-gradient(145deg,#f3d99a,#b37a32_55%,#694019)] shadow-[inset_5px_5px_8px_rgba(255,255,255,.35),0_8px_15px_rgba(0,0,0,.35)]" />
+          <div className="absolute left-1/2 bottom-8 -translate-x-1/2 w-11 h-11 rotate-45 border-2 border-[#f0d195] bg-[linear-gradient(145deg,#e5c47c,#956326)] shadow-md" />
+          <div className="absolute left-1/2 bottom-[62px] -translate-x-1/2 w-8 h-8 rotate-45 border-2 border-[#f0d195] bg-[#9f6d2e]" />
+          <div className="absolute left-1/2 bottom-[79px] -translate-x-1/2 w-4 h-4 rounded-full bg-[#5f351e] shadow-[0_0_12px_rgba(255,159,67,.55)]" />
         </button>
 
         {!finished && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 rounded-full border border-white/15 bg-black/35 px-5 py-2 text-sm font-bold text-white/95 whitespace-nowrap">
-            اقترب بالمبخرة من كل ضيف
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-full border border-white/15 bg-black/55 px-5 py-2 text-sm font-bold text-white whitespace-nowrap">
+            قرّب المبخرة من كل ضيف
           </div>
         )}
 
         {finished && (
-          <div className="absolute inset-0 z-50 bg-emerald-950/25 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="absolute inset-0 z-50 bg-emerald-950/20 backdrop-blur-[1px] flex items-center justify-center">
             <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-7 py-3 text-xl font-black text-white shadow-xl">
               تم تبخير المجلس ✓
             </div>
@@ -797,7 +862,7 @@ function IncenseTask({
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
-          <div className="text-xs text-white/65">تم التبخير</div>
+          <div className="text-xs text-white/65">الضيوف</div>
           <div className="mt-1 text-2xl font-black text-[#FFE082]">
             {perfumedGuests.length}/3
           </div>
@@ -806,7 +871,7 @@ function IncenseTask({
         <div className="rounded-2xl border border-white/15 bg-black/20 py-3 text-center">
           <div className="text-xs text-white/65">الحالة</div>
           <div className="mt-1 text-lg font-black text-[#FFE082]">
-            {finished ? 'مكتمل' : 'مرّر المبخرة'}
+            {finished ? 'مكتمل' : 'قدّم الطيب'}
           </div>
         </div>
       </div>
