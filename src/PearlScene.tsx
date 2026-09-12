@@ -18,6 +18,7 @@ import {
   Rotate3D,
   Shell,
   Sparkles,
+  Volume2,
   Waves,
   X,
 } from 'lucide-react';
@@ -258,6 +259,25 @@ export function PearlScene({
     setHasReportedComplete,
   ] = useState(false);
 
+  /* ==========================================================
+     INTERACTIVE PEARL / DANA VIEWER
+  ========================================================== */
+
+  const [pearlRotation, setPearlRotation] =
+    useState(18);
+
+  const pearlDraggingRef =
+    useRef(false);
+
+  const pearlLastPointerXRef =
+    useRef(0);
+
+  const [isSpeaking, setIsSpeaking] =
+    useState(false);
+
+  const [speechError, setSpeechError] =
+    useState<string | null>(null);
+
   /*
     Simple breathing representation.
     5 bubbles = plenty of breath, then it gradually drops.
@@ -268,6 +288,154 @@ export function PearlScene({
       (timeLeft / ROUND_SECONDS) * 5
     )
   );
+
+  /* ==========================================================
+     ACCESSIBLE ARABIC LISTENING
+  ========================================================== */
+
+  const speakShellResult = (
+    shellState: OpenedShellState
+  ) => {
+    setSpeechError(null);
+
+    if (
+      typeof window === 'undefined' ||
+      !('speechSynthesis' in window) ||
+      typeof SpeechSynthesisUtterance === 'undefined'
+    ) {
+      setSpeechError(
+        'الاستماع غير مدعوم في هذا المتصفح.'
+      );
+
+      return;
+    }
+
+    const synth =
+      window.speechSynthesis;
+
+    synth.cancel();
+    synth.resume();
+
+    const voices =
+      synth.getVoices();
+
+    const arabicVoice =
+      voices.find(
+        (voice) =>
+          voice.lang === 'ar-QA'
+      ) ||
+      voices.find(
+        (voice) =>
+          voice.lang === 'ar-SA'
+      ) ||
+      voices.find(
+        (voice) =>
+          voice.lang
+            .toLowerCase()
+            .startsWith('ar')
+      ) ||
+      null;
+
+    const utterance =
+      new SpeechSynthesisUtterance(
+        `${shellState.title}. ${shellState.message}`
+      );
+
+    utterance.lang =
+      arabicVoice?.lang ||
+      'ar-SA';
+
+    if (arabicVoice) {
+      utterance.voice =
+        arabicVoice;
+    }
+
+    utterance.rate = 0.82;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setSpeechError(null);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (
+      event
+    ) => {
+      setIsSpeaking(false);
+
+      if (
+        event.error !==
+          'canceled' &&
+        event.error !==
+          'interrupted'
+      ) {
+        setSpeechError(
+          'تعذر تشغيل الصوت في هذه المعاينة.'
+        );
+      }
+    };
+
+    window.setTimeout(
+      () => {
+        synth.resume();
+        synth.speak(
+          utterance
+        );
+      },
+      100
+    );
+  };
+
+  const resetPearlViewer = () => {
+    setPearlRotation(18);
+  };
+
+  const handlePearlPointerDown = (
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    pearlDraggingRef.current =
+      true;
+
+    pearlLastPointerXRef.current =
+      e.clientX;
+
+    e.currentTarget.setPointerCapture(
+      e.pointerId
+    );
+  };
+
+  const handlePearlPointerMove = (
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (
+      !pearlDraggingRef.current
+    ) {
+      return;
+    }
+
+    const dx =
+      e.clientX -
+      pearlLastPointerXRef.current;
+
+    setPearlRotation(
+      (prev) =>
+        prev +
+        dx * 0.8
+    );
+
+    pearlLastPointerXRef.current =
+      e.clientX;
+  };
+
+  const handlePearlPointerEnd = () => {
+    pearlDraggingRef.current =
+      false;
+  };
 
   /* ==========================================================
      VIEWPORT SIZE
@@ -987,6 +1155,18 @@ export function PearlScene({
 
     touchDirectionRef.current =
       null;
+
+    resetPearlViewer();
+
+    if (
+      'speechSynthesis' in
+      window
+    ) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsSpeaking(false);
+    setSpeechError(null);
 
     setActiveTouchDir(
       null
@@ -2448,85 +2628,138 @@ export function PearlScene({
               className="
                 relative
                 mx-auto
-                w-56
-                h-48
+                w-[290px]
+                h-[240px]
+                max-w-full
                 flex
                 items-center
                 justify-center
-                [perspective:900px]
+                [perspective:1000px]
+                touch-none
               "
             >
               <div
                 className="
                   absolute
-                  inset-6
+                  inset-5
                   rounded-full
-                  bg-[#FFE082]/20
+                  bg-[#FFE082]/18
                   blur-3xl
                 "
               />
 
+              {/* Open shell */}
               <div
                 className="
-                  relative
-                  text-[130px]
+                  absolute
+                  bottom-5
+                  left-1/2
+                  -translate-x-1/2
+                  text-[150px]
                   leading-none
-                  drop-shadow-[0_18px_20px_rgba(0,0,0,.35)]
+                  drop-shadow-[0_18px_20px_rgba(0,0,0,.38)]
+                  pointer-events-none
                 "
               >
-                {openedShell
-                  .shell
-                  .reward ===
-                'empty'
-                  ? '🦪'
-                  : openedShell
-                        .shell
-                        .reward ===
-                      'pearl'
-                    ? '🦪'
-                    : '🦪'}
+                🦪
               </div>
 
-              {openedShell
-                .shell
-                .reward !==
-                'empty' && (
+              {/* Interactive pearl / Dana */}
+              {openedShell.shell.reward !== 'empty' && (
                 <div
-                  className={`
-                    absolute
-                    bottom-11
-                    left-1/2
-                    -translate-x-1/2
-                    rounded-full
-                    bg-white
-                    shadow-[0_0_28px_rgba(255,248,207,.95)]
-
-                    ${
-                      openedShell
-                        .shell
-                        .reward ===
-                      'dana'
-                        ? 'w-14 h-14'
-                        : 'w-9 h-9'
-                    }
-                  `}
-                />
-              )}
-
-              {openedShell
-                .shell
-                .reward ===
-                'dana' && (
-                <Sparkles
+                  onPointerDown={handlePearlPointerDown}
+                  onPointerMove={handlePearlPointerMove}
+                  onPointerUp={handlePearlPointerEnd}
+                  onPointerCancel={handlePearlPointerEnd}
+                  onPointerLeave={handlePearlPointerEnd}
                   className="
                     absolute
-                    top-6
-                    right-10
-                    w-9
-                    h-9
-                    text-[#FFE082]
+                    left-1/2
+                    top-[46%]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    cursor-grab
+                    active:cursor-grabbing
+                    select-none
+                    touch-none
                   "
-                />
+                  style={{
+                    transform:
+                      `translate(-50%, -50%) rotateY(${pearlRotation}deg)`,
+                    transformStyle:
+                      'preserve-3d',
+                  }}
+                >
+                  <div
+                    className={`
+                      relative
+                      rounded-full
+                      border-[3px]
+                      border-white/80
+                      bg-[radial-gradient(circle_at_30%_25%,#ffffff_0%,#fffde7_22%,#e7dcc5_55%,#baa98e_78%,#8e7d66_100%)]
+                      shadow-[inset_-14px_-16px_28px_rgba(71,55,33,.20),inset_10px_9px_18px_rgba(255,255,255,.72),0_0_34px_rgba(255,246,205,.92),0_18px_30px_rgba(0,0,0,.30)]
+
+                      ${
+                        openedShell.shell.reward === 'dana'
+                          ? 'w-[112px] h-[112px]'
+                          : 'w-[76px] h-[76px]'
+                      }
+                    `}
+                  >
+                    <div
+                      className="
+                        absolute
+                        top-[16%]
+                        left-[20%]
+                        w-[28%]
+                        h-[22%]
+                        rounded-full
+                        bg-white/70
+                        blur-[2px]
+                      "
+                    />
+                  </div>
+                </div>
+              )}
+
+              {openedShell.shell.reward === 'dana' && (
+                <>
+                  <Sparkles
+                    className="
+                      absolute
+                      top-5
+                      right-8
+                      w-10
+                      h-10
+                      text-[#FFE082]
+                    "
+                  />
+
+                  <div
+                    className="
+                      absolute
+                      bottom-0
+                      left-1/2
+                      -translate-x-1/2
+                      flex
+                      items-center
+                      gap-2
+                      rounded-full
+                      bg-black/35
+                      border
+                      border-[#FFE082]/45
+                      px-4
+                      py-2
+                      text-xs
+                      font-bold
+                      text-[#FFE082]
+                      whitespace-nowrap
+                    "
+                  >
+                    <Rotate3D className="w-4 h-4" />
+                    اسحب الدانة لتدويرها
+                  </div>
+                </>
               )}
             </div>
 
@@ -2649,13 +2882,75 @@ export function PearlScene({
             )}
 
             <button
+              type="button"
               onClick={() =>
-                setOpenedShell(
-                  null
+                speakShellResult(
+                  openedShell
                 )
               }
+              className={`
+                mt-5
+                w-full
+                flex
+                items-center
+                justify-center
+                gap-2
+                rounded-2xl
+                border-2
+                border-[#FFE082]
+                py-3
+                text-[#FFE082]
+                font-black
+                active:scale-95
+                transition-all
+
+                ${
+                  isSpeaking
+                    ? 'bg-[#6B102C]'
+                    : 'bg-[#0B536A]'
+                }
+              `}
+            >
+              <Volume2 className="w-5 h-5" />
+
+              {isSpeaking
+                ? 'يتم الاستماع...'
+                : 'استمع'}
+            </button>
+
+            {speechError && (
+              <div
+                className="
+                  mt-3
+                  rounded-xl
+                  border
+                  border-amber-300/40
+                  bg-amber-950/35
+                  px-3
+                  py-2
+                  text-sm
+                  text-amber-100
+                "
+              >
+                {speechError}
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                if (
+                  'speechSynthesis' in
+                  window
+                ) {
+                  window.speechSynthesis.cancel();
+                }
+
+                setIsSpeaking(false);
+                setSpeechError(null);
+                setOpenedShell(null);
+              }}
               className="
-                mt-6
+                mt-4
                 w-full
                 rounded-2xl
                 bg-[#8A1538]
@@ -2750,6 +3045,19 @@ export function PearlScene({
                 ? 'أحسنت! وجدت الدانة'
                 : 'انتهى وقت الغوص'}
             </h2>
+
+            {hasFoundDana && (
+              <p
+                className="
+                  mt-2
+                  text-sm
+                  leading-7
+                  text-white/85
+                "
+              >
+                اكتملت رحلة بحر اللؤلؤ وأُضيف ختم المحطة إلى جوازك.
+              </p>
+            )}
 
             <p
               className="
@@ -2855,7 +3163,7 @@ export function PearlScene({
               "
             />
 
-            إنهاء الرحلة
+            اصعد إلى المحمل
           </button>
         )}
     </div>
