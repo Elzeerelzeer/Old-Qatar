@@ -54,6 +54,7 @@ type PearlPhase =
   | 'surface'
   | 'diving'
   | 'underwater'
+  | 'ascending'
   | 'finished';
 
 type ShellReward =
@@ -226,6 +227,11 @@ export function PearlScene({
   const [
     diveProgress,
     setDiveProgress,
+  ] = useState(0);
+
+  const [
+    ascentProgress,
+    setAscentProgress,
   ] = useState(0);
 
   /* ==========================================================
@@ -580,6 +586,69 @@ export function PearlScene({
     resetRound();
     setPhase('underwater');
   };
+
+  /* ==========================================================
+     CINEMATIC ASCENT TO DHOW
+  ========================================================== */
+
+  const startAscent = useCallback(() => {
+    if (
+      phase !== 'underwater' ||
+      !hasFoundDana
+    ) {
+      return;
+    }
+
+    keysPressed.current = {};
+    touchDirectionRef.current = null;
+
+    setActiveTouchDir(null);
+    setIsMoving(false);
+    setAscentProgress(0);
+    setPhase('ascending');
+
+    const startedAt =
+      performance.now();
+
+    const duration = 2400;
+
+    const animateAscent = (
+      time: number
+    ) => {
+      const progress =
+        Math.min(
+          1,
+          (
+            time -
+            startedAt
+          ) /
+            duration
+        );
+
+      setAscentProgress(
+        progress
+      );
+
+      if (
+        progress < 1
+      ) {
+        requestAnimationFrame(
+          animateAscent
+        );
+
+        return;
+      }
+
+      setPhase('finished');
+    };
+
+    requestAnimationFrame(
+      animateAscent
+    );
+  }, [
+    phase,
+    hasFoundDana,
+  ]);
 
   /* ==========================================================
      COLLISION
@@ -1311,6 +1380,26 @@ export function PearlScene({
       playerWorldPxY;
   }
 
+  if (
+    phase ===
+      'ascending'
+  ) {
+    focusX =
+      playerWorldPxX;
+
+    const surfaceFocusY =
+      WORLD_HEIGHT *
+      0.22;
+
+    focusY =
+      playerWorldPxY +
+      (
+        surfaceFocusY -
+        playerWorldPxY
+      ) *
+        ascentProgress;
+  }
+
   const desiredCameraX =
     viewportSize.width /
       2 -
@@ -1439,6 +1528,8 @@ export function PearlScene({
           'diving' ||
           phase ===
             'underwater' ||
+          phase ===
+            'ascending' ||
           phase ===
             'finished') && (
           <div
@@ -1601,6 +1692,8 @@ export function PearlScene({
 
         {(phase ===
           'underwater' ||
+          phase ===
+            'ascending' ||
           phase ===
             'finished') && (
           <div
@@ -2969,6 +3062,77 @@ export function PearlScene({
       )}
 
       {/* ======================================================
+          CINEMATIC ASCENT
+      ====================================================== */}
+
+      {phase ===
+        'ascending' && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[230]
+            pointer-events-none
+            flex
+            items-center
+            justify-center
+          "
+        >
+          <div
+            className="
+              absolute
+              inset-0
+              bg-gradient-to-t
+              from-[#0b7899]/10
+              via-cyan-100/5
+              to-[#fff4cf]/12
+            "
+          />
+
+          <div
+            className="
+              relative
+              flex
+              flex-col
+              items-center
+              gap-4
+              text-center
+            "
+          >
+            <div
+              className="
+                relative
+                w-28
+                h-32
+              "
+            >
+              <span className="absolute bottom-1 left-5 w-4 h-4 rounded-full border-2 border-white/70" />
+              <span className="absolute bottom-10 right-4 w-6 h-6 rounded-full border-2 border-white/60" />
+              <span className="absolute top-8 left-1/2 w-3 h-3 rounded-full border-2 border-white/70" />
+              <span className="absolute top-1 right-10 w-5 h-5 rounded-full border-2 border-white/50" />
+            </div>
+
+            <div
+              className="
+                rounded-full
+                border
+                border-[#FFE082]/50
+                bg-black/35
+                px-6
+                py-3
+                text-[#FFE082]
+                font-black
+                backdrop-blur-md
+                shadow-xl
+              "
+            >
+              نصعد بالدانة إلى المحمل...
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================
           FINISH / TIME OUT
       ====================================================== */}
 
@@ -3055,7 +3219,7 @@ export function PearlScene({
                   text-white/85
                 "
               >
-                اكتملت رحلة بحر اللؤلؤ وأُضيف ختم المحطة إلى جوازك.
+                عدت إلى المحمل بالدانة، وأُضيف ختم بحر اللؤلؤ إلى جوازك.
               </p>
             )}
 
@@ -3131,10 +3295,8 @@ export function PearlScene({
         hasFoundDana &&
         !openedShell && (
           <button
-            onClick={() =>
-              setPhase(
-                'finished'
-              )
+            onClick={
+              startAscent
             }
             className="
               fixed
