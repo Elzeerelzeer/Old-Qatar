@@ -227,63 +227,143 @@ export function GamesScene({ gender, settings, onReturnToVillage, onComplete }: 
   const startTouch=(d:Direction)=>{touch.current=d;setDirection(d);};
   const stopTouch=()=>{touch.current=null;};
 
-  return <div className="relative w-full h-screen overflow-hidden bg-[#b98b58] select-none" dir="rtl">
-    <img src={MASTER_IMAGE_PATH} alt="فريج الألعاب" draggable={false} className="absolute inset-0 w-full h-full object-cover pointer-events-none"/>
-    <div className="absolute inset-0 bg-black/5 pointer-events-none"/>
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-[#06283a] select-none text-white" dir="rtl">
+      <button
+        onClick={onReturnToVillage}
+        className="fixed top-5 left-5 z-50 rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-5 py-2.5 text-white font-black shadow-xl active:scale-95 transition-transform"
+      >
+        العودة إلى القرية
+      </button>
 
-    <button onClick={onReturnToVillage} className="fixed top-5 left-5 z-50 rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-5 py-2.5 text-white font-black shadow-xl">العودة إلى القرية</button>
-    <div className="fixed top-5 right-5 z-50 rounded-full bg-[#06283a]/92 border border-[#E6C280] px-5 py-2.5 text-[#FFE082] font-black">فريج الألعاب</div>
-    <div className="fixed top-[76px] right-5 z-50 rounded-2xl bg-[#06283a]/92 border border-white/20 px-5 py-3 text-white shadow-xl"><b className="text-[#FFE082] text-xl">{completed.length}/2</b><span className="mr-2 text-sm">للحصول على الختم</span></div>
-
-    {SPOTS.map(s=>{
-      const isDone=completed.includes(s.id), isNear=near?.id===s.id;
-      return <div key={s.id} className="absolute z-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{left:`${s.x}%`,top:`${s.y}%`}}>
-        {(isDone||isNear)&&<div className={`rounded-full border-2 px-4 py-2 font-black shadow-xl ${isDone?'bg-emerald-950/90 border-emerald-300 text-white':'bg-[#8A1538]/95 border-[#FFE082] text-[#FFE082]'}`}>
-          {isDone?<span className="flex gap-2"><CheckCircle2 className="w-5 h-5"/>مكتمل</span>:s.title}
-        </div>}
+      <div className="fixed top-5 right-5 z-50 rounded-full bg-[#06283a]/92 border border-[#E6C280] px-5 py-2.5 text-[#FFE082] font-black shadow-xl">
+        فريج الألعاب
       </div>
-    })}
 
-    <div className="absolute z-30 pointer-events-none" style={{left:`${pos.x}%`,top:`${pos.y}%`,transform:'translate(-50%,-88%)'}}>
-      <div className="absolute left-1/2 bottom-0 -translate-x-1/2 w-12 h-3 rounded-full bg-black/25 blur-sm"/>
-      <CharacterAvatar gender={gender} direction={direction} isMoving={moving} isCelebrating={false} size={characterSize}/>
+      <div className="fixed top-[76px] right-5 z-50 rounded-2xl bg-[#06283a]/92 border border-white/20 px-5 py-2.5 text-white shadow-xl">
+        <b className="text-[#FFE082] text-xl">{completed.length}/2</b>
+        <span className="mr-2 text-sm">للحصول على الختم</span>
+      </div>
+
+      {/* MAP */}
+      <img
+        src={MASTER_IMAGE_PATH}
+        alt="فريج الألعاب"
+        draggable={false}
+        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+      <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+
+      {/* SPOTS */}
+          {SPOTS.map((s) => {
+            const isDone = completed.includes(s.id);
+            const isNear = near?.id === s.id;
+            return (
+              <div
+                key={s.id}
+                className="absolute z-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ left: `${s.x}%`, top: `${s.y}%` }}
+              >
+                {(isDone || isNear) && (
+                  <div
+                    className={`rounded-full border-2 px-3 py-1 sm:px-4 sm:py-2 font-black text-xs sm:text-base shadow-xl ${
+                      isDone
+                        ? 'bg-emerald-950/90 border-emerald-300 text-white'
+                        : 'bg-[#8A1538]/95 border-[#FFE082] text-[#FFE082]'
+                    }`}
+                  >
+                    {isDone ? (
+                      <span className="flex items-center gap-1.5 sm:gap-2">
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" />
+                        مكتمل
+                      </span>
+                    ) : (
+                      s.title
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* CHARACTER */}
+          <div
+            className="absolute z-30 pointer-events-none"
+            style={{
+              left: `${pos.x}%`,
+              top: `${pos.y}%`,
+              transform: 'translate(-50%,-88%)',
+            }}
+          >
+            <div className="absolute left-1/2 bottom-0 -translate-x-1/2 w-10 sm:w-12 h-2.5 sm:h-3 rounded-full bg-black/35 blur-sm" />
+            <CharacterAvatar
+              gender={gender}
+              direction={direction}
+              isMoving={moving}
+              isCelebrating={false}
+              size={characterSize}
+            />
+          </div>
+
+      {near && !completed.includes(near.id) && !active && (
+        <button
+          onClick={() => setActive(near.id)}
+          className="fixed left-1/2 bottom-4 sm:bottom-7 -translate-x-1/2 z-[100] min-w-[200px] sm:min-w-[240px] rounded-2xl bg-[#8A1538] border-[3px] border-[#FFE082] px-5 py-2.5 sm:px-7 sm:py-3.5 text-base sm:text-xl font-black text-[#FFE082] shadow-2xl active:scale-95 transition-transform"
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6" />
+            ابدأ {near.title}
+          </span>
+        </button>
+      )}
+
+      {showIntroGuide && !active && !success && (
+        <div className="fixed left-1/2 top-3 sm:top-5 -translate-x-1/2 z-[120] w-[min(92vw,560px)] rounded-2xl border-2 border-[#FFE082] bg-[#06283a]/95 px-4 py-2 sm:px-5 sm:py-3 text-center shadow-2xl backdrop-blur-md">
+          <div className="text-base sm:text-xl font-black text-[#FFE082]">
+            إلى أين تتجه الشخصية؟
+          </div>
+          <div className="mt-0.5 sm:mt-1 text-xs sm:text-base font-bold text-white/90">
+            تحرّك نحو الدحروي أو التيلة أو الصقلة، ثم ابدأ اللعبة.
+          </div>
+        </div>
+      )}
+
+      {reinforcement && (
+        <div className="fixed left-1/2 top-[82px] sm:top-[92px] -translate-x-1/2 z-[220] flex items-center gap-2 rounded-full border-2 border-[#FFE082] bg-emerald-800/95 px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-lg font-black text-white shadow-2xl">
+          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFE082]" />
+          {reinforcement}
+        </div>
+      )}
+
+      <DPad onStart={startTouch} onEnd={stopTouch} />
+
+      {active === 'dahrooj' && <Dahrooj onClose={() => setActive(null)} onWin={() => done('dahrooj')} />}
+      {active === 'teela' && <Teela onClose={() => setActive(null)} onWin={() => done('teela')} />}
+      {active === 'saqla' && <Saqla onClose={() => setActive(null)} onWin={() => done('saqla')} />}
+
+      {success && (
+        <div className="fixed inset-0 z-[300] bg-black/65 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-[30px] border-2 border-[#FFE082] bg-[#06283a]/95 p-6 text-center shadow-2xl">
+            <div className="text-6xl">🏅</div>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-black text-[#FFE082]">أحسنت!</h2>
+            <div className="mt-3 rounded-full border border-[#FFE082]/50 bg-[#FFE082]/10 px-4 py-2 text-xs sm:text-sm font-bold text-[#FFE082]">
+              تعزيز: ممتاز • استمر بهذا الأداء
+            </div>
+            <p className="mt-2 text-white text-sm sm:text-lg">أنجزت لعبتين وحصلت على ختم فريج الألعاب.</p>
+            <button
+              onClick={onReturnToVillage}
+              className="mt-6 w-full rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] py-3.5 text-[#FFE082] font-black"
+            >
+              العودة إلى القرية
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-
-    {near && !completed.includes(near.id) && !active && <button onClick={()=>setActive(near.id)} className="fixed left-1/2 bottom-7 -translate-x-1/2 z-[100] min-w-[240px] rounded-2xl bg-[#8A1538] border-[3px] border-[#FFE082] px-7 py-3.5 text-xl font-black text-[#FFE082] shadow-2xl"><span className="flex items-center justify-center gap-2"><Gamepad2 className="w-6 h-6"/>ابدأ {near.title}</span></button>}
-
-    {showIntroGuide && !active && !success && (
-      <div className="fixed left-1/2 top-5 -translate-x-1/2 z-[120] w-[min(92vw,560px)] rounded-2xl border-2 border-[#FFE082] bg-[#06283a]/95 px-5 py-3 text-center shadow-2xl backdrop-blur-md">
-        <div className="text-lg sm:text-xl font-black text-[#FFE082]">
-          إلى أين تتجه الشخصية؟
-        </div>
-        <div className="mt-1 text-sm sm:text-base font-bold text-white/90">
-          تحرّك نحو الدحروي أو التيلة أو الصقلة، ثم ابدأ اللعبة.
-        </div>
-      </div>
-    )}
-
-    {reinforcement && (
-      <div className="fixed left-1/2 top-[92px] -translate-x-1/2 z-[220] flex items-center gap-2 rounded-full border-2 border-[#FFE082] bg-emerald-800/95 px-6 py-3 text-base sm:text-lg font-black text-white shadow-2xl">
-        <Sparkles className="w-5 h-5 text-[#FFE082]" />
-        {reinforcement}
-      </div>
-    )}
-
-    <DPad onStart={startTouch} onEnd={stopTouch}/>
-
-    {active==='dahrooj'&&<Dahrooj onClose={()=>setActive(null)} onWin={()=>done('dahrooj')}/>}
-    {active==='teela'&&<Teela onClose={()=>setActive(null)} onWin={()=>done('teela')}/>}
-    {active==='saqla'&&<Saqla onClose={()=>setActive(null)} onWin={()=>done('saqla')}/>}
-
-    {success&&<div className="fixed inset-0 z-[300] bg-black/65 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-[30px] border-2 border-[#FFE082] bg-[#06283a]/95 p-6 text-center shadow-2xl">
-        <div className="text-6xl">🏅</div><h2 className="mt-3 text-3xl font-black text-[#FFE082]">أحسنت!</h2>
-        <div className="mt-3 rounded-full border border-[#FFE082]/50 bg-[#FFE082]/10 px-4 py-2 text-sm font-bold text-[#FFE082]">تعزيز: ممتاز • استمر بهذا الأداء</div>
-        <p className="mt-2 text-white text-lg">أنجزت لعبتين وحصلت على ختم فريج الألعاب.</p>
-        <button onClick={onReturnToVillage} className="mt-6 w-full rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] py-3.5 text-[#FFE082] font-black">العودة إلى القرية</button>
-      </div>
-    </div>}
-  </div>;
+  );
 }
 
 function DPad({onStart,onEnd}:{onStart:(d:Direction)=>void;onEnd:()=>void}) {

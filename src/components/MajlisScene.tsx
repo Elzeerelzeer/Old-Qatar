@@ -150,68 +150,94 @@ export function MajlisScene({
   const taskDone = (id: TaskId) => completed.includes(id);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#2f1b12] select-none text-white" dir="rtl">
-      <img
-        src={MASTER_IMAGE_PATH}
-        alt="مجلس لوّل"
-        draggable={false}
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        onError={(e) => {
-          e.currentTarget.style.display = 'none';
-        }}
-      />
-
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,.18)_100%)] pointer-events-none" />
+    <div className="relative w-full h-screen overflow-hidden bg-[#1c0f0a] select-none text-white flex items-center justify-center" dir="rtl">
+      {/* Ambient background for outer screen boundaries */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <img
+          src={MASTER_IMAGE_PATH}
+          alt=""
+          aria-hidden="true"
+          className="w-full h-full object-cover blur-2xl opacity-35 scale-110 pointer-events-none select-none"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1c0f0a]/80 via-[#2f1b12]/55 to-[#1c0f0a]/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(15,8,4,0.55)_100%)]" />
+      </div>
 
       <button
         onClick={onReturnToVillage}
-        className="fixed top-5 left-5 z-50 rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-5 py-2.5 text-white font-black shadow-xl active:scale-95"
+        className="fixed top-3 left-3 sm:top-5 sm:left-5 z-50 rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-base text-white font-black shadow-xl active:scale-95 transition-transform"
       >
         العودة إلى القرية
       </button>
 
-      <div className="fixed top-5 right-5 z-50 rounded-full bg-[#3f2417]/92 border border-[#E6C280] px-5 py-2.5 text-[#FFE082] font-black shadow-xl">
+      <div className="fixed top-3 right-3 sm:top-5 sm:right-5 z-50 rounded-full bg-[#3f2417]/92 border border-[#E6C280] px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-base text-[#FFE082] font-black shadow-xl">
         مجلس لوّل
       </div>
 
-      <div className="fixed top-[76px] right-5 z-50 rounded-2xl bg-[#3f2417]/90 border border-white/20 px-5 py-3 shadow-xl">
-        <span className="text-[#FFE082] text-xl font-black">{completed.length}/2</span>
-        <span className="mr-2 text-sm">مهام المجلس</span>
+      <div className="fixed top-[58px] right-3 sm:top-[76px] sm:right-5 z-50 rounded-2xl bg-[#3f2417]/90 border border-white/20 px-3.5 py-1.5 sm:px-5 sm:py-2.5 shadow-xl">
+        <span className="text-[#FFE082] text-base sm:text-xl font-black">{completed.length}/2</span>
+        <span className="mr-2 text-xs sm:text-sm">مهام المجلس</span>
       </div>
 
       {showIntro && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[110] w-[min(92vw,580px)] rounded-2xl border-2 border-[#FFE082] bg-[#3f2417]/95 px-5 py-3 text-center shadow-2xl backdrop-blur-md">
-          <div className="text-lg sm:text-xl font-black text-[#FFE082]">آداب المجلس</div>
-          <div className="mt-1 text-sm sm:text-base font-bold text-white/90">
+        <div className="fixed top-3 sm:top-5 left-1/2 -translate-x-1/2 z-[110] w-[min(92vw,560px)] rounded-2xl border-2 border-[#FFE082] bg-[#3f2417]/95 px-4 py-2 sm:px-5 sm:py-3 text-center shadow-2xl backdrop-blur-md">
+          <div className="text-base sm:text-xl font-black text-[#FFE082]">آداب المجلس</div>
+          <div className="mt-0.5 text-xs sm:text-sm font-bold text-white/90">
             قدّم القهوة للضيف أولاً، ثم مرّر المبخرة على الضيوف بهدوء.
           </div>
         </div>
       )}
 
       {reinforcement && (
-        <div className="fixed top-[92px] left-1/2 -translate-x-1/2 z-[220] flex items-center gap-2 rounded-full border-2 border-[#FFE082] bg-emerald-800/95 px-6 py-3 font-black shadow-2xl">
-          <Sparkles className="w-5 h-5 text-[#FFE082]" />
+        <div className="fixed top-[82px] sm:top-[92px] left-1/2 -translate-x-1/2 z-[220] flex items-center gap-2 rounded-full border-2 border-[#FFE082] bg-emerald-800/95 px-5 py-2 sm:px-6 sm:py-2.5 font-black text-xs sm:text-base shadow-2xl">
+          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFE082]" />
           {reinforcement}
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center gap-5 sm:gap-10 px-4">
-        <TaskCard
-          title="تقديم القهوة"
-          subtitle="املأ الفنجان وقدّمه للضيوف"
-          icon={<Coffee className="w-9 h-9" />}
-          done={taskDone('coffee')}
-          onClick={() => !taskDone('coffee') && setActiveTask('coffee')}
-        />
+      {/* ---------------------------------------------------- */}
+      {/* MASTER 1672:941 STAGE: ALWAYS 100% VISIBLE ON ALL SCREENS */}
+      {/* ---------------------------------------------------- */}
+      <div
+        className="relative flex items-center justify-center p-1 sm:p-3 pointer-events-none"
+        style={{
+          width: 'min(100vw, calc(100vh * (1672 / 941)))',
+          height: 'min(100vh, calc(100vw / (1672 / 941)))',
+          aspectRatio: '1672 / 941',
+        }}
+      >
+        <div className="relative w-full h-full pointer-events-auto rounded-xl sm:rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.65)] border border-[#FFE082]/30">
+          <img
+            src={MASTER_IMAGE_PATH}
+            alt="مجلس لوّل"
+            draggable={false}
+            className="w-full h-full object-contain block select-none pointer-events-none"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
 
-        <TaskCard
-          title="تبخير المجلس"
-          subtitle="حرّك المبخرة قرب الضيوف"
-          icon={<Flame className="w-9 h-9" />}
-          done={taskDone('incense')}
-          onClick={() => !taskDone('incense') && setActiveTask('incense')}
-        />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/35 pointer-events-none" />
+
+          {/* Task Cards placed over the lower area of the stage */}
+          <div className="absolute inset-x-0 bottom-2.5 sm:bottom-6 md:bottom-8 z-20 flex justify-center gap-2.5 sm:gap-6 md:gap-10 px-2 sm:px-4">
+            <TaskCard
+              title="تقديم القهوة"
+              subtitle="املأ الفنجان وقدّمه للضيوف"
+              icon={<Coffee className="w-7 h-7 sm:w-9 sm:h-9" />}
+              done={taskDone('coffee')}
+              onClick={() => !taskDone('coffee') && setActiveTask('coffee')}
+            />
+
+            <TaskCard
+              title="تبخير المجلس"
+              subtitle="حرّك المبخرة قرب الضيوف"
+              icon={<Flame className="w-7 h-7 sm:w-9 sm:h-9" />}
+              done={taskDone('incense')}
+              onClick={() => !taskDone('incense') && setActiveTask('incense')}
+            />
+          </div>
+        </div>
       </div>
 
       {activeTask === 'coffee' && (
@@ -231,7 +257,7 @@ export function MajlisScene({
       )}
 
       {finished && !showSuccess && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] rounded-full bg-emerald-800 border-2 border-[#FFE082] px-6 py-3 font-black text-white shadow-xl">
+        <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-[120] rounded-full bg-emerald-800 border-2 border-[#FFE082] px-5 py-2.5 sm:px-6 sm:py-3 font-black text-sm sm:text-base text-white shadow-xl">
           ✓ اكتملت مهام مجلس لوّل
         </div>
       )}
@@ -272,11 +298,11 @@ function TaskCard({
     <button
       onClick={onClick}
       className={`
-        w-[min(42vw,280px)]
-        min-h-[136px]
-        rounded-[26px]
+        w-[min(44vw,260px)]
+        min-h-[96px] sm:min-h-[136px]
+        rounded-[18px] sm:rounded-[26px]
         border-2
-        p-4
+        p-2 sm:p-4
         text-center
         shadow-2xl
         backdrop-blur-md
@@ -285,42 +311,14 @@ function TaskCard({
         ${done ? 'bg-emerald-900/90 border-emerald-300' : 'bg-[#3f2417]/92 border-[#FFE082]'}
       `}
     >
-      <div className="mx-auto w-14 h-14 rounded-full bg-black/20 border border-white/15 flex items-center justify-center text-[#FFE082]">
-        {done ? <CheckCircle2 className="w-9 h-9 text-emerald-200" /> : icon}
+      <div className="mx-auto w-9 h-9 sm:w-14 sm:h-14 rounded-full bg-black/20 border border-white/15 flex items-center justify-center text-[#FFE082]">
+        {done ? <CheckCircle2 className="w-6 h-6 sm:w-9 sm:h-9 text-emerald-200" /> : icon}
       </div>
-      <div className="mt-2 text-lg font-black text-[#FFE082]">{done ? 'مكتمل' : title}</div>
-      {!done && <div className="mt-1 text-xs sm:text-sm text-white/85">{subtitle}</div>}
+      <div className="mt-1 sm:mt-2 text-xs sm:text-lg font-black text-[#FFE082]">{done ? 'مكتمل' : title}</div>
+      {!done && <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm text-white/85">{subtitle}</div>}
     </button>
   );
 }
-
-function ModalFrame({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-[250] bg-black/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-      <div className="relative w-full max-w-3xl max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-[28px] border-2 border-[#FFE082] bg-[#173246]/96 p-4 sm:p-6 pb-24 shadow-2xl">
-        <button
-          onClick={onClose}
-          className="sticky top-0 float-left z-40 w-10 h-10 rounded-full bg-black/30 border border-white/20 flex items-center justify-center"
-        >
-          <X className="w-5 h-5 text-white" />
-        </button>
-        <h2 className="sticky top-0 z-30 bg-[#173246]/96 py-2 text-center text-2xl sm:text-3xl font-black text-[#FFE082]">
-          {title}
-        </h2>
-        <div className="clear-both">{children}</div>
-      </div>
-    </div>
-  );
-}
-
 
 function ImmersiveTaskShell({
   title,
@@ -340,44 +338,38 @@ function ImmersiveTaskShell({
         inset-0
         z-[260]
         overflow-hidden
-        bg-[#26160f]
+        bg-[#1a0e08]
         text-white
+        flex
+        items-center
+        justify-center
       "
       dir="rtl"
     >
-      <img
-        src={MASTER_IMAGE_PATH}
-        alt=""
-        draggable={false}
-        className="
-          absolute
-          inset-0
-          w-full
-          h-full
-          object-cover
-          pointer-events-none
-          select-none
-        "
-      />
-
-      <div
-        className="
-          absolute
-          inset-0
-          bg-[linear-gradient(180deg,rgba(15,8,4,.34)_0%,rgba(15,8,4,.04)_25%,rgba(15,8,4,.02)_68%,rgba(15,8,4,.30)_100%)]
-          pointer-events-none
-        "
-      />
+      {/* Ambient blurred backdrop so any screen ratio feels cohesive */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <img
+          src={MASTER_IMAGE_PATH}
+          alt=""
+          aria-hidden="true"
+          className="w-full h-full object-cover blur-2xl opacity-35 scale-110 pointer-events-none select-none"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1a0e08]/85 via-[#2a160d]/50 to-[#1a0e08]/90" />
+      </div>
 
       <button
         onClick={onClose}
         className="
           fixed
-          top-4
-          left-4
+          top-3
+          left-3
+          sm:top-4
+          sm:left-4
           z-[310]
-          w-11
-          h-11
+          w-10
+          h-10
+          sm:w-11
+          sm:h-11
           rounded-full
           border
           border-white/30
@@ -391,37 +383,61 @@ function ImmersiveTaskShell({
         "
         aria-label="إغلاق المهمة"
       >
-        <X className="w-6 h-6" />
+        <X className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
 
       <div
         className="
           fixed
-          top-4
+          top-3
+          sm:top-4
           left-1/2
           -translate-x-1/2
           z-[305]
-          max-w-[72vw]
+          max-w-[76vw]
           rounded-2xl
           border
           border-[#FFE082]/70
-          bg-[#2d1a11]/84
-          px-5
-          py-2.5
+          bg-[#2d1a11]/90
+          px-4
+          py-2
+          sm:px-5
+          sm:py-2.5
           text-center
           shadow-xl
           backdrop-blur-md
         "
       >
-        <div className="text-lg sm:text-2xl font-black text-[#FFE082]">
+        <div className="text-base sm:text-2xl font-black text-[#FFE082]">
           {title}
         </div>
-        <div className="mt-0.5 text-[11px] sm:text-sm font-semibold text-white/88">
+        <div className="mt-0.5 text-[10px] sm:text-sm font-semibold text-white/88">
           {subtitle}
         </div>
       </div>
 
-      {children}
+      {/* Stage matching master image aspect ratio: always 100% visible on any device */}
+      <div
+        className="relative flex items-center justify-center p-1 sm:p-3 pointer-events-none select-none"
+        style={{
+          width: 'min(100vw, calc(100vh * (1672 / 941)))',
+          height: 'min(100vh, calc(100vw / (1672 / 941)))',
+          aspectRatio: '1672 / 941',
+        }}
+      >
+        <div className="relative w-full h-full pointer-events-auto overflow-hidden rounded-xl sm:rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.65)] border border-[#FFE082]/30">
+          <img
+            src={MASTER_IMAGE_PATH}
+            alt=""
+            draggable={false}
+            className="w-full h-full object-contain block select-none pointer-events-none"
+          />
+
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,4,.25)_0%,rgba(15,8,4,.02)_25%,rgba(15,8,4,.02)_68%,rgba(15,8,4,.30)_100%)] pointer-events-none" />
+
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

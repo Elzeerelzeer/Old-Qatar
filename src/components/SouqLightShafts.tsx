@@ -70,11 +70,7 @@ export const SouqLightShafts: React.FC<SouqLightShaftsProps> = ({
   return (
     <div
       id="souq-light-shafts-layer"
-      className="absolute inset-0 pointer-events-none select-none overflow-hidden"
-      style={{
-        width: `${worldWidth}px`,
-        height: `${worldHeight}px`,
-      }}
+      className="absolute inset-0 w-full h-full pointer-events-none select-none overflow-hidden"
       aria-hidden="true"
     >
       {/* ==================== 1. WARM GROUND LIGHT POOLS ==================== */}
