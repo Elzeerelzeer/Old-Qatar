@@ -1,1 +1,474 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, Coffee, Flame, Sparkles, Volume2, X } from 'lucide-react';
+import { CharacterGender, GameSettings } from '../types';
+
+interface MajlisSceneProps {
+  gender: CharacterGender;
+  settings: GameSettings;
+  onReturnToVillage: () => void;
+  onComplete?: () => void;
+}
+
+type TaskId = 'coffee' | 'incense';
+
+const MASTER_IMAGE_PATH = '/assets/majlis-master-map.png';
+
+export function MajlisScene({
+  settings,
+  onReturnToVillage,
+  onComplete,
+}: MajlisSceneProps) {
+  const [activeTask, setActiveTask] = useState<TaskId | null>(null);
+  const [completed, setCompleted] = useState<TaskId[]>([]);
+  const [reinforcement, setReinforcement] = useState<string | null>(null);
+  const [showIntro, setShowIntro] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const reported = useRef(false);
+
+  const finished = completed.length >= 2;
+
+  const speakArabic = (message: string) => {
+    if (!settings.isSoundEnabled) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
+    const u = new SpeechSynthesisUtterance(message);
+    const voices = synth.getVoices();
+    const voice =
+      voices.find(v => v.lang === 'ar-QA') ||
+      voices.find(v => v.lang === 'ar-SA') ||
+      voices.find(v => v.lang.toLowerCase().startsWith('ar'));
+
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang || 'ar-SA';
+    u.rate = 0.86;
+    u.pitch = 1;
+    u.volume = Math.max(0.2, Math.min(1, settings.volume ?? 0.6));
+    synth.speak(u);
+  };
+
+  const playChime = () => {
+    if (!settings.isSoundEnabled || typeof window === 'undefined') return;
+
+    try {
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+
+      const ctx = new Ctx();
+      const now = ctx.currentTime;
+      [523.25, 659.25, 783.99].forEach((frequency, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = frequency;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, now + i * 0.11);
+        gain.gain.exponentialRampToValueAtTime(
+          Math.max(0.04, (settings.volume ?? 0.6) * 0.1),
+          now + i * 0.11 + 0.02
+        );
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.11 + 0.24);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.11);
+        osc.stop(now + i * 0.11 + 0.26);
+      });
+      window.setTimeout(() => ctx.close().catch(() => undefined), 900);
+    } catch {
+      // keep interaction running if WebAudio is blocked
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowIntro(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!settings.isSoundEnabled) return;
+    const timer = window.setTimeout(() => {
+      speakArabic('مرحباً بك في مجلس لوّل. قدّم القهوة، ثم بخّر المجلس.');
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [settings.isSoundEnabled]);
+
+  const markComplete = (task: TaskId) => {
+    const title = task === 'coffee' ? 'تقديم القهوة' : 'تبخير المجلس';
+
+    setCompleted(prev => {
+      if (prev.includes(task)) return prev;
+      const next = [...prev, task];
+
+      playChime();
+      setReinforcement(`أحسنت! أكملت ${title}`);
+      speakArabic(`أحسنت. أكملت ${title}.`);
+
+      window.setTimeout(() => setReinforcement(null), 2300);
+
+      if (next.length >= 2 && !reported.current) {
+        reported.current = true;
+        window.setTimeout(() => {
+          onComplete?.();
+          setShowSuccess(true);
+          playChime();
+          speakArabic('ممتاز. أتممت آداب المجلس وحصلت على ختم مجلس لوّل.');
+        }, 450);
+      }
+
+      return next;
+    });
+
+    setActiveTask(null);
+  };
+
+  const taskDone = (id: TaskId) => completed.includes(id);
+
+  return (
+    <div
+      className="relative w-full h-screen overflow-hidden bg-[#6b4226] select-none text-white"
+      dir="rtl"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,#b98552_0%,#7a4f2e_40%,#3f2517_100%)]" />
+
+      <img
+        src={MASTER_IMAGE_PATH}
+        alt="مجلس لوّل"
+        draggable={false}
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30 pointer-events-none" />
+
+      <button
+        onClick={onReturnToVillage}
+        className="fixed top-5 left-5 z-50 rounded-full bg-[#8A1538] border-2 border-[#FFE082] px-5 py-2.5 text-white font-black shadow-xl active:scale-95"
+      >
+        العودة إلى القرية
+      </button>
+
+      <div className="fixed top-5 right-5 z-50 rounded-full bg-[#3f2417]/90 border border-[#E6C280] px-5 py-2.5 text-[#FFE082] font-black shadow-xl">
+        مجلس لوّل
+      </div>
+
+      <div className="fixed top-[76px] right-5 z-50 rounded-2xl bg-[#3f2417]/90 border border-white/20 px-5 py-3 shadow-xl">
+        <span className="text-[#FFE082] text-xl font-black">{completed.length}/2</span>
+        <span className="mr-2 text-sm">مهام المجلس</span>
+      </div>
+
+      {showIntro && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[110] w-[min(92vw,560px)] rounded-2xl border-2 border-[#FFE082] bg-[#3f2417]/95 px-5 py-3 text-center shadow-2xl backdrop-blur-md">
+          <div className="text-lg sm:text-xl font-black text-[#FFE082]">
+            ماذا نفعل في المجلس؟
+          </div>
+          <div className="mt-1 text-sm sm:text-base font-bold text-white/90">
+            قدّم القهوة للضيف، ثم بخّر المجلس.
+          </div>
+        </div>
+      )}
+
+      {reinforcement && (
+        <div className="fixed top-[92px] left-1/2 -translate-x-1/2 z-[220] flex items-center gap-2 rounded-full border-2 border-[#FFE082] bg-emerald-800/95 px-6 py-3 font-black shadow-2xl">
+          <Sparkles className="w-5 h-5 text-[#FFE082]" />
+          {reinforcement}
+        </div>
+      )}
+
+      <div className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center gap-5 sm:gap-10 px-4">
+        <TaskCard
+          title="تقديم القهوة"
+          subtitle="قدّم الفنجان للضيف"
+          icon={<Coffee className="w-9 h-9" />}
+          done={taskDone('coffee')}
+          onClick={() => !taskDone('coffee') && setActiveTask('coffee')}
+        />
+
+        <TaskCard
+          title="تبخير المجلس"
+          subtitle="مرّر المبخرة برفق"
+          icon={<Flame className="w-9 h-9" />}
+          done={taskDone('incense')}
+          onClick={() => !taskDone('incense') && setActiveTask('incense')}
+        />
+      </div>
+
+      {activeTask === 'coffee' && (
+        <CoffeeTask
+          onClose={() => setActiveTask(null)}
+          onWin={() => markComplete('coffee')}
+        />
+      )}
+
+      {activeTask === 'incense' && (
+        <IncenseTask
+          onClose={() => setActiveTask(null)}
+          onWin={() => markComplete('incense')}
+        />
+      )}
+
+      {finished && !showSuccess && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] rounded-full bg-emerald-800 border-2 border-[#FFE082] px-6 py-3 font-black text-white shadow-xl">
+          ✓ اكتملت مهام مجلس لوّل
+        </div>
+      )}
+
+      {showSuccess && (
+        <div className="fixed inset-0 z-[300] bg-black/65 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-[30px] border-2 border-[#FFE082] bg-[#3f2417]/95 p-6 text-center shadow-2xl">
+            <div className="text-6xl">☕</div>
+            <h2 className="mt-3 text-3xl font-black text-[#FFE082]">أحسنت!</h2>
+            <p className="mt-2 text-lg text-white">
+              أتممت آداب المجلس وحصلت على ختم مجلس لوّل.
+            </p>
+            <button
+              onClick={onReturnToVillage}
+              className="mt-6 w-full rounded-2xl bg-[#8A1538] border-2 border-[#FFE082] py-3.5 text-[#FFE082] font-black active:scale-95"
+            >
+              العودة إلى القرية
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TaskCard({
+  title,
+  subtitle,
+  icon,
+  done,
+  onClick,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  done: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        w-[min(42vw,270px)]
+        min-h-[132px]
+        rounded-[26px]
+        border-2
+        p-4
+        text-center
+        shadow-2xl
+        backdrop-blur-md
+        active:scale-95
+        transition-transform
+        ${
+          done
+            ? 'bg-emerald-900/90 border-emerald-300'
+            : 'bg-[#3f2417]/92 border-[#FFE082]'
+        }
+      `}
+    >
+      <div className="mx-auto w-14 h-14 rounded-full bg-black/20 border border-white/15 flex items-center justify-center text-[#FFE082]">
+        {done ? <CheckCircle2 className="w-9 h-9 text-emerald-200" /> : icon}
+      </div>
+      <div className="mt-2 text-lg font-black text-[#FFE082]">{done ? 'مكتمل' : title}</div>
+      {!done && <div className="mt-1 text-xs sm:text-sm text-white/85">{subtitle}</div>}
+    </button>
+  );
+}
+
+function ModalFrame({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-[250] bg-black/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+      <div className="relative w-full max-w-2xl max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-[28px] border-2 border-[#FFE082] bg-[#3f2417]/97 p-4 sm:p-6 pb-24 shadow-2xl">
+        <button
+          onClick={onClose}
+          className="sticky top-0 float-left z-40 w-10 h-10 rounded-full bg-black/30 border border-white/20 flex items-center justify-center"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <h2 className="sticky top-0 z-30 bg-[#3f2417]/97 py-2 text-center text-2xl sm:text-3xl font-black text-[#FFE082]">
+          {title}
+        </h2>
+        <div className="clear-both">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function CoffeeTask({
+  onClose,
+  onWin,
+}: {
+  onClose: () => void;
+  onWin: () => void;
+}) {
+  const [x, setX] = useState(14);
+  const [y, setY] = useState(72);
+  const [served, setServed] = useState(false);
+  const dragging = useRef(false);
+
+  const move = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || served) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * 100;
+    const py = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const nx = Math.max(8, Math.min(92, px));
+    const ny = Math.max(18, Math.min(82, py));
+
+    setX(nx);
+    setY(ny);
+
+    if (nx > 70 && ny > 42 && ny < 78) {
+      setServed(true);
+    }
+  };
+
+  return (
+    <ModalFrame title="تقديم القهوة" onClose={onClose}>
+      <p className="mt-2 text-center text-white/90">
+        اسحب الفنجان إلى يد الضيف.
+      </p>
+
+      <div
+        onPointerMove={move}
+        onPointerUp={() => (dragging.current = false)}
+        onPointerCancel={() => (dragging.current = false)}
+        onPointerLeave={() => (dragging.current = false)}
+        className="mt-6 relative h-[320px] rounded-3xl border-2 border-[#FFE082] overflow-hidden touch-none bg-[radial-gradient(circle_at_50%_40%,#b27a48,#85512f_60%,#5f351f_100%)]"
+      >
+        <div className="absolute right-[8%] top-[28%] w-32 h-44 rounded-[44%_44%_38%_38%] bg-[#f1eadc] border-2 border-white/70 shadow-xl">
+          <div className="absolute left-1/2 -translate-x-1/2 top-3 w-16 h-16 rounded-full bg-[#d7b38b]" />
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-sm font-black text-[#5d321d]">
+            الضيف
+          </div>
+          <div className="absolute left-[-38px] top-[92px] text-5xl">🤲</div>
+        </div>
+
+        <button
+          onPointerDown={(e) => {
+            if (served) return;
+            dragging.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          className="absolute z-20 w-20 h-20 rounded-full border-2 border-[#FFE082] bg-[#8A1538] text-5xl shadow-xl cursor-grab active:cursor-grabbing"
+          style={{
+            left: `${x}%`,
+            top: `${y}%`,
+            transform: 'translate(-50%,-50%)',
+          }}
+          aria-label="فنجان القهوة"
+        >
+          ☕
+        </button>
+
+        {served && (
+          <div className="absolute inset-0 bg-emerald-950/20 flex items-center justify-center">
+            <div className="rounded-full bg-emerald-700 border-2 border-[#FFE082] px-6 py-3 text-xl font-black shadow-xl">
+              أحسنت في تقديم القهوة ✓
+            </div>
+          </div>
+        )}
+      </div>
+
+      {served && (
+        <button
+          onClick={onWin}
+          className="sticky bottom-2 z-50 mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-2xl"
+        >
+          اعتماد الإنجاز ✓
+        </button>
+      )}
+    </ModalFrame>
+  );
+}
+
+function IncenseTask({
+  onClose,
+  onWin,
+}: {
+  onClose: () => void;
+  onWin: () => void;
+}) {
+  const [progress, setProgress] = useState(0);
+  const [x, setX] = useState(18);
+  const dragging = useRef(false);
+
+  const move = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || progress >= 100) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * 100;
+    const nx = Math.max(10, Math.min(90, px));
+
+    setX(nx);
+    setProgress(prev => Math.min(100, Math.max(prev, Math.round((nx - 10) * 1.25))));
+  };
+
+  return (
+    <ModalFrame title="تبخير المجلس" onClose={onClose}>
+      <p className="mt-2 text-center text-white/90">
+        مرّر المبخرة من بداية المجلس إلى نهايته.
+      </p>
+
+      <div
+        onPointerMove={move}
+        onPointerUp={() => (dragging.current = false)}
+        onPointerCancel={() => (dragging.current = false)}
+        onPointerLeave={() => (dragging.current = false)}
+        className="mt-6 relative h-[300px] rounded-3xl border-2 border-[#FFE082] overflow-hidden touch-none bg-[linear-gradient(180deg,#95603b_0%,#6b3f28_100%)]"
+      >
+        <div className="absolute left-[8%] right-[8%] bottom-[24%] h-3 rounded-full bg-[#d4b07f]/40" />
+
+        {progress > 8 && (
+          <>
+            <div className="absolute left-[38%] top-[26%] w-16 h-28 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute left-[54%] top-[16%] w-14 h-32 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute left-[68%] top-[28%] w-20 h-24 rounded-full bg-white/10 blur-2xl" />
+          </>
+        )}
+
+        <button
+          onPointerDown={(e) => {
+            dragging.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          className="absolute bottom-[18%] w-24 h-24 -translate-x-1/2 rounded-3xl border-2 border-[#FFE082] bg-[#6f2b1c] shadow-xl text-5xl cursor-grab active:cursor-grabbing"
+          style={{ left: `${x}%` }}
+          aria-label="المبخرة"
+        >
+          🏺
+        </button>
+
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-[72%] h-3 rounded-full bg-black/25 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-[#FFE082] transition-[width]"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {progress >= 100 && (
+        <button
+          onClick={onWin}
+          className="sticky bottom-2 z-50 mt-5 w-full rounded-2xl bg-emerald-700 border-[3px] border-[#FFE082] py-3.5 font-black text-white shadow-2xl"
+        >
+          اعتماد الإنجاز ✓
+        </button>
+      )}
+    </ModalFrame>
+  );
+}
 
