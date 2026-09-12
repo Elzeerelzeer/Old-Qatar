@@ -1546,147 +1546,117 @@ export function PearlScene({
         )}
 
         {/* ====================================================
-            SHELL HOTSPOTS – EXTRA CLEAR / NO FLASHING
+            REAL MAP SHELL HOTSPOTS
+            No floating shell icons.
+            The real shells painted in the master map are the targets.
+            A static golden ring appears only when the diver approaches.
         ==================================================== */}
 
-        {phase ===
-          'underwater' &&
-          SHELLS.map(
-            (shell) => {
-              const opened =
-                openedShellIds.includes(
-                  shell.id
-                );
+        {phase === 'underwater' &&
+          SHELLS.map((shell) => {
+            const opened =
+              openedShellIds.includes(shell.id);
 
-              if (opened) {
-                return null;
-              }
+            if (opened) {
+              return null;
+            }
 
-              const distance =
-                Math.hypot(
-                  playerPos.x -
-                    shell.x,
+            const distance = Math.hypot(
+              playerPos.x - shell.x,
+              playerPos.y - shell.y
+            );
 
-                  playerPos.y -
-                    shell.y
-                );
+            const isClose =
+              distance <= shell.radius;
 
-              const isClose =
-                distance <=
-                shell.radius;
+            const isNearby =
+              distance <= 16;
 
-              const isNearby =
-                distance <= 20;
+            if (!isNearby) {
+              return null;
+            }
 
-              return (
+            return (
+              <div
+                key={shell.id}
+                className="
+                  absolute
+                  z-20
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  pointer-events-none
+                "
+                style={{
+                  left: `${shell.x}%`,
+                  top: `${shell.y}%`,
+                }}
+              >
                 <div
-                  key={
-                    shell.id
-                  }
-                  className="
+                  className={`
                     absolute
-                    z-20
+                    left-1/2
+                    top-1/2
                     -translate-x-1/2
                     -translate-y-1/2
-                    pointer-events-none
-                  "
-                  style={{
-                    left:
-                      `${shell.x}%`,
+                    rounded-full
+                    transition-all
+                    duration-200
 
-                    top:
-                      `${shell.y}%`,
-                  }}
-                >
-                  {/* Always-visible shell marker */}
+                    ${
+                      isClose
+                        ? 'w-24 h-24 bg-[#FFE082]/14 shadow-[0_0_28px_rgba(255,224,130,0.34)]'
+                        : 'w-16 h-16 bg-[#FFE082]/7 shadow-[0_0_18px_rgba(255,224,130,0.18)]'
+                    }
+                  `}
+                />
+
+                <div
+                  className={`
+                    absolute
+                    left-1/2
+                    top-1/2
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    bg-transparent
+                    transition-all
+                    duration-200
+
+                    ${
+                      isClose
+                        ? 'w-20 h-20 border-[3px] border-[#FFE082] shadow-[0_0_0_4px_rgba(138,21,56,0.28),0_0_18px_rgba(255,224,130,0.42)]'
+                        : 'w-12 h-12 border-2 border-[#FFE082]/55'
+                    }
+                  `}
+                />
+
+                {isClose && (
                   <div
-                    className={`
-                      relative
-                      flex
-                      items-center
-                      justify-center
+                    className="
+                      absolute
+                      left-1/2
+                      top-[50px]
+                      -translate-x-1/2
                       rounded-full
-                      border-2
-                      shadow-[0_6px_18px_rgba(0,0,0,0.45)]
-                      transition-all
-                      duration-200
-
-                      ${
-                        isClose
-                          ? 'w-24 h-24 bg-[#8A1538] border-[3px] border-[#FFE082] shadow-[0_0_0_5px_rgba(255,224,130,0.18),0_8px_24px_rgba(0,0,0,0.50)]'
-                          : isNearby
-                            ? 'w-20 h-20 bg-[#12394C] border-[3px] border-[#FFE082] shadow-[0_0_0_4px_rgba(255,224,130,0.14),0_7px_20px_rgba(0,0,0,0.45)]'
-                            : 'w-16 h-16 bg-[#082B3D]/96 border-2 border-[#F5E6BF] shadow-[0_6px_18px_rgba(0,0,0,0.45)]'
-                      }
-                    `}
+                      bg-[#06283a]/95
+                      border
+                      border-[#FFE082]/80
+                      px-3
+                      py-1
+                      text-xs
+                      font-black
+                      text-[#FFE082]
+                      whitespace-nowrap
+                      shadow-lg
+                    "
                   >
-                    <span
-                      className={`
-                        leading-none
-                        drop-shadow-[0_3px_4px_rgba(0,0,0,0.55)]
-
-                        ${
-                          isClose
-                            ? 'text-6xl'
-                            : isNearby
-                              ? 'text-5xl'
-                              : 'text-4xl'
-                        }
-                      `}
-                    >
-                      🦪
-                    </span>
+                    محارة
                   </div>
+                )}
+              </div>
+            );
+          })}
 
-                  {/* Static clear halo only when nearby */}
-                  {isNearby && (
-                    <div
-                      className="
-                        absolute
-                        left-1/2
-                        top-1/2
-                        -translate-x-1/2
-                        -translate-y-1/2
-                        -z-10
-                        w-36
-                        h-36
-                        rounded-full
-                        bg-[#FFE082]/18
-                        shadow-[0_0_38px_rgba(255,224,130,0.38)]
-                      "
-                    />
-                  )}
-
-                  {/* Clear text label only when close */}
-                  {isClose && (
-                    <div
-                      className="
-                        absolute
-                        top-[108px]
-                        left-1/2
-                        -translate-x-1/2
-                        whitespace-nowrap
-                        rounded-full
-                        bg-black/80
-                        border
-                        border-[#FFE082]/70
-                        px-3
-                        py-1.5
-                        text-sm
-                        font-black
-                        text-[#FFE082]
-                        shadow-lg
-                      "
-                    >
-                      محارة
-                    </div>
-                  )}
-                </div>
-              );
-            }
-          )}
-
-        {/* ====================================================
             DIVER
         ==================================================== */}
 
