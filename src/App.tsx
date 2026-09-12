@@ -307,7 +307,6 @@ export default function App() {
   const handleEnterStation = (
     id: StationId
   ) => {
-    soundManager.stopAmbientVillageMusic();
     const station =
       STATIONS_DATA[id];
 
@@ -516,7 +515,7 @@ export default function App() {
             )}
 
             {/* ==============================
-                GAMES SCENE (فريج الألعاب)
+                FEREEJ GAMES
             ============================== */}
 
             {activeStationId === 'games' && (
