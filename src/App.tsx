@@ -23,6 +23,7 @@ import { VillageScene } from './components/VillageScene';
 import { StationScene } from './components/StationScene';
 import { SouqScene } from './components/SouqScene';
 import { PearlScene } from './components/PearlScene';
+import { GamesScene } from './components/GamesScene';
 
 import { PassportModal } from './components/PassportModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -515,11 +516,29 @@ export default function App() {
             )}
 
             {/* ==============================
+                GAMES SCENE (فريج الألعاب)
+            ============================== */}
+
+            {activeStationId === 'games' && (
+              <GamesScene
+                gender={gender}
+                settings={settings}
+                onReturnToVillage={
+                  handleReturnToVillage
+                }
+                onComplete={() =>
+                  handleStampStation('games')
+                }
+              />
+            )}
+
+            {/* ==============================
                 OTHER STATIONS
             ============================== */}
 
             {activeStationId !== 'souq' &&
-              activeStationId !== 'pearl' && (
+              activeStationId !== 'pearl' &&
+              activeStationId !== 'games' && (
                 <StationScene
                   station={
                     STATIONS_DATA[
