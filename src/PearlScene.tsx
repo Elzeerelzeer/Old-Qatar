@@ -1275,7 +1275,7 @@ export function PearlScene({
         )}
 
         {/* ====================================================
-            SHELL HOTSPOTS – CLEAR & NON-FLASHING
+            SHELL HOTSPOTS – EXTRA CLEAR / NO FLASHING
         ==================================================== */}
 
         {phase ===
@@ -1327,6 +1327,47 @@ export function PearlScene({
                       `${shell.y}%`,
                   }}
                 >
+                  {/* Always-visible shell marker */}
+                  <div
+                    className={`
+                      relative
+                      flex
+                      items-center
+                      justify-center
+                      rounded-full
+                      border-2
+                      shadow-[0_6px_18px_rgba(0,0,0,0.45)]
+                      transition-all
+                      duration-200
+
+                      ${
+                        isClose
+                          ? 'w-20 h-20 bg-[#8A1538]/95 border-[#FFE082]'
+                          : isNearby
+                            ? 'w-16 h-16 bg-[#16394A]/95 border-[#FFE082]/90'
+                            : 'w-12 h-12 bg-[#0A2A3A]/90 border-white/55'
+                      }
+                    `}
+                  >
+                    <span
+                      className={`
+                        leading-none
+                        drop-shadow-[0_3px_4px_rgba(0,0,0,0.55)]
+
+                        ${
+                          isClose
+                            ? 'text-5xl'
+                            : isNearby
+                              ? 'text-4xl'
+                              : 'text-3xl'
+                        }
+                      `}
+                    >
+                      🦪
+                    </span>
+                  </div>
+
+                  {/* Static clear halo only when nearby */}
                   {isNearby && (
                     <div
                       className="
@@ -1335,49 +1376,39 @@ export function PearlScene({
                         top-1/2
                         -translate-x-1/2
                         -translate-y-1/2
-                        w-24
-                        h-24
+                        -z-10
+                        w-28
+                        h-28
                         rounded-full
-                        bg-[#FFD86A]/18
-                        blur-xl
-                        pointer-events-none
+                        bg-[#FFE082]/14
+                        shadow-[0_0_28px_rgba(255,224,130,0.30)]
                       "
                     />
                   )}
 
+                  {/* Clear text label only when close */}
                   {isClose && (
-                    <>
-                      <div
-                        className="
-                          absolute
-                          left-1/2
-                          top-1/2
-                          -translate-x-1/2
-                          -translate-y-1/2
-                          w-16
-                          h-16
-                          rounded-full
-                          border-2
-                          border-[#FFE082]
-                          bg-[#FFE082]/10
-                          shadow-[0_0_18px_rgba(255,224,130,0.45)]
-                        "
-                      />
-
-                      <div
-                        className="
-                          absolute
-                          left-1/2
-                          top-1/2
-                          -translate-x-1/2
-                          -translate-y-1/2
-                          text-3xl
-                          drop-shadow-[0_3px_5px_rgba(0,0,0,0.5)]
-                        "
-                      >
-                        🦪
-                      </div>
-                    </>
+                    <div
+                      className="
+                        absolute
+                        top-[88px]
+                        left-1/2
+                        -translate-x-1/2
+                        whitespace-nowrap
+                        rounded-full
+                        bg-black/80
+                        border
+                        border-[#FFE082]/70
+                        px-3
+                        py-1.5
+                        text-sm
+                        font-black
+                        text-[#FFE082]
+                        shadow-lg
+                      "
+                    >
+                      محارة
+                    </div>
                   )}
                 </div>
               );
@@ -1974,10 +2005,11 @@ export function PearlScene({
                 bg-black/45
                 border
                 border-[#FFE082]/40
-                px-4
-                py-2
+                px-5
+                py-3
                 text-[#FFE082]
                 backdrop-blur-md
+                shadow-[0_8px_22px_rgba(0,0,0,0.38)]
               "
             >
               <Gem
@@ -1989,7 +2021,9 @@ export function PearlScene({
 
               <span
                 className="
+                  text-2xl
                   font-black
+                  leading-none
                 "
               >
                 {score}
