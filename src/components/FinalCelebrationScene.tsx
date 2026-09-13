@@ -1,0 +1,346 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  BookOpen,
+  CheckCircle2,
+  Download,
+  Gift,
+  Home,
+  RotateCcw,
+  Sparkles,
+  Trophy,
+  X,
+} from 'lucide-react';
+import { CharacterGender, GameSettings, PassportRecord } from '../types';
+import { soundManager } from '../services/soundEffects';
+
+interface FinalCelebrationSceneProps {
+  passport: PassportRecord;
+  gender: CharacterGender;
+  settings: GameSettings;
+  onOpenPassport: () => void;
+  onReturnToVillage: () => void;
+  onStartNewJourney: () => void;
+}
+
+const STAMP_ITEMS = [
+  { id: 'souq', title: 'سوق لوّل', icon: '🏺' },
+  { id: 'pearl', title: 'بحر اللؤلؤ', icon: '🦪' },
+  { id: 'games', title: 'فريج الألعاب', icon: '🪁' },
+  { id: 'majlis', title: 'مجلس لوّل', icon: '☕' },
+  { id: 'crafts', title: 'بيت الحرف', icon: '🧶' },
+  { id: 'akkas', title: 'استوديو قطر لوّل', icon: '📷' },
+] as const;
+
+export const FinalCelebrationScene: React.FC<FinalCelebrationSceneProps> = ({
+  passport,
+  gender,
+  settings,
+  onOpenPassport,
+  onReturnToVillage,
+  onStartNewJourney,
+}) => {
+  const [isTreasureOpen, setIsTreasureOpen] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const certificateCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const visitorName = passport.studentName?.trim() || (gender === 'boy' ? 'مستكشف قطر لوّل' : 'مستكشفة قطر لوّل');
+
+  const completedCount = useMemo(
+    () => Object.values(passport.collectedStamps).filter(Boolean).length,
+    [passport.collectedStamps]
+  );
+
+  useEffect(() => {
+    soundManager.setVolume(settings.volume);
+    soundManager.setEnabled(settings.isSoundEnabled);
+
+    if (settings.isSoundEnabled && !settings.isQuietMode) {
+      const timer = window.setTimeout(() => {
+        soundManager.playSuccess();
+      }, 450);
+
+      return () => window.clearTimeout(timer);
+    }
+  }, [settings.isSoundEnabled, settings.isQuietMode, settings.volume]);
+
+  const openTreasure = () => {
+    setIsTreasureOpen(true);
+
+    if (settings.isSoundEnabled && !settings.isQuietMode) {
+      soundManager.playSuccess();
+    }
+  };
+
+  const downloadCertificate = () => {
+    const canvas = certificateCanvasRef.current;
+    if (!canvas) return;
+
+    const width = 1600;
+    const height = 1100;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.fillStyle = '#F7EBD2';
+    ctx.fillRect(0, 0, width, height);
+
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#8A1538');
+    gradient.addColorStop(0.5, '#5E0E28');
+    gradient.addColorStop(1, '#8A1538');
+
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 34;
+    ctx.strokeRect(36, 36, width - 72, height - 72);
+
+    ctx.strokeStyle = '#CFAE63';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(70, 70, width - 140, height - 140);
+
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.fillStyle = '#8A1538';
+    ctx.font = 'bold 72px Cairo, Arial, sans-serif';
+    ctx.fillText('شهادة مستكشف قطر لوّل', width / 2, 190);
+
+    ctx.fillStyle = '#5B3A22';
+    ctx.font = 'bold 34px Cairo, Arial, sans-serif';
+    ctx.fillText('تُمنح هذه الشهادة إلى', width / 2, 300);
+
+    ctx.fillStyle = '#8A1538';
+    ctx.font = 'bold 64px Cairo, Arial, sans-serif';
+    ctx.fillText(visitorName, width / 2, 390);
+
+    ctx.fillStyle = '#5B3A22';
+    ctx.font = 'bold 34px Cairo, Arial, sans-serif';
+    ctx.fillText('لإتمام الرحلة التراثية وجمع أختام المحطات الست', width / 2, 490);
+
+    const labels = STAMP_ITEMS.map((item) => `${item.icon} ${item.title}`);
+    ctx.fillStyle = '#6A4A2E';
+    ctx.font = 'bold 27px Cairo, Arial, sans-serif';
+
+    labels.slice(0, 3).forEach((label, index) => {
+      ctx.fillText(label, 410 + index * 390, 610);
+    });
+
+    labels.slice(3).forEach((label, index) => {
+      ctx.fillText(label, 410 + index * 390, 690);
+    });
+
+    ctx.fillStyle = '#8A1538';
+    ctx.font = 'bold 42px Cairo, Arial, sans-serif';
+    ctx.fillText('تراثنا هويتنا… وبكم يستمر', width / 2, 835);
+
+    ctx.fillStyle = '#7B664B';
+    ctx.font = '26px Cairo, Arial, sans-serif';
+    ctx.fillText(`بداية الرحلة: ${passport.journeyStartDate}`, width / 2, 915);
+    ctx.fillText(
+      `تاريخ الإنجاز: ${new Date().toLocaleDateString('ar-QA', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })}`,
+      width / 2,
+      958
+    );
+
+    const link = document.createElement('a');
+    link.download = `qatar-lowwal-certificate-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  return (
+    <div
+      className="relative w-full h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#1b0e08] text-white"
+      dir="rtl"
+    >
+      <img
+        src="/assets/a_wide_cinematic_high_detail_clean_game_map_st.png"
+        alt="قرية قطر لوّل"
+        className="absolute inset-0 w-full h-full object-cover object-center scale-[1.03]"
+        draggable={false}
+      />
+
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(94,14,40,.24),rgba(16,8,5,.82)_72%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/70" />
+
+      {!settings.isQuietMode && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-80">
+          {Array.from({ length: 22 }).map((_, index) => (
+            <span
+              key={index}
+              className="absolute w-2 h-2 rounded-full bg-[#FFE082] animate-pulse"
+              style={{
+                left: `${7 + ((index * 17) % 88)}%`,
+                top: `${6 + ((index * 29) % 74)}%`,
+                animationDelay: `${(index % 7) * 180}ms`,
+                animationDuration: `${1.6 + (index % 5) * 0.35}s`,
+                boxShadow: '0 0 18px rgba(255,224,130,.85)',
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="relative z-10 h-full overflow-y-auto px-3 sm:px-5 py-[max(14px,env(safe-area-inset-top))]">
+        <div className="w-full max-w-6xl min-h-full mx-auto flex flex-col items-center justify-center py-5">
+          <div className="flex items-center gap-2 rounded-full border border-[#FFE082]/55 bg-[#3a2013]/90 px-4 py-2 text-xs sm:text-sm font-black text-[#FFE082] shadow-xl backdrop-blur-md">
+            <Trophy className="w-5 h-5" />
+            اكتملت رحلة قطر لوّل • {completedCount}/6 أختام
+          </div>
+
+          <div className="mt-4 text-center max-w-3xl">
+            <h1 className="text-[clamp(30px,5vw,58px)] leading-tight font-black text-[#FFE082] drop-shadow-[0_4px_18px_rgba(0,0,0,.75)]">
+              أحسنت يا {visitorName}
+            </h1>
+
+            <p className="mt-2 text-[clamp(15px,2vw,22px)] font-bold text-white/90">
+              أنهيت المحطات الست وحان وقت فتح كنز قطر لوّل.
+            </p>
+          </div>
+
+          {!isTreasureOpen ? (
+            <div className="mt-7 w-full max-w-xl text-center">
+              <button
+                onClick={openTreasure}
+                className="group relative mx-auto block w-[min(78vw,420px)] aspect-[1.65/1] active:scale-[.98] transition-transform"
+                aria-label="فتح كنز قطر لوّل"
+              >
+                <div className="absolute left-[8%] right-[8%] top-[17%] h-[34%] rounded-t-[80px] border-[5px] border-[#D6B96A] bg-gradient-to-b from-[#9B3A55] to-[#6F102D] shadow-[0_20px_60px_rgba(0,0,0,.55)]" />
+                <div className="absolute left-[5%] right-[5%] bottom-[7%] h-[52%] rounded-[22px] border-[5px] border-[#D6B96A] bg-gradient-to-b from-[#8A1538] to-[#4D0A20] shadow-[0_20px_60px_rgba(0,0,0,.65)]" />
+                <div className="absolute left-1/2 top-[34%] bottom-[11%] w-[12%] -translate-x-1/2 rounded-xl bg-gradient-to-r from-[#A88032] via-[#FFE082] to-[#A88032]" />
+                <div className="absolute left-1/2 top-[53%] w-[17%] aspect-square -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#FFF0B0] bg-[#7B541E] flex items-center justify-center shadow-lg">
+                  <Gift className="w-[55%] h-[55%] text-[#FFE082]" />
+                </div>
+                <div className="absolute inset-x-0 bottom-0 text-center text-[#FFE082] font-black text-lg sm:text-xl drop-shadow-md">
+                  اضغط لفتح الكنز
+                </div>
+              </button>
+
+              <p className="mt-4 text-sm text-white/70">
+                المفاجأة لا تظهر إلا بعد جمع جميع الأختام.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 w-full max-w-5xl rounded-[30px] border-2 border-[#FFE082] bg-[#2B170F]/94 p-4 sm:p-6 shadow-[0_30px_100px_rgba(0,0,0,.7)] backdrop-blur-md">
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 rounded-full border-2 border-[#FFE082] bg-[#8A1538] flex items-center justify-center shadow-xl">
+                  <Sparkles className="w-8 h-8 text-[#FFE082]" />
+                </div>
+
+                <h2 className="mt-3 text-[clamp(24px,3vw,38px)] font-black text-[#FFE082]">
+                  تراثنا هويتنا… وبكم يستمر
+                </h2>
+
+                <p className="mt-1 text-sm sm:text-base text-white/75">
+                  جمعت أختام الرحلة الست وأصبحت {gender === 'boy' ? 'مستكشفًا' : 'مستكشفة'} لتراث قطر لوّل.
+                </p>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
+                {STAMP_ITEMS.map((item) => (
+                  <div
+                    key={item.id}
+                    className="relative min-h-[92px] rounded-2xl border border-[#E6C280]/45 bg-gradient-to-br from-[#5b3020]/90 to-[#24120b]/90 p-3 flex items-center gap-3 shadow-lg"
+                  >
+                    <div className="w-12 h-12 shrink-0 rounded-full border-2 border-[#FFE082] bg-[#8A1538] flex items-center justify-center text-2xl shadow-inner">
+                      {item.icon}
+                    </div>
+
+                    <div className="min-w-0 text-right">
+                      <div className="font-black text-[#FFE082] text-sm sm:text-base leading-tight">
+                        {item.title}
+                      </div>
+                      <div className="mt-1 flex items-center gap-1 text-[10px] sm:text-xs text-emerald-200 font-bold">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        تم الإنجاز
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <button
+                  onClick={onOpenPassport}
+                  className="rounded-2xl border-2 border-[#E6C280] bg-[#3E281A] py-3 px-3 flex items-center justify-center gap-2 font-black text-[#FFE082] active:scale-95 transition-transform"
+                >
+                  <BookOpen className="w-5 h-5" />
+                  عرض الجواز
+                </button>
+
+                <button
+                  onClick={downloadCertificate}
+                  className="rounded-2xl border-2 border-[#FFE082] bg-[#8A1538] py-3 px-3 flex items-center justify-center gap-2 font-black text-white active:scale-95 transition-transform"
+                >
+                  <Download className="w-5 h-5" />
+                  تحميل الشهادة
+                </button>
+
+                <button
+                  onClick={onReturnToVillage}
+                  className="rounded-2xl border-2 border-white/25 bg-black/25 py-3 px-3 flex items-center justify-center gap-2 font-black text-white active:scale-95 transition-transform"
+                >
+                  <Home className="w-5 h-5" />
+                  استكشف القرية
+                </button>
+
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="rounded-2xl border-2 border-white/20 bg-[#2a1710] py-3 px-3 flex items-center justify-center gap-2 font-black text-white/85 active:scale-95 transition-transform"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  رحلة جديدة
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-[400] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+          <div className="relative w-full max-w-md rounded-[26px] border-2 border-[#FFE082] bg-[#2B170F] p-5 shadow-2xl text-center">
+            <button
+              onClick={() => setShowResetConfirm(false)}
+              className="absolute top-3 left-3 w-9 h-9 rounded-full border border-white/20 bg-black/25 flex items-center justify-center"
+              aria-label="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <RotateCcw className="mx-auto w-12 h-12 text-[#FFE082]" />
+            <h3 className="mt-3 text-2xl font-black text-[#FFE082]">بدء رحلة جديدة؟</h3>
+            <p className="mt-2 text-sm leading-relaxed text-white/75">
+              سيتم تصفير الأختام الست وبدء رحلة جديدة. سيبقى الاسم والشخصية والإعدادات كما هي.
+            </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="rounded-2xl border border-white/20 bg-black/20 py-3 font-black"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={onStartNewJourney}
+                className="rounded-2xl border-2 border-[#FFE082] bg-[#8A1538] py-3 font-black text-white"
+              >
+                ابدأ من جديد
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <canvas ref={certificateCanvasRef} className="hidden" />
+    </div>
+  );
+};
