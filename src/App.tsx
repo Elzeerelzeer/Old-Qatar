@@ -177,6 +177,10 @@ export default function App() {
     soundManager.setVolume(settings.volume);
   }, [settings.volume]);
 
+  useEffect(() => {
+    soundManager.setEnabled(settings.isSoundEnabled);
+  }, [settings.isSoundEnabled]);
+
   const handleToggleSound = useCallback(() => {
     const next = !settings.isSoundEnabled;
 
