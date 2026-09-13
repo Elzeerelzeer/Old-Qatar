@@ -1,17 +1,12 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
-  GameScene,
   CharacterGender,
-  StationId,
+  Direction,
+  GameScene,
   GameSettings,
   PassportRecord,
-  Direction,
+  StationId,
 } from './types';
 
 import { STATIONS_DATA } from './data/stationsData';
@@ -27,6 +22,7 @@ import { GamesScene } from './components/GamesScene';
 import { MajlisScene } from './components/MajlisScene';
 import { CraftsScene } from './components/CraftsScene';
 import { AkkasScene } from './components/AkkasScene';
+import { FinalCelebrationScene } from './components/FinalCelebrationScene';
 
 import { PassportModal } from './components/PassportModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -36,32 +32,28 @@ import { soundManager } from './services/soundEffects';
 
 const STORAGE_KEY = 'qatar_lowwal_heritage_save_v1';
 
+const createEmptyStamps = (): Record<StationId, boolean> => ({
+  souq: false,
+  pearl: false,
+  games: false,
+  majlis: false,
+  crafts: false,
+  akkas: false,
+});
+
+const createJourneyDate = () =>
+  new Date().toLocaleDateString('ar-QA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
 export default function App() {
-  /* ============================================================
-     CURRENT SCENE
-  ============================================================ */
+  const [currentScene, setCurrentScene] = useState<GameScene>('village');
+  const [activeStationId, setActiveStationId] = useState<StationId | null>(null);
+  const [isFading, setIsFading] = useState(false);
 
-  const [currentScene, setCurrentScene] =
-    useState<GameScene>('village');
-
-  const [activeStationId, setActiveStationId] =
-    useState<StationId | null>(null);
-
-  /* ============================================================
-     CINEMATIC FADE
-  ============================================================ */
-
-  const [isFading, setIsFading] =
-    useState(false);
-
-  /* ============================================================
-     VILLAGE PLAYER POSITION
-  ============================================================ */
-
-  const [
-    playerVillagePos,
-    setPlayerVillagePos,
-  ] = useState<{
+  const [playerVillagePos, setPlayerVillagePos] = useState<{
     x: number;
     y: number;
     direction: Direction;
@@ -71,118 +63,62 @@ export default function App() {
     direction: 'up',
   });
 
-  /* ============================================================
-     CHARACTER
-  ============================================================ */
+  const [gender, setGender] = useState<CharacterGender>('boy');
+  const [studentName, setStudentName] = useState<string>('طالب قطري');
 
-  const [gender, setGender] =
-    useState<CharacterGender>('boy');
+  const [isPassportOpen, setIsPassportOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [finaleSeen, setFinaleSeen] = useState(false);
+  const [saveLoaded, setSaveLoaded] = useState(false);
 
-  const [studentName, setStudentName] =
-    useState<string>('طالب قطري');
+  const [passportRecord, setPassportRecord] = useState<PassportRecord>({
+    collectedStamps: createEmptyStamps(),
+    studentName: 'طالب قطري',
+    gender: 'boy',
+    journeyStartDate: createJourneyDate(),
+  });
 
-  /* ============================================================
-     GLOBAL MODALS
-  ============================================================ */
+  const [settings, setSettings] = useState<GameSettings>({
+    isQuietMode: false,
+    isSoundEnabled: false,
+    volume: 0.6,
+    walkSpeed: 'normal',
+    highContrast: false,
+    dpadSize: 'medium',
+  });
 
-  const [isPassportOpen, setIsPassportOpen] =
-    useState(false);
-
-  const [isSettingsOpen, setIsSettingsOpen] =
-    useState(false);
-
-  /* ============================================================
-     PASSPORT
-  ============================================================ */
-
-  const [passportRecord, setPassportRecord] =
-    useState<PassportRecord>({
-      collectedStamps: {
-        souq: false,
-        pearl: false,
-        games: false,
-        majlis: false,
-        crafts: false,
-        akkas: false,
-      },
-
-      studentName: 'طالب قطري',
-      gender: 'boy',
-
-      journeyStartDate:
-        new Date().toLocaleDateString('ar-QA', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }),
-    });
-
-  /* ============================================================
-     SETTINGS
-  ============================================================ */
-
-  const [settings, setSettings] =
-    useState<GameSettings>({
-      isQuietMode: false,
-      isSoundEnabled: false,
-      volume: 0.6,
-      walkSpeed: 'normal',
-      highContrast: false,
-      dpadSize: 'medium',
-    });
-
-  /* ============================================================
-     RESET POSITION REF
-  ============================================================ */
-
-  const resetPositionRef =
-    useRef<(() => void) | null>(null);
-
-  /* ============================================================
-     LOAD SAVE
-  ============================================================ */
+  const resetPositionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     try {
-      const saved =
-        localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY);
 
-      if (!saved) return;
+      if (saved) {
+        const parsed = JSON.parse(saved);
 
-      const parsed =
-        JSON.parse(saved);
+        if (parsed.gender) setGender(parsed.gender);
+        if (parsed.studentName) setStudentName(parsed.studentName);
+        if (parsed.passport) setPassportRecord(parsed.passport);
+        if (typeof parsed.finaleSeen === 'boolean') setFinaleSeen(parsed.finaleSeen);
 
-      if (parsed.gender) {
-        setGender(parsed.gender);
-      }
-
-      if (parsed.studentName) {
-        setStudentName(parsed.studentName);
-      }
-
-      if (parsed.passport) {
-        setPassportRecord(parsed.passport);
-      }
-
-      if (parsed.settings) {
-        setSettings((prev) => ({
-          ...prev,
-          ...parsed.settings,
-
-          // Browser policy: audio starts disabled until user interaction.
-          isSoundEnabled: false,
-        }));
+        if (parsed.settings) {
+          setSettings((prev) => ({
+            ...prev,
+            ...parsed.settings,
+            isSoundEnabled: false,
+          }));
+        }
       }
     } catch {
       // Ignore corrupted save data.
+    } finally {
+      setSaveLoaded(true);
     }
   }, []);
 
-  /* ============================================================
-     SAVE DATA
-  ============================================================ */
-
   useEffect(() => {
+    if (!saveLoaded) return;
+
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -191,21 +127,13 @@ export default function App() {
           studentName,
           passport: passportRecord,
           settings,
+          finaleSeen,
         })
       );
     } catch {
       // Ignore localStorage failures.
     }
-  }, [
-    gender,
-    studentName,
-    passportRecord,
-    settings,
-  ]);
-
-  /* ============================================================
-     QUIET MODE
-  ============================================================ */
+  }, [gender, studentName, passportRecord, settings, finaleSeen, saveLoaded]);
 
   useEffect(() => {
     if (settings.isQuietMode) {
@@ -215,51 +143,31 @@ export default function App() {
     }
   }, [settings.isQuietMode]);
 
-  /* ============================================================
-     AUDIO VOLUME
-  ============================================================ */
-
   useEffect(() => {
     soundManager.setVolume(settings.volume);
   }, [settings.volume]);
 
-  /* ============================================================
-     SOUND TOGGLE
-  ============================================================ */
+  const handleToggleSound = useCallback(() => {
+    const next = !settings.isSoundEnabled;
 
-  const handleToggleSound =
-    useCallback(() => {
-      const next =
-        !settings.isSoundEnabled;
+    setSettings((prev) => ({
+      ...prev,
+      isSoundEnabled: next,
+    }));
 
-      setSettings((prev) => ({
-        ...prev,
-        isSoundEnabled: next,
-      }));
+    soundManager.setEnabled(next);
 
-      soundManager.setEnabled(next);
+    if (next) {
+      soundManager.playSuccess();
+    }
+  }, [settings.isSoundEnabled]);
 
-      if (next) {
-        soundManager.playSuccess();
-      }
-    }, [settings.isSoundEnabled]);
-
-  /* ============================================================
-     SETTINGS UPDATE
-  ============================================================ */
-
-  const handleUpdateSettings = (
-    newSettings: Partial<GameSettings>
-  ) => {
+  const handleUpdateSettings = (newSettings: Partial<GameSettings>) => {
     setSettings((prev) => ({
       ...prev,
       ...newSettings,
     }));
   };
-
-  /* ============================================================
-     CHARACTER SELECTION
-  ============================================================ */
 
   const handleCharacterSelect = (
     selectedGender: CharacterGender,
@@ -277,16 +185,9 @@ export default function App() {
     setCurrentScene('gate_opening');
   };
 
-  /* ============================================================
-     STAMP PASSPORT
-  ============================================================ */
-
-  const handleStampStation = (
-    stationId: StationId
-  ) => {
+  const handleStampStation = (stationId: StationId) => {
     setPassportRecord((prev) => ({
       ...prev,
-
       collectedStamps: {
         ...prev.collectedStamps,
         [stationId]: true,
@@ -294,29 +195,31 @@ export default function App() {
     }));
   };
 
-  /* ============================================================
-     STAMP COUNT
-  ============================================================ */
+  const stampedCount = Object.values(passportRecord.collectedStamps).filter(Boolean).length;
 
-  const stampedCount =
-    Object.values(
-      passportRecord.collectedStamps
-    ).filter(Boolean).length;
+  useEffect(() => {
+    if (!saveLoaded || finaleSeen || stampedCount !== 6 || currentScene !== 'village') {
+      return;
+    }
 
-  /* ============================================================
-     ENTER STATION
-  ============================================================ */
+    const revealTimer = window.setTimeout(() => {
+      setIsFading(true);
 
-  const handleEnterStation = (
-    id: StationId
-  ) => {
-    const station =
-      STATIONS_DATA[id];
+      const sceneTimer = window.setTimeout(() => {
+        setCurrentScene('finale');
+        setActiveStationId(null);
+        setIsFading(false);
+      }, 280);
 
-    /*
-      Keep the village player positioned at the station entrance
-      when returning from that station.
-    */
+      return () => window.clearTimeout(sceneTimer);
+    }, 700);
+
+    return () => window.clearTimeout(revealTimer);
+  }, [saveLoaded, finaleSeen, stampedCount, currentScene]);
+
+  const handleEnterStation = (id: StationId) => {
+    const station = STATIONS_DATA[id];
+
     setPlayerVillagePos({
       x: station.doorX,
       y: station.doorY,
@@ -325,130 +228,100 @@ export default function App() {
 
     setIsFading(true);
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       setActiveStationId(id);
       setCurrentScene('station_interior');
       setIsFading(false);
     }, 280);
   };
 
-  /* ============================================================
-     RETURN TO VILLAGE
-  ============================================================ */
+  const handleReturnToVillage = () => {
+    /*
+      Souq currently has no onComplete callback in its component.
+      Register its stamp when the visitor finishes the visit and returns.
+      The other five stations continue to stamp through their own completion flows.
+    */
+    if (activeStationId === 'souq' && !passportRecord.collectedStamps.souq) {
+      handleStampStation('souq');
+    }
 
-  const handleReturnToVillage =
-    () => {
-      setIsFading(true);
+    setIsFading(true);
 
-      setTimeout(() => {
-        setCurrentScene('village');
-        setActiveStationId(null);
-        setIsFading(false);
-      }, 280);
-    };
+    window.setTimeout(() => {
+      setCurrentScene('village');
+      setActiveStationId(null);
+      setIsFading(false);
+    }, 280);
+  };
 
-  /* ============================================================
-     RENDER
-  ============================================================ */
+  const handleReturnFromFinale = () => {
+    setFinaleSeen(true);
+    setCurrentScene('village');
+    setActiveStationId(null);
+  };
+
+  const handleStartNewJourney = () => {
+    setFinaleSeen(false);
+    setPassportRecord((prev) => ({
+      ...prev,
+      collectedStamps: createEmptyStamps(),
+      journeyStartDate: createJourneyDate(),
+    }));
+
+    setPlayerVillagePos({
+      x: 50,
+      y: 87,
+      direction: 'up',
+    });
+
+    setActiveStationId(null);
+    setCurrentScene('gate_opening');
+  };
 
   return (
-    <div
-      className="
-        relative
-        w-full
-        h-[100dvh]
-        min-h-[100dvh]
-        overflow-hidden
-        select-none
-        bg-[#1a0e08]
-        text-[#FAF5EA]
-        font-sans
-      "
-    >
-      {/* ========================================================
-          CINEMATIC FADE
-      ======================================================== */}
-
+    <div className="relative w-full h-[100dvh] min-h-[100dvh] overflow-hidden select-none bg-[#1a0e08] text-[#FAF5EA] font-sans">
       <div
         id="cinematic-fade-overlay"
-        className={`
-          fixed
-          inset-0
-          z-[100]
-          bg-black
-          pointer-events-none
-          transition-opacity
-          duration-300
-          ease-in-out
-
-          ${
-            isFading
-              ? 'opacity-100'
-              : 'opacity-0'
-          }
-        `}
+        className={`fixed inset-0 z-[500] bg-black pointer-events-none transition-opacity duration-300 ease-in-out ${
+          isFading ? 'opacity-100' : 'opacity-0'
+        }`}
       />
-
-      {/* ========================================================
-          SCENE 1 — INTRO
-      ======================================================== */}
 
       {currentScene === 'intro' && (
         <IntroScene
-          onStart={() =>
-            setCurrentScene('character_select')
-          }
+          onStart={() => setCurrentScene('character_select')}
           isSoundEnabled={settings.isSoundEnabled}
           onToggleSound={handleToggleSound}
           isQuietMode={settings.isQuietMode}
           onToggleQuietMode={() =>
             handleUpdateSettings({
-              isQuietMode:
-                !settings.isQuietMode,
+              isQuietMode: !settings.isQuietMode,
             })
           }
         />
       )}
 
-      {/* ========================================================
-          SCENE 2 — CHARACTER SELECT
-      ======================================================== */}
-
       {currentScene === 'character_select' && (
         <CharacterSelect
           onSelect={handleCharacterSelect}
-          onBack={() =>
-            setCurrentScene('intro')
-          }
+          onBack={() => setCurrentScene('intro')}
         />
       )}
-
-      {/* ========================================================
-          SCENE 3 — GATE OPENING
-      ======================================================== */}
 
       {currentScene === 'gate_opening' && (
         <GateOpeningScene
           gender={gender}
           isQuietMode={settings.isQuietMode}
-          onComplete={() =>
-            setCurrentScene('village')
-          }
+          onComplete={() => setCurrentScene('village')}
         />
       )}
-
-      {/* ========================================================
-          SCENE 4 — VILLAGE
-      ======================================================== */}
 
       {currentScene === 'village' && (
         <>
           <VillageScene
             gender={gender}
             settings={settings}
-            stampedStations={
-              passportRecord.collectedStamps
-            }
+            stampedStations={passportRecord.collectedStamps}
             initialPos={playerVillagePos}
             onEnterStation={handleEnterStation}
             onResetPositionRef={(fn) => {
@@ -461,198 +334,114 @@ export default function App() {
               setCurrentScene('intro');
               setActiveStationId(null);
             }}
-            onOpenPassport={() =>
-              setIsPassportOpen(true)
-            }
-            onOpenSettings={() =>
-              setIsSettingsOpen(true)
-            }
-            isSoundEnabled={
-              settings.isSoundEnabled
-            }
-            onToggleSound={
-              handleToggleSound
-            }
-            stampedCount={
-              stampedCount
-            }
+            onOpenPassport={() => setIsPassportOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            isSoundEnabled={settings.isSoundEnabled}
+            onToggleSound={handleToggleSound}
+            stampedCount={stampedCount}
           />
         </>
       )}
 
-      {/* ========================================================
-          SCENE 5 — STATION INTERIOR
-      ======================================================== */}
+      {currentScene === 'station_interior' && activeStationId && (
+        <>
+          {activeStationId === 'souq' && (
+            <SouqScene
+              gender={gender}
+              settings={settings}
+              onReturnToVillage={handleReturnToVillage}
+            />
+          )}
 
-      {currentScene === 'station_interior' &&
-        activeStationId && (
-          <>
-            {/* ==============================
-                SOUQ LOWWAL
-            ============================== */}
+          {activeStationId === 'pearl' && (
+            <PearlScene
+              gender={gender}
+              settings={settings}
+              onReturnToVillage={handleReturnToVillage}
+              onComplete={() => handleStampStation('pearl')}
+            />
+          )}
 
-            {activeStationId === 'souq' && (
-              <SouqScene
+          {activeStationId === 'games' && (
+            <GamesScene
+              gender={gender}
+              settings={settings}
+              onReturnToVillage={handleReturnToVillage}
+              onComplete={() => handleStampStation('games')}
+            />
+          )}
+
+          {activeStationId === 'majlis' && (
+            <MajlisScene
+              gender={gender}
+              settings={settings}
+              onReturnToVillage={handleReturnToVillage}
+              onComplete={() => handleStampStation('majlis')}
+            />
+          )}
+
+          {activeStationId === 'crafts' && (
+            <CraftsScene
+              gender={gender}
+              settings={settings}
+              onReturnToVillage={handleReturnToVillage}
+              onComplete={() => handleStampStation('crafts')}
+            />
+          )}
+
+          {activeStationId === 'akkas' && (
+            <AkkasScene
+              gender={gender}
+              settings={settings}
+              studentName={studentName}
+              onReturnToVillage={handleReturnToVillage}
+              onComplete={() => handleStampStation('akkas')}
+            />
+          )}
+
+          {activeStationId !== 'souq' &&
+            activeStationId !== 'pearl' &&
+            activeStationId !== 'games' &&
+            activeStationId !== 'majlis' &&
+            activeStationId !== 'crafts' &&
+            activeStationId !== 'akkas' && (
+              <StationScene
+                station={STATIONS_DATA[activeStationId]}
                 gender={gender}
-                settings={settings}
-                onReturnToVillage={
-                  handleReturnToVillage
-                }
+                isStamped={passportRecord.collectedStamps[activeStationId]}
+                onStampPassport={(id) => handleStampStation(id as StationId)}
+                onReturnToVillage={handleReturnToVillage}
               />
             )}
+        </>
+      )}
 
-            {/* ==============================
-                PEARL SEA
-            ============================== */}
-
-            {activeStationId === 'pearl' && (
-              <PearlScene
-                gender={gender}
-                settings={settings}
-                onReturnToVillage={
-                  handleReturnToVillage
-                }
-                onComplete={() =>
-                  handleStampStation('pearl')
-                }
-              />
-            )}
-
-            {/* ==============================
-                FEREEJ GAMES
-            ============================== */}
-
-            {activeStationId === 'games' && (
-              <GamesScene
-                gender={gender}
-                settings={settings}
-                onReturnToVillage={
-                  handleReturnToVillage
-                }
-                onComplete={() =>
-                  handleStampStation('games')
-                }
-              />
-            )}
-
-            {/* ==============================
-                MAJLIS LOWWAL
-            ============================== */}
-
-            {activeStationId === 'majlis' && (
-              <MajlisScene
-                gender={gender}
-                settings={settings}
-                onReturnToVillage={
-                  handleReturnToVillage
-                }
-                onComplete={() =>
-                  handleStampStation('majlis')
-                }
-              />
-            )}
-
-            {/* ==============================
-                HOUSE OF CRAFTS
-            ============================== */}
-
-            {activeStationId === 'crafts' && (
-              <CraftsScene
-                gender={gender}
-                settings={settings}
-                onReturnToVillage={
-                  handleReturnToVillage
-                }
-                onComplete={() =>
-                  handleStampStation('crafts')
-                }
-              />
-            )}
-
-            {/* ==============================
-                AKKAS / QATAR LOWWAL STUDIO
-            ============================== */}
-
-            {activeStationId === 'akkas' && (
-              <AkkasScene
-                gender={gender}
-                settings={settings}
-                studentName={studentName}
-                onReturnToVillage={
-                  handleReturnToVillage
-                }
-                onComplete={() =>
-                  handleStampStation('akkas')
-                }
-              />
-            )}
-
-            {/* ==============================
-                OTHER STATIONS
-            ============================== */}
-
-            {activeStationId !== 'souq' &&
-              activeStationId !== 'pearl' &&
-              activeStationId !== 'games' &&
-              activeStationId !== 'majlis' &&
-              activeStationId !== 'crafts' &&
-              activeStationId !== 'akkas' && (
-                <StationScene
-                  station={
-                    STATIONS_DATA[
-                      activeStationId
-                    ]
-                  }
-                  gender={gender}
-                  isStamped={
-                    passportRecord
-                      .collectedStamps[
-                      activeStationId
-                    ]
-                  }
-                  onStampPassport={(id) =>
-                    handleStampStation(
-                      id as StationId
-                    )
-                  }
-                  onReturnToVillage={
-                    handleReturnToVillage
-                  }
-                />
-              )}
-          </>
-        )}
-
-      {/* ========================================================
-          PASSPORT
-      ======================================================== */}
+      {currentScene === 'finale' && (
+        <FinalCelebrationScene
+          passport={passportRecord}
+          gender={gender}
+          settings={settings}
+          onOpenPassport={() => setIsPassportOpen(true)}
+          onReturnToVillage={handleReturnFromFinale}
+          onStartNewJourney={handleStartNewJourney}
+        />
+      )}
 
       {isPassportOpen && (
         <PassportModal
           passport={passportRecord}
-          onClose={() =>
-            setIsPassportOpen(false)
-          }
-          onStampStation={
-            handleStampStation
-          }
+          onClose={() => setIsPassportOpen(false)}
+          onStampStation={handleStampStation}
         />
       )}
-
-      {/* ========================================================
-          SETTINGS
-      ======================================================== */}
 
       {isSettingsOpen && (
         <SettingsModal
           settings={settings}
           gender={gender}
-          onUpdateSettings={
-            handleUpdateSettings
-          }
+          onUpdateSettings={handleUpdateSettings}
           onChangeGender={(newGender) => {
             setGender(newGender);
-
             setPassportRecord((prev) => ({
               ...prev,
               gender: newGender,
@@ -665,15 +454,11 @@ export default function App() {
               direction: 'up',
             });
 
-            if (
-              resetPositionRef.current
-            ) {
+            if (resetPositionRef.current) {
               resetPositionRef.current();
             }
           }}
-          onClose={() =>
-            setIsSettingsOpen(false)
-          }
+          onClose={() => setIsSettingsOpen(false)}
         />
       )}
     </div>
