@@ -43,6 +43,23 @@ export const SouqDokanGlow: React.FC<SouqDokanGlowProps> = ({
   // Primary icon from first item
   const dokanIcon = spot.items[0]?.icon || '🏺';
 
+  const handleOpen = () => {
+    // Broadcast a lightweight event so the Souq progress tracker can count
+    // DISTINCT shops without coupling the original Souq scene to passport logic.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('qatar-lowwal:souq-hotspot-opened', {
+          detail: {
+            spotId: spot.id,
+            spotName: spot.name,
+          },
+        })
+      );
+    }
+
+    onOpen(spot);
+  };
+
   return (
     <div
       id={`dokan-hotspot-${spot.id}`}
@@ -180,7 +197,7 @@ export const SouqDokanGlow: React.FC<SouqDokanGlowProps> = ({
       {isNear && (
         <div className="absolute top-7 left-1/2 -translate-x-1/2 pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-200">
           <button
-            onClick={() => onOpen(spot)}
+            onClick={handleOpen}
             className="group relative flex items-center gap-2 bg-[#8A1538] hover:bg-[#6e102d] active:scale-95 text-[#FFE082] border-2 border-[#FFE082] px-5 py-2 rounded-full shadow-[0_4px_20px_rgba(138,21,56,0.65)] font-black text-sm transition-all cursor-pointer whitespace-nowrap"
             title={`تفضل بالدخول إلى ${spot.name}`}
             aria-label={`تصفح معروضات ${spot.name}`}
