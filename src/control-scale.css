@@ -4,7 +4,7 @@
    عدّل هذا الملف فقط لتكبير/تصغير أدوات التحكم في المشروع.
 
    أهم القيم:
-   --ql-dpad-scale      : مقياس لوحة الأسهم وزر الدخول (2 = الضعف)
+   --ql-dpad-scale      : مقياس لوحة الأسهم وزر الدخول
    --ql-controls-scale  : مقياس عام لأدوات التحكم
    --ql-hud-scale       : شريط التحكم العلوي
    --ql-dpad-size       : حجم لوحة الاتجاهات في المحطات الأخرى
@@ -13,8 +13,8 @@
    ============================================================= */
 
 :root {
-  --ql-dpad-scale: 2;
-  --ql-controls-scale: 2;
+  --ql-dpad-scale: 1.25;
+  --ql-controls-scale: 1.25;
   --ql-hud-scale: 1;
   --ql-dpad-size: 138px;
   --ql-dpad-button: 44px;
@@ -27,9 +27,10 @@
   transform-origin: top left;
 }
 
-/* Village / shared D-pad (لوحة الأسهم وزر ادخل) - تكبير الضعف */
-#compact-touch-dpad {
-  transform: scale(var(--ql-dpad-scale, 2));
+/* Village + Souq D-pads */
+#compact-touch-dpad,
+#souq-touch-dpad {
+  transform: scale(var(--ql-dpad-scale));
   transform-origin: bottom left;
 }
 
@@ -56,8 +57,8 @@
 /* Small phones */
 @media (max-width: 479px) {
   :root {
-    --ql-dpad-scale: 1.85;
-    --ql-controls-scale: 1.85;
+    --ql-dpad-scale: 1.05;
+    --ql-controls-scale: 1.05;
     --ql-hud-scale: 0.92;
     --ql-dpad-size: 108px;
     --ql-dpad-button: 34px;
@@ -68,8 +69,8 @@
 /* Large phones */
 @media (min-width: 480px) and (max-width: 767px) {
   :root {
-    --ql-dpad-scale: 2;
-    --ql-controls-scale: 2;
+    --ql-dpad-scale: 1.10;
+    --ql-controls-scale: 1.10;
     --ql-hud-scale: 0.96;
     --ql-dpad-size: 118px;
     --ql-dpad-button: 38px;
@@ -80,8 +81,8 @@
 /* Tablets */
 @media (min-width: 768px) and (max-width: 1199px) {
   :root {
-    --ql-dpad-scale: 2;
-    --ql-controls-scale: 2;
+    --ql-dpad-scale: 1.15;
+    --ql-controls-scale: 1.15;
     --ql-hud-scale: 1;
     --ql-dpad-size: 128px;
     --ql-dpad-button: 41px;
@@ -92,9 +93,9 @@
 /* Desktop / laptop */
 @media (min-width: 1200px) and (max-width: 1599px) {
   :root {
-    --ql-dpad-scale: 2;
-    --ql-controls-scale: 2;
-    --ql-hud-scale: 1.1;
+    --ql-dpad-scale: 1.25;
+    --ql-controls-scale: 1.25;
+    --ql-hud-scale: 1.05;
     --ql-dpad-size: 138px;
     --ql-dpad-button: 44px;
     --ql-touch-target: 44px;
@@ -104,9 +105,9 @@
 /* Smart board / large display */
 @media (min-width: 1600px) and (max-width: 2199px) {
   :root {
-    --ql-dpad-scale: 2.2;
-    --ql-controls-scale: 2.2;
-    --ql-hud-scale: 1.15;
+    --ql-dpad-scale: 1.45;
+    --ql-controls-scale: 1.45;
+    --ql-hud-scale: 1.10;
     --ql-dpad-size: 154px;
     --ql-dpad-button: 50px;
     --ql-touch-target: 50px;
@@ -116,9 +117,9 @@
 /* 4K / very large interactive display */
 @media (min-width: 2200px) {
   :root {
-    --ql-dpad-scale: 2.4;
-    --ql-controls-scale: 2.4;
-    --ql-hud-scale: 1.25;
+    --ql-dpad-scale: 1.60;
+    --ql-controls-scale: 1.60;
+    --ql-hud-scale: 1.16;
     --ql-dpad-size: 170px;
     --ql-dpad-button: 56px;
     --ql-touch-target: 56px;
@@ -128,8 +129,8 @@
 /* Landscape phone: keep controls compact vertically */
 @media (max-height: 520px) and (orientation: landscape) {
   :root {
-    --ql-dpad-scale: 1.5;
-    --ql-controls-scale: 1.5;
+    --ql-dpad-scale: 0.95;
+    --ql-controls-scale: 0.95;
     --ql-hud-scale: 0.86;
     --ql-dpad-size: 96px;
     --ql-dpad-button: 30px;
