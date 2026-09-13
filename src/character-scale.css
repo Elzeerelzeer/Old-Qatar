@@ -30,7 +30,7 @@
 /* Tablets */
 @media (min-width: 768px) and (max-width: 1199px) {
   :root {
-    --ql-character-scale: 1.12;
+    --ql-character-scale: 1.18;
   }
 }
 
@@ -44,14 +44,14 @@
 /* Large screens / smart boards */
 @media (min-width: 1600px) and (max-width: 2199px) {
   :root {
-    --ql-character-scale: 1.18;
+    --ql-character-scale: 1.58;
   }
 }
 
 /* 4K displays */
 @media (min-width: 2200px) {
   :root {
-    --ql-character-scale: 1.24;
+    --ql-character-scale: 1.68;
   }
 }
 
