@@ -49,7 +49,7 @@ const createJourneyDate = () =>
   });
 
 export default function App() {
-  const [currentScene, setCurrentScene] = useState<GameScene>('village');
+  const [currentScene, setCurrentScene] = useState<GameScene>('intro');
   const [activeStationId, setActiveStationId] = useState<StationId | null>(null);
   const [isFading, setIsFading] = useState(false);
 
@@ -96,21 +96,51 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
 
-        if (parsed.gender) setGender(parsed.gender);
-        if (parsed.studentName) setStudentName(parsed.studentName);
-        if (parsed.passport) setPassportRecord(parsed.passport);
-        if (typeof parsed.finaleSeen === 'boolean') setFinaleSeen(parsed.finaleSeen);
+        if (parsed.gender) {
+          setGender(parsed.gender);
+        }
+
+        if (parsed.studentName) {
+          setStudentName(parsed.studentName);
+        }
+
+        if (parsed.passport) {
+          setPassportRecord((previous) => ({
+            ...previous,
+            ...parsed.passport,
+            collectedStamps: {
+              ...createEmptyStamps(),
+              ...(parsed.passport.collectedStamps ?? {}),
+            },
+            studentName:
+              parsed.passport.studentName ||
+              parsed.studentName ||
+              previous.studentName,
+            gender:
+              parsed.passport.gender ||
+              parsed.gender ||
+              previous.gender,
+            journeyStartDate:
+              parsed.passport.journeyStartDate ||
+              previous.journeyStartDate,
+          }));
+        }
+
+        if (typeof parsed.finaleSeen === 'boolean') {
+          setFinaleSeen(parsed.finaleSeen);
+        }
 
         if (parsed.settings) {
           setSettings((prev) => ({
             ...prev,
             ...parsed.settings,
+            // Browser policy: start muted until the visitor enables audio.
             isSoundEnabled: false,
           }));
         }
       }
     } catch {
-      // Ignore corrupted save data.
+      // Ignore corrupted save data and continue with safe defaults.
     } finally {
       setSaveLoaded(true);
     }
@@ -195,24 +225,39 @@ export default function App() {
     }));
   };
 
-  const stampedCount = Object.values(passportRecord.collectedStamps).filter(Boolean).length;
+  const stampedCount = Object.values(
+    passportRecord.collectedStamps
+  ).filter(Boolean).length;
 
   useEffect(() => {
-    if (!saveLoaded || finaleSeen || stampedCount !== 6 || currentScene !== 'village') {
+    if (
+      !saveLoaded ||
+      finaleSeen ||
+      stampedCount !== 6 ||
+      currentScene !== 'village'
+    ) {
       return;
     }
+
+    let sceneTimer: number | null = null;
 
     const revealTimer = window.setTimeout(() => {
       setIsFading(true);
 
-      window.setTimeout(() => {
+      sceneTimer = window.setTimeout(() => {
         setCurrentScene('finale');
         setActiveStationId(null);
         setIsFading(false);
       }, 280);
     }, 700);
 
-    return () => window.clearTimeout(revealTimer);
+    return () => {
+      window.clearTimeout(revealTimer);
+
+      if (sceneTimer !== null) {
+        window.clearTimeout(sceneTimer);
+      }
+    };
   }, [saveLoaded, finaleSeen, stampedCount, currentScene]);
 
   const handleEnterStation = (id: StationId) => {
@@ -251,6 +296,7 @@ export default function App() {
 
   const handleStartNewJourney = () => {
     setFinaleSeen(false);
+
     setPassportRecord((prev) => ({
       ...prev,
       collectedStamps: createEmptyStamps(),
@@ -433,6 +479,7 @@ export default function App() {
           onUpdateSettings={handleUpdateSettings}
           onChangeGender={(newGender) => {
             setGender(newGender);
+
             setPassportRecord((prev) => ({
               ...prev,
               gender: newGender,
