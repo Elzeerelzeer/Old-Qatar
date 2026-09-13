@@ -33,15 +33,15 @@ export const IntroScene: React.FC<IntroSceneProps> = ({
       </div>
 
       {/* Top Header Controls: Sound & Accessibility */}
-      <header className="relative z-20 w-full max-w-5xl flex items-center justify-between pt-2">
+      <header className="relative z-20 w-full max-w-5xl flex flex-wrap items-center justify-between gap-3 pt-2">
         {/* National Flag & Badge */}
-        <div className="flex items-center gap-3 bg-[#24150e]/80 border border-[#d49b4b]/30 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
-          <div className="w-6 h-4 rounded-sm overflow-hidden flex shadow border border-white/20">
+        <div className="flex items-center gap-2.5 sm:gap-3 bg-[#24150e]/85 border border-[#d49b4b]/30 backdrop-blur-md px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-lg">
+          <div className="w-6 h-4 rounded-sm overflow-hidden flex shadow border border-white/20 shrink-0">
             <div className="w-1/3 bg-white" />
             <div className="w-2/3 bg-[#8A1538]" />
           </div>
           <span className="text-xs sm:text-sm font-bold text-[#E6C280] tracking-wide">
-            دولة قطر • مركز الشفلح للأشخاص ذوي الإعاقة
+            دولة قطر • فعالية قطر لوّل
           </span>
         </div>
 

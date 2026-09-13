@@ -278,11 +278,6 @@ export function AkkasScene({
     [selectedScene]
   );
 
-  const visitorLabel = gender === 'boy' ? 'المنتسب' : 'المنتسبة';
-  const visitorName =
-    studentName.trim() ||
-    (gender === 'boy' ? 'منتسب قطر لوّل' : 'منتسبة قطر لوّل');
-
   const applySceneDefaults = (scene: SceneOption) => {
     setImageZoom(scene.defaultZoom);
     setImageOffsetX(scene.defaultOffsetX);
@@ -510,28 +505,6 @@ export function AkkasScene({
       );
       ctx.stroke();
 
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.direction = 'rtl';
-
-      ctx.fillStyle = 'rgba(32,17,10,.82)';
-      ctx.fillRect(PHOTO_WIDTH / 2 - 260, 18, 520, 70);
-      ctx.fillStyle = '#FFE082';
-      ctx.font = 'bold 34px Arial, sans-serif';
-      ctx.fillText(currentScene.title, PHOTO_WIDTH / 2, 52);
-
-      ctx.fillStyle = 'rgba(20,10,6,.72)';
-      ctx.fillRect(slotX, slotY + slotHeight - 54, slotWidth, 54);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 25px Arial, sans-serif';
-      ctx.fillText(visitorName, slotX + slotWidth / 2, slotY + slotHeight - 27);
-
-      ctx.fillStyle = 'rgba(20,10,6,.75)';
-      ctx.fillRect(PHOTO_WIDTH / 2 - 320, PHOTO_HEIGHT - 64, 640, 42);
-      ctx.fillStyle = '#FFE082';
-      ctx.font = 'bold 22px Arial, sans-serif';
-      ctx.fillText('استوديو قطر لوّل • صورة من قلب النشاط', PHOTO_WIDTH / 2, PHOTO_HEIGHT - 43);
-
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob(resolve, 'image/png', 0.95)
       );
@@ -690,14 +663,6 @@ export function AkkasScene({
                   )}
 
                   <div className="absolute inset-2 rounded-[inherit] border border-dashed border-white/45 pointer-events-none" />
-
-                  <div className="absolute top-0 inset-x-0 bg-black/55 py-1 text-center text-[10px] sm:text-xs font-bold pointer-events-none">
-                    ضع الرأس هنا
-                  </div>
-
-                  <div className="absolute bottom-0 inset-x-0 bg-black/60 py-1.5 text-center text-[10px] sm:text-xs font-bold pointer-events-none">
-                    {visitorLabel}
-                  </div>
                 </div>
 
                 {!isCameraReady && !uploadedUrl && !cameraError && (

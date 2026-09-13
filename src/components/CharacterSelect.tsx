@@ -5,13 +5,24 @@ import { Check, ArrowRight, UserCheck } from 'lucide-react';
 import { soundManager } from '../services/soundEffects';
 
 interface CharacterSelectProps {
+  initialName?: string;
+  initialGender?: CharacterGender;
   onSelect: (gender: CharacterGender, name: string) => void;
   onBack: () => void;
 }
 
-export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBack }) => {
-  const [selectedGender, setSelectedGender] = useState<CharacterGender>('boy');
-  const [studentName, setStudentName] = useState<string>('');
+export const CharacterSelect: React.FC<CharacterSelectProps> = ({
+  initialName = '',
+  initialGender = 'boy',
+  onSelect,
+  onBack,
+}) => {
+  const [selectedGender, setSelectedGender] = useState<CharacterGender>(initialGender);
+  const [studentName, setStudentName] = useState<string>(
+    initialName && initialName !== 'منتسب قطري' && initialName !== 'منتسبة قطرية'
+      ? initialName
+      : ''
+  );
 
   const handleGenderChoose = (gender: CharacterGender) => {
     setSelectedGender(gender);
@@ -19,7 +30,8 @@ export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBa
   };
 
   const handleConfirm = () => {
-    const finalName = studentName.trim() || (selectedGender === 'boy' ? 'طالب قطري' : 'طالبة قطرية');
+    const trimmed = studentName.trim();
+    const finalName = trimmed || (selectedGender === 'boy' ? 'منتسب قطري' : 'منتسبة قطرية');
     soundManager.playSuccess();
     onSelect(selectedGender, finalName);
   };
@@ -86,7 +98,7 @@ export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBa
               شخصية الولد
             </h3>
             <p className="text-sm text-[#E6C280] font-semibold mb-3">
-              طالب قطري
+              منتسب قطري
             </p>
 
             {/* Attire Features Checklist */}
@@ -139,7 +151,7 @@ export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBa
               شخصية البنت
             </h3>
             <p className="text-sm text-[#E6C280] font-semibold mb-3">
-              طالبة قطرية
+              منتسبة قطرية
             </p>
 
             {/* Attire Features Checklist */}
@@ -162,17 +174,21 @@ export const CharacterSelect: React.FC<CharacterSelectProps> = ({ onSelect, onBa
 
         {/* Optional Student Name Input for Passport */}
         <div className="w-full max-w-md bg-[#24140b] p-4 rounded-2xl border border-[#d49b4b]/30 mb-6 text-right">
-          <label htmlFor="student-name-input" className="block text-xs sm:text-sm font-bold text-[#E6C280] mb-2">
-            اسم المنتسب (يكتب على جواز قطر لوّل):
+          <label htmlFor="student-name-input" className="block text-xs sm:text-sm font-bold text-[#E6C280] mb-1.5">
+            اسم المنتسب (يكتب تلقائياً على جواز قطر لوّل والشهادة):
           </label>
           <input
             id="student-name-input"
             type="text"
             value={studentName}
             onChange={(e) => setStudentName(e.target.value)}
-            placeholder={selectedGender === 'boy' ? 'مثال: جاسم القطري' : 'مثال: مريم القطرية'}
+            placeholder={selectedGender === 'boy' ? 'مثال: جاسم القطري (أو اتركه للافتراضي)' : 'مثال: مريم القطرية (أو اتركه للافتراضي)'}
             className="w-full bg-[#150a04] border border-[#5a331c] rounded-xl px-4 py-3 text-base text-[#FAF5EA] placeholder-[#7d5f49] focus:outline-none focus:border-[#E6C280]"
           />
+          <p className="text-[11px] text-[#cca583] mt-2 flex items-center gap-1">
+            <span>📅</span>
+            <span>يتم تسجيل تاريخ البدء تلقائياً اليوم في الجواز، ويمكنك تعديل الاسم لاحقاً من الجواز أو الإعدادات.</span>
+          </p>
         </div>
 
         {/* Confirm Button */}

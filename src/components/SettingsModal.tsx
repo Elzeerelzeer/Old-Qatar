@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameSettings, CharacterGender } from '../types';
-import { X, Volume2, VolumeX, ShieldCheck, Gauge, User, Sliders, RotateCcw } from 'lucide-react';
+import { X, Volume2, VolumeX, ShieldCheck, Gauge, User, Sliders, RotateCcw, UserCheck, Check } from 'lucide-react';
 import { soundManager } from '../services/soundEffects';
 
 interface SettingsModalProps {
   settings: GameSettings;
   gender: CharacterGender;
+  studentName?: string;
   onUpdateSettings: (newSettings: Partial<GameSettings>) => void;
   onChangeGender: (gender: CharacterGender) => void;
+  onChangeName?: (name: string) => void;
   onResetPosition: () => void;
   onClose: () => void;
 }
@@ -15,11 +17,28 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   gender,
+  studentName = 'منتسب قطري',
   onUpdateSettings,
   onChangeGender,
+  onChangeName,
   onResetPosition,
   onClose,
 }) => {
+  const [nameInput, setNameInput] = useState(studentName);
+  const [nameSaved, setNameSaved] = useState(false);
+
+  useEffect(() => {
+    setNameInput(studentName);
+  }, [studentName]);
+
+  const handleSaveName = () => {
+    if (onChangeName && nameInput.trim()) {
+      onChangeName(nameInput.trim());
+      soundManager.playSuccess();
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 2000);
+    }
+  };
   const handleToggleSound = () => {
     const next = !settings.isSoundEnabled;
     onUpdateSettings({ isSoundEnabled: next });
@@ -247,6 +266,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }`}
               >
                 <span>👧 بنت</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 5. اسم المنتسب (Participant Name in Passport) */}
+          <div className="p-5 rounded-2xl bg-[#180d06] border border-[#4a2612] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <UserCheck className="w-6 h-6 text-[#E6C280]" />
+              <div>
+                <h4 className="text-base font-black text-[#FFF4D4]">
+                  اسم المنتسب في الجواز
+                </h4>
+                <p className="text-xs text-[#ab927e]">
+                  الاسم المكتوب على جواز سفر قطر لوّل وشهادة الإنجاز
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full sm:w-auto flex items-center gap-2">
+              <input
+                id="settings-student-name-input"
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveName();
+                }}
+                placeholder="أدخل اسم المنتسب..."
+                className="w-full sm:w-48 bg-[#2b170c] border border-[#5e3419] rounded-xl px-3 py-2 text-sm text-[#FAF5EA] focus:outline-none focus:border-[#E6C280]"
+              />
+              <button
+                id="settings-save-name-btn"
+                onClick={handleSaveName}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#8A1538] border border-[#E6C280] text-white hover:bg-[#ab1a45] transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+              >
+                {nameSaved ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>تم الحفظ</span>
+                  </>
+                ) : (
+                  <span>حفظ الاسم</span>
+                )}
               </button>
             </div>
           </div>

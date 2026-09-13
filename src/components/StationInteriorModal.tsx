@@ -166,7 +166,7 @@ export const StationInteriorModal: React.FC<StationInteriorModalProps> = ({
         {/* Bottom Footer Bar */}
         <div className="p-4 sm:p-5 bg-[#170c07] border-t border-[#E6C280]/20 flex items-center justify-between">
           <span className="text-xs text-[#a8907a]">
-            المنتسب: {gender === 'boy' ? 'طالب قطري بالثوب والغترة' : 'طالبة قطرية بالبخنق التراثي'}
+            المنتسب: {gender === 'boy' ? 'منتسب قطري بالثوب والغترة' : 'منتسبة قطرية بالبخنق التراثي'}
           </span>
           <button
             id="interior-modal-close-bottom-btn"

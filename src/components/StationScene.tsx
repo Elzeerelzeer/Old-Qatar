@@ -136,7 +136,7 @@ export const StationScene: React.FC<StationSceneProps> = ({
       {/* Footer Info */}
       <footer className="relative z-10 w-full max-w-4xl mx-auto flex items-center justify-between text-xs text-[#a38c76] pb-2">
         <span>قرية قطر لوّل التراثية • {station.title}</span>
-        <span>الزائر: {gender === 'boy' ? 'طالب قطري' : 'طالبة قطرية'}</span>
+        <span>الزائر: {gender === 'boy' ? 'منتسب قطري' : 'منتسبة قطرية'}</span>
       </footer>
     </main>
   );

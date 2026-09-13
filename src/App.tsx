@@ -64,7 +64,7 @@ export default function App() {
   });
 
   const [gender, setGender] = useState<CharacterGender>('boy');
-  const [studentName, setStudentName] = useState<string>('طالب قطري');
+  const [studentName, setStudentName] = useState<string>('منتسب قطري');
 
   const [isPassportOpen, setIsPassportOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -73,7 +73,7 @@ export default function App() {
 
   const [passportRecord, setPassportRecord] = useState<PassportRecord>({
     collectedStamps: createEmptyStamps(),
-    studentName: 'طالب قطري',
+    studentName: 'منتسب قطري',
     gender: 'boy',
     journeyStartDate: createJourneyDate(),
   });
@@ -207,26 +207,55 @@ export default function App() {
     selectedGender: CharacterGender,
     name: string
   ) => {
+    const trimmedName =
+      name.trim() || (selectedGender === 'boy' ? 'منتسب قطري' : 'منتسبة قطرية');
+    const today = createJourneyDate();
+
     setGender(selectedGender);
-    setStudentName(name);
+    setStudentName(trimmedName);
 
     setPassportRecord((prev) => ({
       ...prev,
       gender: selectedGender,
-      studentName: name,
+      studentName: trimmedName,
+      journeyStartDate: today,
     }));
 
     setCurrentScene('gate_opening');
   };
 
-  const handleStampStation = (stationId: StationId) => {
+  const handleUpdateStudentName = (newName: string) => {
+    const trimmed = newName.trim();
+    const finalName =
+      trimmed || (gender === 'boy' ? 'منتسب قطري' : 'منتسبة قطرية');
+
+    setStudentName(finalName);
     setPassportRecord((prev) => ({
       ...prev,
-      collectedStamps: {
-        ...prev.collectedStamps,
-        [stationId]: true,
-      },
+      studentName: finalName,
     }));
+  };
+
+  const handleUpdateStartDate = (newDate?: string) => {
+    const dateToSet = newDate || createJourneyDate();
+    setPassportRecord((prev) => ({
+      ...prev,
+      journeyStartDate: dateToSet,
+    }));
+  };
+
+  const handleStampStation = (stationId: StationId) => {
+    setPassportRecord((prev) => {
+      const today = createJourneyDate();
+      return {
+        ...prev,
+        collectedStamps: {
+          ...prev.collectedStamps,
+          [stationId]: true,
+        },
+        journeyStartDate: prev.journeyStartDate || today,
+      };
+    });
   };
 
   const stampedCount = Object.values(
@@ -342,6 +371,8 @@ export default function App() {
 
       {currentScene === 'character_select' && (
         <CharacterSelect
+          initialName={studentName}
+          initialGender={gender}
           onSelect={handleCharacterSelect}
           onBack={() => setCurrentScene('intro')}
         />
@@ -473,6 +504,8 @@ export default function App() {
           passport={passportRecord}
           onClose={() => setIsPassportOpen(false)}
           onStampStation={handleStampStation}
+          onUpdateName={handleUpdateStudentName}
+          onUpdateStartDate={handleUpdateStartDate}
         />
       )}
 
@@ -480,15 +513,31 @@ export default function App() {
         <SettingsModal
           settings={settings}
           gender={gender}
+          studentName={studentName}
           onUpdateSettings={handleUpdateSettings}
           onChangeGender={(newGender) => {
             setGender(newGender);
 
+            // If using default name, keep it synchronized with selected gender
+            setStudentName((prevName) => {
+              if (prevName === 'منتسب قطري' || prevName === 'منتسبة قطرية') {
+                return newGender === 'boy' ? 'منتسب قطري' : 'منتسبة قطرية';
+              }
+              return prevName;
+            });
+
             setPassportRecord((prev) => ({
               ...prev,
               gender: newGender,
+              studentName:
+                prev.studentName === 'منتسب قطري' || prev.studentName === 'منتسبة قطرية'
+                  ? newGender === 'boy'
+                    ? 'منتسب قطري'
+                    : 'منتسبة قطرية'
+                  : prev.studentName,
             }));
           }}
+          onChangeName={handleUpdateStudentName}
           onResetPosition={() => {
             setPlayerVillagePos({
               x: 50,

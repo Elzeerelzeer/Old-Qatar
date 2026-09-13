@@ -1,24 +1,58 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PassportRecord, StationId } from '../types';
 import { CharacterAvatar } from './CharacterAvatar';
 import { STATIONS_DATA } from '../data/stationsData';
-import { X, Award, Sparkles } from 'lucide-react';
+import { X, Award, Sparkles, Edit3, Check, RotateCw } from 'lucide-react';
 import { soundManager } from '../services/soundEffects';
 
 interface PassportModalProps {
   passport: PassportRecord;
   onClose: () => void;
   onStampStation?: (stationId: StationId) => void;
+  onUpdateName?: (name: string) => void;
+  onUpdateStartDate?: (date: string) => void;
 }
 
-export const PassportModal: React.FC<PassportModalProps> = ({ passport, onClose }) => {
+export const PassportModal: React.FC<PassportModalProps> = ({
+  passport,
+  onClose,
+  onUpdateName,
+  onUpdateStartDate,
+}) => {
   const stationList: StationId[] = ['souq', 'pearl', 'games', 'majlis', 'crafts', 'akkas'];
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(passport.studentName);
+
+  useEffect(() => {
+    setNameInput(passport.studentName);
+  }, [passport.studentName]);
 
   const stampedCount = Object.values(passport.collectedStamps).filter(Boolean).length;
 
   const handleClose = () => {
     soundManager.playClick();
     onClose();
+  };
+
+  const handleSaveName = () => {
+    const trimmed = nameInput.trim();
+    if (trimmed && onUpdateName) {
+      onUpdateName(trimmed);
+      soundManager.playSuccess();
+    }
+    setIsEditingName(false);
+  };
+
+  const handleAutoRefreshDate = () => {
+    const today = new Date().toLocaleDateString('ar-QA', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    if (onUpdateStartDate) {
+      onUpdateStartDate(today);
+      soundManager.playSuccess();
+    }
   };
 
   return (
@@ -82,19 +116,97 @@ export const PassportModal: React.FC<PassportModalProps> = ({ passport, onClose 
               </div>
 
               {/* Identification Details */}
-              <div className="w-full space-y-2 text-xs">
-                <div className="flex justify-between border-b border-[#d6be9a]/70 pb-1">
-                  <span className="text-[#7d5f49] font-bold">الاسم:</span>
-                  <span className="font-black text-[#2c1810] text-sm">{passport.studentName}</span>
-                </div>
+              <div className="w-full space-y-2.5 text-xs">
+                {/* Editable Name Field */}
+                {isEditingName ? (
+                  <div className="border-b border-[#d6be9a]/70 pb-2 bg-[#ecd9be]/40 p-2 rounded-lg">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[#7d5f49] font-bold">الاسم:</span>
+                      <span className="text-[10px] text-[#8A1538] font-semibold">تعديل اسم المنتسب</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        id="passport-edit-name-input"
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        placeholder="أدخل اسم المنتسب..."
+                        className="flex-1 bg-white border border-[#8A1538] text-[#2c1810] font-bold px-2.5 py-1 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#8A1538]"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveName();
+                          if (e.key === 'Escape') setIsEditingName(false);
+                        }}
+                      />
+                      <button
+                        id="passport-save-name-btn"
+                        onClick={handleSaveName}
+                        className="bg-[#8A1538] text-white px-2.5 py-1 rounded text-xs font-bold hover:bg-[#a01a42] flex items-center gap-1 transition-colors cursor-pointer"
+                        title="حفظ الاسم"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>حفظ</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setNameInput(passport.studentName);
+                          setIsEditingName(false);
+                        }}
+                        className="bg-[#dccbbb] text-[#543b27] px-2 py-1 rounded text-xs font-semibold hover:bg-[#cfbdab] transition-colors cursor-pointer"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between border-b border-[#d6be9a]/70 pb-1.5">
+                    <span className="text-[#7d5f49] font-bold">الاسم:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-[#2c1810] text-sm">{passport.studentName}</span>
+                      {onUpdateName && (
+                        <button
+                          id="passport-open-edit-name-btn"
+                          onClick={() => {
+                            setNameInput(passport.studentName);
+                            setIsEditingName(true);
+                          }}
+                          className="text-[#8A1538] hover:text-[#a01a42] text-[11px] font-bold flex items-center gap-1 bg-[#8A1538]/10 hover:bg-[#8A1538]/20 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                          title="انقر لتعديل الاسم في الجواز"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>تعديل</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-between border-b border-[#d6be9a]/70 pb-1">
                   <span className="text-[#7d5f49] font-bold">الصفة:</span>
                   <span className="font-bold text-[#8A1538]">سفير تراث قطر لوّل</span>
                 </div>
-                <div className="flex justify-between border-b border-[#d6be9a]/70 pb-1">
+
+                {/* Start Date Field with Auto-Update */}
+                <div className="flex items-center justify-between border-b border-[#d6be9a]/70 pb-1">
                   <span className="text-[#7d5f49] font-bold">تاريخ البدء:</span>
-                  <span className="font-mono text-[#3d2011]">{passport.journeyStartDate}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-[#3d2011] font-semibold">
+                      {passport.journeyStartDate || new Date().toLocaleDateString('ar-QA', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
+                    {onUpdateStartDate && (
+                      <button
+                        id="passport-auto-refresh-date-btn"
+                        onClick={handleAutoRefreshDate}
+                        className="text-[#8A1538] hover:text-[#a01a42] text-[10px] font-bold flex items-center gap-1 bg-[#8A1538]/10 hover:bg-[#8A1538]/20 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                        title="تحديث تلقائي لتاريخ اليوم"
+                      >
+                        <RotateCw className="w-2.5 h-2.5" />
+                        <span>اليوم</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
+
                 <div className="flex justify-between">
                   <span className="text-[#7d5f49] font-bold">الأختام المجمعة:</span>
                   <span className="font-bold text-[#8A1538] text-sm">{stampedCount} من 6</span>
