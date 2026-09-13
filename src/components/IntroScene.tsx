@@ -41,7 +41,7 @@ export const IntroScene: React.FC<IntroSceneProps> = ({
             <div className="w-2/3 bg-[#8A1538]" />
           </div>
           <span className="text-xs sm:text-sm font-bold text-[#E6C280] tracking-wide">
-            دولة قطر • وزارة التربية والتعليم
+            دولة قطر • مركز الشفلح للأشخاص ذوي الإعاقة
           </span>
         </div>
 
