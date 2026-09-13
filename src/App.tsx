@@ -16,7 +16,7 @@ import { CharacterSelect } from './components/CharacterSelect';
 import { GateOpeningScene } from './components/GateOpeningScene';
 import { VillageScene } from './components/VillageScene';
 import { StationScene } from './components/StationScene';
-import { SouqScene } from './components/SouqScene';
+import { SouqSceneWithProgress } from './components/SouqSceneWithProgress';
 import { PearlScene } from './components/PearlScene';
 import { GamesScene } from './components/GamesScene';
 import { MajlisScene } from './components/MajlisScene';
@@ -234,15 +234,6 @@ export default function App() {
   };
 
   const handleReturnToVillage = () => {
-    /*
-      Souq currently has no onComplete callback in its component.
-      Register its stamp when the visitor finishes the visit and returns.
-      The other five stations continue to stamp through their own completion flows.
-    */
-    if (activeStationId === 'souq' && !passportRecord.collectedStamps.souq) {
-      handleStampStation('souq');
-    }
-
     setIsFading(true);
 
     window.setTimeout(() => {
@@ -344,10 +335,12 @@ export default function App() {
       {currentScene === 'station_interior' && activeStationId && (
         <>
           {activeStationId === 'souq' && (
-            <SouqScene
+            <SouqSceneWithProgress
               gender={gender}
               settings={settings}
+              isStamped={passportRecord.collectedStamps.souq}
               onReturnToVillage={handleReturnToVillage}
+              onComplete={() => handleStampStation('souq')}
             />
           )}
 
