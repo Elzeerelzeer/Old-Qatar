@@ -24,7 +24,7 @@ export interface StationData {
   subtitle: string;
   description: string;
   icon: string;
-  x: number; // Isometric/canvas coordinates (percentage or grid units)
+  x: number;
   y: number;
   width: number;
   height: number;
@@ -56,10 +56,10 @@ export interface PlayerPosition {
 }
 
 export interface GameSettings {
-  isQuietMode: boolean; // الوضع الهادئ
+  isQuietMode: boolean;
   isSoundEnabled: boolean;
-  volume: number; // 0 to 1
-  walkSpeed: 'calm' | 'normal'; // calm for accessibility
+  volume: number;
+  walkSpeed: 'calm' | 'normal';
   highContrast: boolean;
   dpadSize: 'medium' | 'large';
 }
