@@ -205,13 +205,11 @@ export default function App() {
     const revealTimer = window.setTimeout(() => {
       setIsFading(true);
 
-      const sceneTimer = window.setTimeout(() => {
+      window.setTimeout(() => {
         setCurrentScene('finale');
         setActiveStationId(null);
         setIsFading(false);
       }, 280);
-
-      return () => window.clearTimeout(sceneTimer);
     }, 700);
 
     return () => window.clearTimeout(revealTimer);
