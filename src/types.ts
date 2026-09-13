@@ -1,18 +1,19 @@
 export type CharacterGender = 'boy' | 'girl';
 
-export type GameScene = 
-  | 'intro' 
-  | 'character_select' 
-  | 'gate_opening' 
-  | 'village' 
-  | 'station_interior';
+export type GameScene =
+  | 'intro'
+  | 'character_select'
+  | 'gate_opening'
+  | 'village'
+  | 'station_interior'
+  | 'finale';
 
-export type StationId = 
-  | 'souq' 
-  | 'pearl' 
-  | 'games' 
-  | 'majlis' 
-  | 'crafts' 
+export type StationId =
+  | 'souq'
+  | 'pearl'
+  | 'games'
+  | 'majlis'
+  | 'crafts'
   | 'akkas';
 
 export type Direction = 'down' | 'up' | 'left' | 'right';
